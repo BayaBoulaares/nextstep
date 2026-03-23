@@ -45,6 +45,20 @@ jobs:
           severity: HIGH,CRITICAL
           exit-code: 0
 
+  sast-frontend:
+    name: Semgrep — Next.js SAST
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep React scan
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/react
+            p/javascript
+            p/typescript
+            p/owasp-top-ten
+
   sast-backend:
     name: SonarCloud Analysis
     runs-on: ubuntu-latest
