@@ -1,6 +1,5 @@
 package com.nextstep.service;
 
-
 import com.nextstep.dto.DeploymentDTO;
 import com.nextstep.dto.DeploymentRequest;
 import com.nextstep.entity.*;
@@ -15,6 +14,10 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * MODIFICATION : operatingSystem passe de String à OperatingSystem (enum).
+ * Dans toDTO() : on expose aussi operatingSystemLabel (le label lisible).
+ */
 @Service
 @RequiredArgsConstructor
 @Transactional
@@ -26,74 +29,31 @@ public class DeploymentService {
     private final RegionRepository     regionRepository;
     private final UserRepository       userRepository;
 
-    // ── Lister les déploiements d'un utilisateur ──────────────────────────────
     @Transactional(readOnly = true)
     public List<DeploymentDTO> getByUser(UUID userId) {
         return deploymentRepository.findByUserId(userId)
                 .stream().map(this::toDTO).toList();
     }
 
-    // ── Détail d'un déploiement ───────────────────────────────────────────────
     @Transactional(readOnly = true)
     public DeploymentDTO getById(Long id) {
         return toDTO(findOrThrow(id));
     }
 
-    // ── Créer un déploiement (tunnel étape 1-2) ───────────────────────────────
-    /*public DeploymentDTO create(UUID userId, DeploymentRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable : " + userId));
-
-        Plan plan = planRepository.findById(request.getPlanId())
-                .orElseThrow(() -> new EntityNotFoundException("Plan introuvable : " + request.getPlanId()));
-
-        Project project = projectRepository.findById(request.getProjectId())
-                .orElseThrow(() -> new EntityNotFoundException("Projet introuvable : " + request.getProjectId()));
-
-        Region region = regionRepository.findById(request.getRegionId())
-                .orElseThrow(() -> new EntityNotFoundException("Région introuvable : " + request.getRegionId()));
-
-        // Calcul du prix mensuel HT
-        BigDecimal price = calculateMonthlyPrice(plan, request);
-
-        Deployment deployment = Deployment.builder()
-                .resourceName(request.getResourceName())
-                .description(request.getDescription())
-                .user(user)
-                .project(project)
-                .plan(plan)
-                .region(region)
-                .availabilityZone(request.getAvailabilityZone())
-                .operatingSystem(request.getOperatingSystem())
-                .additionalStorageGb(request.getAdditionalStorageGb())
-                .tagsJson(request.getTagsJson())
-                .backupEnabled(Boolean.TRUE.equals(request.getBackupEnabled()))
-                .monitoringEnabled(Boolean.TRUE.equals(request.getMonitoringEnabled()))
-                .antiDdosEnabled(Boolean.TRUE.equals(request.getAntiDdosEnabled()))
-                .sshKeyManagement(Boolean.TRUE.equals(request.getSshKeyManagement()))
-                .vpcId(request.getVpcId())
-                .subnetId(request.getSubnetId())
-                .securityGroup(request.getSecurityGroup())
-                .monthlyPriceHt(price)
-                .status(DeploymentStatus.EN_ATTENTE)
-                .build();
-
-        return toDTO(deploymentRepository.save(deployment));
-    }
-
-*/
     public DeploymentDTO create(UUID userId, DeploymentRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable : " + userId));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Utilisateur introuvable : " + userId));
 
         Plan plan = planRepository.findById(request.getPlanId())
-                .orElseThrow(() -> new EntityNotFoundException("Plan introuvable : " + request.getPlanId()));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Plan introuvable : " + request.getPlanId()));
 
-        // ✅ Projet : utiliser celui fourni, ou créer "Défaut" automatiquement
         Project project;
         if (request.getProjectId() != null) {
             project = projectRepository.findById(request.getProjectId())
-                    .orElseThrow(() -> new EntityNotFoundException("Projet introuvable : " + request.getProjectId()));
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Projet introuvable : " + request.getProjectId()));
         } else {
             project = projectRepository
                     .findByOwnerAndName(user, "Défaut")
@@ -105,14 +65,17 @@ public class DeploymentService {
                     });
         }
 
-        // ✅ Région : optionnelle pour l'instant
         Region region = null;
         if (request.getRegionId() != null) {
             region = regionRepository.findById(request.getRegionId())
-                    .orElseThrow(() -> new EntityNotFoundException("Région introuvable : " + request.getRegionId()));
+                    .orElseThrow(() -> new EntityNotFoundException(
+                            "Région introuvable : " + request.getRegionId()));
         }
 
-        BigDecimal price = calculateMonthlyPrice(plan, request);
+        // Prix = 0 pour les plans PAYG (facturation à l'usage)
+        BigDecimal price = Boolean.TRUE.equals(plan.getIsPayAsYouGo())
+                ? BigDecimal.ZERO
+                : calculateMonthlyPrice(plan, request);
 
         Deployment deployment = Deployment.builder()
                 .resourceName(request.getResourceName())
@@ -122,7 +85,7 @@ public class DeploymentService {
                 .plan(plan)
                 .region(region)
                 .availabilityZone(request.getAvailabilityZone())
-                .operatingSystem(request.getOperatingSystem())
+                .operatingSystem(request.getOperatingSystem())   // ← enum OperatingSystem
                 .additionalStorageGb(request.getAdditionalStorageGb())
                 .tagsJson(request.getTagsJson())
                 .backupEnabled(Boolean.TRUE.equals(request.getBackupEnabled()))
@@ -138,17 +101,16 @@ public class DeploymentService {
 
         return toDTO(deploymentRepository.save(deployment));
     }
-    // ── Passer au statut PROVISIONING (étape 3 maquette) ─────────────────────
+
     public DeploymentDTO startProvisioning(Long id) {
         Deployment d = findOrThrow(id);
         if (d.getStatus() != DeploymentStatus.EN_ATTENTE) {
-            throw new IllegalStateException("Le déploiement n'est pas en état PENDING");
+            throw new IllegalStateException("Le déploiement n'est pas en état EN_ATTENTE");
         }
         d.setStatus(DeploymentStatus.PROVISIONNEMENT);
         return toDTO(deploymentRepository.save(d));
     }
 
-    // ── Marquer comme RUNNING (fin de provisionnement) ───────────────────────
     public DeploymentDTO markRunning(Long id) {
         Deployment d = findOrThrow(id);
         d.setStatus(DeploymentStatus.EN_LIGNE);
@@ -156,7 +118,6 @@ public class DeploymentService {
         return toDTO(deploymentRepository.save(d));
     }
 
-    // ── Changer de statut (MAINTENANCE, STOPPED…) ────────────────────────────
     public DeploymentDTO changeStatus(Long id, DeploymentStatus newStatus) {
         Deployment d = findOrThrow(id);
         d.setStatus(newStatus);
@@ -166,40 +127,30 @@ public class DeploymentService {
         return toDTO(deploymentRepository.save(d));
     }
 
-    // ── Supprimer ─────────────────────────────────────────────────────────────
     public void delete(Long id) {
         deploymentRepository.delete(findOrThrow(id));
     }
 
-    // ── Calcul du prix mensuel HT ─────────────────────────────────────────────
+    // ── Calcul prix mensuel HT (plans fixes uniquement) ──────────────────────
+
     private BigDecimal calculateMonthlyPrice(Plan plan, DeploymentRequest req) {
         BigDecimal total = plan.getPrice() != null ? plan.getPrice() : BigDecimal.ZERO;
-
-        // Stockage additionnel : 19 €/mois par 500 Go (maquette récapitulatif)
         if (req.getAdditionalStorageGb() != null && req.getAdditionalStorageGb() > 0) {
             BigDecimal storageExtra = BigDecimal.valueOf(req.getAdditionalStorageGb())
                     .divide(BigDecimal.valueOf(500))
                     .multiply(BigDecimal.valueOf(19));
             total = total.add(storageExtra);
         }
-        // Backup +19 €/mois
-        if (Boolean.TRUE.equals(req.getBackupEnabled())) {
-            total = total.add(BigDecimal.valueOf(19));
-        }
-        // Monitoring +9 €/mois
-        if (Boolean.TRUE.equals(req.getMonitoringEnabled())) {
-            total = total.add(BigDecimal.valueOf(9));
-        }
-        // Anti-DDoS +29 €/mois
-        if (Boolean.TRUE.equals(req.getAntiDdosEnabled())) {
-            total = total.add(BigDecimal.valueOf(29));
-        }
+        if (Boolean.TRUE.equals(req.getBackupEnabled()))    total = total.add(BigDecimal.valueOf(19));
+        if (Boolean.TRUE.equals(req.getMonitoringEnabled())) total = total.add(BigDecimal.valueOf(9));
+        if (Boolean.TRUE.equals(req.getAntiDdosEnabled()))  total = total.add(BigDecimal.valueOf(29));
         return total;
     }
 
     private Deployment findOrThrow(Long id) {
         return deploymentRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Déploiement introuvable : " + id));
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Déploiement introuvable : " + id));
     }
 
     private DeploymentDTO toDTO(Deployment d) {
@@ -226,13 +177,18 @@ public class DeploymentService {
             dto.setDatacenterLabel(d.getRegion().getAddress());
         }
         dto.setAvailabilityZone(d.getAvailabilityZone());
+
+        // MODIFICATION : enum + label lisible
         dto.setOperatingSystem(d.getOperatingSystem());
+        dto.setOperatingSystemLabel(
+                d.getOperatingSystem() != null ? d.getOperatingSystem().getLabel() : null);
+
         if (plan != null) {
             dto.setVcores(plan.getVcores());
             dto.setRamGb(plan.getRamGb());
-            int baseStorage = plan.getStorageGb() != null ? plan.getStorageGb() : 0;
-            int addStorage  = d.getAdditionalStorageGb() != null ? d.getAdditionalStorageGb() : 0;
-            dto.setStorageGb(baseStorage + addStorage);
+            int base = plan.getStorageGb() != null ? plan.getStorageGb() : 0;
+            int add  = d.getAdditionalStorageGb() != null ? d.getAdditionalStorageGb() : 0;
+            dto.setStorageGb(base + add);
         }
         dto.setBackupEnabled(d.getBackupEnabled());
         dto.setMonitoringEnabled(d.getMonitoringEnabled());
@@ -240,6 +196,7 @@ public class DeploymentService {
         dto.setVpcId(d.getVpcId());
         dto.setSubnetId(d.getSubnetId());
         dto.setMonthlyPriceHt(d.getMonthlyPriceHt());
+
         if (d.getProject() != null) {
             dto.setProjectId(d.getProject().getId());
             dto.setProjectName(d.getProject().getName());
@@ -252,7 +209,7 @@ public class DeploymentService {
     private String formatCloudType(CloudType type) {
         if (type == null) return null;
         return switch (type) {
-            case PRIVÉ -> "Cloud Privé";
+            case PRIVÉ   -> "Cloud Privé";
             case PUBLIC  -> "Cloud Public";
             case HYBRIDE -> "Cloud Hybride";
         };

@@ -5,6 +5,7 @@ import com.nextstep.entity.BillingCycle;
 import com.nextstep.entity.PlanTier;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.util.List;
 
 @Data
 public class PlanDTO {
@@ -25,4 +26,8 @@ public class PlanDTO {
     private String badge;
     /** NOUVEAU */
     private Boolean isPopular;
+    /** NOUVEAU */
+    private Boolean isPayAsYouGo;
+    /** NOUVEAU — grille tarifaire PAYG (liste vide pour les plans fixes) */
+    private List<PlanPricingDTO> planPricings;
 }

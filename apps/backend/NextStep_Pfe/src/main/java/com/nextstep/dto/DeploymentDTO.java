@@ -3,6 +3,7 @@ package com.nextstep.dto;
 
 import com.nextstep.entity.AvailabilityZone;
 import com.nextstep.entity.DeploymentStatus;
+import com.nextstep.entity.OperatingSystem;
 import lombok.Data;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -31,8 +32,10 @@ public class DeploymentDTO {
     private String datacenterLabel; // "DC1"
     private AvailabilityZone availabilityZone; // ZONE_A, ZONE_B, MULTI_ZONE
 
-    // Config
-    private String operatingSystem;
+    /** MODIFICATION : était String — maintenant enum OperatingSystem. */
+    private OperatingSystem operatingSystem;
+    /** Label lisible de l'OS (ex: "Ubuntu 24.04 LTS"). */
+    private String operatingSystemLabel;
     private Integer vcores;
     private Integer ramGb;
     private Integer storageGb;      // base + additionalStorageGb

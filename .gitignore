@@ -1,0 +1,23 @@
+# Java
+target/
+*.class
+
+# Node
+apps/frontend/frontend/node_modules/
+apps/frontend/frontend/.next/
+
+# Keycloak
+infra/keycloak/data/
+
+# Secrets — ne jamais commiter
+apps/backend/NextStep_Pfe/.env
+apps/backend/NextStep_Pfe/src/main/resources/application-secret.properties
+apps/backend/NextStep_Pfe/src/main/resources/application-prod.properties
+*.env
+
+# Java compiled files
+apps/backend/NextStep_Pfe/target/
+apps/backend/NextStep_Pfe/.idea/
+apps/backend/NextStep_Pfe/*.zip
+apps/frontend/frontend/*.zip
+apps/frontend/frontend/app\ (2).zip

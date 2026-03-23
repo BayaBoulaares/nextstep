@@ -30,8 +30,52 @@ export type PlanTier =
   | "ENTREPRISE"
 
 /** BillingCycle.java : HORAIRE | MENSUEL | ANNUEL */
-export type BillingCycle = "HORAIRE" | "MENSUEL" | "ANNUEL"
+export type BillingCycle = "HORAIRE" | "MENSUEL" | "ANNUEL" | "USAGE"
 
+export type OperatingSystem =
+  | "UBUNTU_24_04_LTS"
+  | "UBUNTU_22_04_LTS"
+  | "DEBIAN_12"
+  | "DEBIAN_11"
+  | "ROCKY_LINUX_9"
+  | "ALMA_LINUX_9"
+  | "CENTOS_STREAM_9"
+  | "WINDOWS_SERVER_2022"
+  | "WINDOWS_SERVER_2019"
+  | "NONE"
+
+
+export const OS_LABELS: Record<OperatingSystem, string> = {
+  UBUNTU_24_04_LTS:    "Ubuntu 24.04 LTS",
+  UBUNTU_22_04_LTS:    "Ubuntu 22.04 LTS",
+  DEBIAN_12:           "Debian 12 (Bookworm)",
+  DEBIAN_11:           "Debian 11 (Bullseye)",
+  ROCKY_LINUX_9:       "Rocky Linux 9",
+  ALMA_LINUX_9:        "AlmaLinux 9",
+  CENTOS_STREAM_9:     "CentOS Stream 9",
+  WINDOWS_SERVER_2022: "Windows Server 2022",
+  WINDOWS_SERVER_2019: "Windows Server 2019",
+  NONE:                "Sans OS (stockage / réseau)",
+}
+
+/** AbonnementStatus.java — NOUVEAU */
+export type AbonnementStatus =
+  | "EN_ATTENTE"
+  | "ACTIF"
+  | "SUSPENDU"
+  | "RESILIE"
+  | "EXPIRE"
+ 
+/** UsageMetricType.java — NOUVEAU */
+export type UsageMetricType =
+  | "VCPU_HEURE"
+  | "RAM_GB_HEURE"
+  | "STOCKAGE_GB_MOIS"
+  | "REQUETES_1000"
+  | "BANDE_PASSANTE_GB"
+ 
+/** InvoiceStatus.java — NOUVEAU */
+export type InvoiceStatus = "BROUILLON" | "EMISE" | "PAYEE" | "EN_RETARD"
 // ─── DTOs (miroir exact des classes @Data Java) ───────────────────────────────
 
 /**
@@ -45,7 +89,7 @@ export interface PlanDTO {
   name:         string
   description:  string | null
   tier:         PlanTier
-  price:        number          // BigDecimal Java → number JS
+  price:        number  | null   // ← MODIFICATION : nullable pour les plans PAYG
   billingCycle: BillingCycle
   vcores:       number | null
   ramGb:        number | null
@@ -55,6 +99,8 @@ export interface PlanDTO {
   serviceName:  string | null
   badge:        string | null   // ex: "POPULAIRE", "RECOMMANDÉ"
   isPopular:    boolean | null
+  isPayAsYouGo: boolean          // ← NOUVEAU
+  planPricings: PlanPricingDTO[] // ← NOUVEAU ([] pour les plans fixes)
 }
 
 /**
@@ -99,16 +145,90 @@ export interface PlanRequest {
   name:         string          // @NotBlank
   description?: string
   tier:         PlanTier        // @NotNull
-  price:        number          // @NotNull BigDecimal
+  price:        number  | null        // @NotNull BigDecimal
   billingCycle: BillingCycle    // @NotNull
   vcores?:      number
   ramGb?:       number
   storageGb?:   number
   badge?:       string
   isPopular?:   boolean
+  isPayAsYouGo?: boolean         // ← NOUVEAU
   serviceId:    number          // @NotNull Long
 }
 
+export interface PlanPricingDTO {
+  id:           number
+  metricType:   UsageMetricType
+  metricLabel:  string   // ex: "vCPU" — fourni par le backend via UsageMetricType.label
+  pricePerUnit: number   // BigDecimal Java → number JS (6 décimales côté Java)
+  unit:         string   // ex: "heure", "Go", "1 000 req."
+  freeQuota:    number   // quota gratuit avant facturation (ex: 10 Go inclus)
+}
+/**
+ * AbonnementResponse.java — NOUVEAU
+ * Retourné par GET /api/abonnements/mes-abonnements et POST /api/abonnements
+ */
+export interface AbonnementResponse {
+  id:                 number
+  planId:             number
+  planName:           string
+  serviceName:        string | null
+  isPayAsYouGo:       boolean
+  status:             AbonnementStatus
+  prixSnapshot:       number   // prix figé à la souscription (0 pour PAYG)
+  billingCycle:       BillingCycle
+  dateDebut:          string   // ISO 8601
+  dateFin:            string | null  // null si PAYG ou autoRenouvellement
+  dateResiliation:    string | null
+  autoRenouvellement: boolean
+  deploymentId:       number | null
+  resourceName:       string | null  // nom du déploiement lié
+  createdAt:          string
+}
+/**
+ * AbonnementRequest.java — NOUVEAU
+ * Body de POST /api/abonnements
+ */
+export interface AbonnementRequest {
+  planId:              number
+  deploymentId?:       number
+  autoRenouvellement?: boolean
+}
+
+/**
+ * UsageRecordResponse.java — NOUVEAU
+ * Retourné par GET /api/usage/abonnements/:id
+ */
+export interface UsageRecordResponse {
+  id:           number
+  abonnementId: number
+  deploymentId: number
+  resourceName: string
+  metricType:   UsageMetricType
+  metricLabel:  string   // label lisible fourni par le backend
+  quantity:     number   // quantité brute mesurée
+  cost:         number   // coût calculé = max(0, qty - freeQuota) × pricePerUnit
+  periodStart:  string
+  periodEnd:    string
+  recordedAt:   string
+}
+
+/**
+ * InvoiceResponse.java — NOUVEAU
+ * Retourné par GET /api/usage/factures
+ */
+export interface InvoiceResponse {
+  id:           number
+  abonnementId: number
+  planName:     string
+  status:       InvoiceStatus
+  periodStart:  string
+  periodEnd:    string
+  totalHt:      number
+  issuedAt:     string | null
+  paidAt:       string | null
+  createdAt:    string
+}
 // ─── Alias pour les hooks / composants ────────────────────────────────────────
 
 /** Alias utilisé dans useService.ts pour la couche feature */

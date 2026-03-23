@@ -2,6 +2,7 @@ package com.nextstep.dto;
 
 
 import com.nextstep.entity.AvailabilityZone;
+import com.nextstep.entity.OperatingSystem;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.Data;
@@ -35,7 +36,7 @@ public class DeploymentRequest {
     private AvailabilityZone availabilityZone;
 
     /** Système d'exploitation (ex: "Ubuntu 24.04 LTS") */
-    private String operatingSystem;
+    private OperatingSystem operatingSystem;
 
     /** Stockage additionnel en Go (slider maquette, 0 par défaut) */
     private Integer additionalStorageGb = 0;

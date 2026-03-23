@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,7 +34,19 @@ public class Client extends User {
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
     private List<Deployment> deployments;
+    // ── NOUVEAU — Abonnements ─────────────────────────────────────────────────
 
+    /**
+     * Tous les abonnements du client (actifs, résiliés, expirés…).
+     * Utiliser AbonnementRepository.findByClientIdAndStatus pour filtrer.
+     */
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Abonnement> abonnements = new ArrayList<>();
+
+    // ── NOUVEAU — Factures ────────────────────────────────────────────────────
+
+    @OneToMany(mappedBy = "client", cascade = CascadeType.ALL)
+    private List<Invoice> invoices = new ArrayList<>();
     // ----- Plan global actif (STANDARD / PREMIUM / ENTERPRISE) -----
     /*@ManyToOne
     @JoinColumn(name = "plan_global_id")

@@ -1,4 +1,6 @@
 "use client"
+// components/app-sidebar.tsx
+// MODIFICATION : ajout de "Mes Abonnements" dans NAV_CLIENT
 
 import * as React from "react"
 import Link from "next/link"
@@ -7,6 +9,7 @@ import { useSession } from "next-auth/react"
 import {
   IconChartBar,
   IconCloudComputing,
+  IconCreditCard,      // ← NOUVEAU icône pour Mes Abonnements
   IconDashboard,
   IconHelp,
   IconInnerShadowTop,
@@ -30,10 +33,12 @@ import {
 import { NavUser }      from "@/components/nav-user"
 import { NavSecondary } from "@/components/nav-secondary"
 
+// ⚠️ MODIFICATION : ajout de "Mes Abonnements"
 const NAV_CLIENT = [
-  { title: "Dashboard",      url: "/dashboard",          icon: IconDashboard      },
-  { title: "Services Cloud", url: "/dashboard/services", icon: IconCloudComputing },
-  { title: "Mes Plans",      url: "/dashboard/plans",    icon: IconListDetails    },
+  { title: "Dashboard",         url: "/dashboard",                 icon: IconDashboard      },
+  { title: "Services Cloud",    url: "/dashboard/services",        icon: IconCloudComputing },
+  { title: "Mes Plans",         url: "/dashboard/plans",           icon: IconListDetails    },
+  { title: "Mes Abonnements",   url: "/dashboard/abonnements",     icon: IconCreditCard     }, // ← NOUVEAU
 ]
 
 const NAV_ADMIN_ONLY = [
@@ -62,7 +67,6 @@ function NavItem({
         asChild
         isActive={isActive}
         className={adminStyle
-          // ✅ Noir — plus de orange/rouge
           ? "text-zinc-800 hover:text-zinc-900 hover:bg-zinc-100 data-[active=true]:bg-zinc-200 data-[active=true]:text-zinc-900"
           : undefined
         }

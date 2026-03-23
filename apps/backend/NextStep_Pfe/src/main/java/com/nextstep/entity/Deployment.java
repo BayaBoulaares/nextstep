@@ -68,8 +68,14 @@ public class Deployment {
 
     // ── Configuration technique (peut surcharger le plan) ────────────────────
 
-    /** Système d'exploitation (ex: "Ubuntu 24.04 LTS", "Debian 12") */
-    private String operatingSystem;
+    /**
+     * MODIFICATION : était String operatingSystem (texte libre).
+     * Maintenant enum OperatingSystem pour garantir les valeurs valides.
+     * Nullable : certains plans (stockage, réseau) n'ont pas d'OS.
+     */
+    @Enumerated(EnumType.STRING)
+    @Column(name = "operating_system")
+    private OperatingSystem operatingSystem;
 
     /** Stockage additionnel en Go au-delà du plan de base */
     private Integer additionalStorageGb;
