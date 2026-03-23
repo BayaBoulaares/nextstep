@@ -179,8 +179,7 @@ public class SecurityConfig {
                         "/swagger-ui.html",
                         "/swagger-ui/index.html",
                         "/audit-test/**",
-                        "/actuator/health",
-                        "/actuator/info"
+                        "/actuator/**"
                 )
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
