@@ -67,6 +67,7 @@ jobs:
             -Dsonar.projectKey=BayaBoulaares_nextstep \
             -Dsonar.organization=bayaboulaares \
             -Dsonar.host.url=https://sonarcloud.io \
+            -Dsonar.login=$SONAR_TOKEN \
             -DskipTests
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
