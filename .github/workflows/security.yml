@@ -65,7 +65,7 @@ jobs:
         run: |
           mvn -f apps/backend/NextStep_Pfe/pom.xml verify sonar:sonar \
             -Dsonar.projectKey=BayaBoulaares_nextstep \
-            -Dsonar.organization=bayaboulaares \
+            -Dsonar.organization=BayaBoulaares \
             -Dsonar.host.url=https://sonarcloud.io \
             -Dsonar.login=${{ secrets.SONAR_TOKEN }} \
             -DskipTests
