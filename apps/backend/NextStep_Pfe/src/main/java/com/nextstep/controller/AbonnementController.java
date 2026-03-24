@@ -77,7 +77,13 @@ public class AbonnementController {
     // ── Helper ────────────────────────────────────────────────────────────────
     private UUID resolveClientId(Jwt jwt) {
         String keycloakId = jwt.getSubject();
-        User user = userService.findByKeycloakId(keycloakId);
+        //User user = userService.findByKeycloakId(keycloakId);
+        User user = userService.findOrProvision(
+                keycloakId,
+                jwt.getClaimAsString("email"),
+                jwt.getClaimAsString("given_name"),
+                jwt.getClaimAsString("family_name")
+        );
         return user.getId();
     }
 }
