@@ -35,13 +35,15 @@ import { NavSecondary } from "@/components/nav-secondary"
 
 // ⚠️ MODIFICATION : ajout de "Mes Abonnements"
 const NAV_CLIENT = [
-  { title: "Dashboard",         url: "/dashboard",                 icon: IconDashboard      },
   { title: "Services Cloud",    url: "/dashboard/services",        icon: IconCloudComputing },
-  { title: "Mes Plans",         url: "/dashboard/plans",           icon: IconListDetails    },
+  { title: "Mes Plans",         url: "/dashboard/mes-plans",           icon: IconListDetails    },
   { title: "Mes Abonnements",   url: "/dashboard/abonnements",     icon: IconCreditCard     }, // ← NOUVEAU
 ]
-
+const NAV_COMMON = [
+  { title: "Dashboard", url: "/dashboard", icon: IconDashboard },
+]
 const NAV_ADMIN_ONLY = [
+  { title: "Services Cloud",  url: "/dashboard/services",    icon: IconCloudComputing },
   { title: "Utilisateurs", url: "/dashboard/users",      icon: IconUsers    },
   { title: "Audit Logs",   url: "/dashboard/audit-logs", icon: IconShield   },
   { title: "Analytics",    url: "/dashboard/analytics",  icon: IconChartBar },
@@ -106,24 +108,29 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         </SidebarMenu>
       </SidebarHeader>
 
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            {NAV_CLIENT.map(item => <NavItem key={item.url} {...item} />)}
-          </SidebarMenu>
-        </SidebarGroup>
+<SidebarContent>
+  <SidebarGroup>
+    <SidebarMenu>
+      {/* Dashboard pour tout le monde */}
+      {NAV_COMMON.map(item => <NavItem key={item.url} {...item} />)}
 
-        {isAdmin && (
-          <SidebarGroup>
-            <SidebarGroupLabel>Administration</SidebarGroupLabel>
-            <SidebarMenu>
-              {NAV_ADMIN_ONLY.map(item => <NavItem key={item.url} {...item} adminStyle />)}
-            </SidebarMenu>
-          </SidebarGroup>
-        )}
+      {/* Items client uniquement */}
+      {!isAdmin && NAV_CLIENT.map(item => <NavItem key={item.url} {...item} />)}
+    </SidebarMenu>
+  </SidebarGroup>
 
-        <NavSecondary items={NAV_SECONDARY} className="mt-auto" />
-      </SidebarContent>
+  {/* Section admin */}
+  {isAdmin && (
+    <SidebarGroup>
+      <SidebarGroupLabel>Administration</SidebarGroupLabel>
+      <SidebarMenu>
+        {NAV_ADMIN_ONLY.map(item => <NavItem key={item.url} {...item} adminStyle />)}
+      </SidebarMenu>
+    </SidebarGroup>
+  )}
+
+  <NavSecondary items={NAV_SECONDARY} className="mt-auto" />
+</SidebarContent>
 
       <SidebarFooter>
         <NavUser user={user} />

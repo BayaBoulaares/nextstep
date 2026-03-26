@@ -2,6 +2,7 @@ package com.nextstep.service;
 
 import com.nextstep.dto.RegisterRequest;
 import com.nextstep.dto.UpdateProfileRequest;
+import com.nextstep.entity.Admin;
 import com.nextstep.entity.Client;
 import com.nextstep.entity.User;
 import com.nextstep.repository.UserRepository;
@@ -50,38 +51,39 @@ public class UserService {
 
     @Transactional
     public User findOrProvision(String keycloakId, String email,
-                                String firstName,  String lastName) {
+                                String firstName,  String lastName,
+                                boolean isAdmin) {   // ← nouveau paramètre
 
-        // ── Cas 1 : user déjà en DB avec ce keycloakId ────────────────────
         return userRepository.findByKeycloakId(keycloakId)
                 .orElseGet(() ->
-
-                        // ── Cas 2 : même email, keycloakId absent ─────────────
                         userRepository.findByEmail(email)
                                 .map(existing -> {
                                     existing.setKeycloakId(keycloakId);
-                                    // Compléter le provider s'il manque
-                                    if (existing.getProvider() == null) {
+                                    if (existing.getProvider() == null)
                                         existing.setProvider("credentials");
-                                    }
                                     return userRepository.save(existing);
                                 })
                                 .orElseGet(() -> {
+                                    // ✅ AJOUT — log pour vérifier
+                                    System.out.println("[UserService] Création user → isAdmin=" + isAdmin
+                                            + " email=" + email);
 
-                                    // ── Cas 3 : nouveau user (Google SSO, etc.) ───
-                                    Client newUser = new Client();
+                                    // ✅ Créer Admin ou Client selon le rôle Keycloak
+                                    User newUser;
+                                    if (isAdmin) {
+                                        Admin admin = new Admin();
+                                        newUser = admin;
+                                    } else {
+                                        Client client = new Client();
+                                        newUser = client;
+                                    }
+
                                     newUser.setKeycloakId(keycloakId);
-                                    newUser.setEmail(email        != null ? email        : "");
-                                    newUser.setFirstName(firstName != null ? firstName   : "");
-                                    newUser.setLastName(lastName   != null ? lastName    : "");
-
-                                    // ✅ Renseigner provider/providerId
-                                    // Le sub Keycloak (keycloakId) = identifiant unique
-                                    // Pour Google SSO : Keycloak fait le pont, le sub reste le même
+                                    newUser.setEmail(email        != null ? email     : "");
+                                    newUser.setFirstName(firstName != null ? firstName : "");
+                                    newUser.setLastName(lastName   != null ? lastName  : "");
                                     newUser.setProvider("keycloak");
                                     newUser.setProviderId(keycloakId);
-
-                                    // Google a déjà vérifié l'email → compte activé directement
                                     newUser.setEmailVerified(true);
                                     newUser.setEnabled(true);
 
@@ -134,6 +136,12 @@ public class UserService {
     public User findByKeycloakId(String keycloakId) {
         return userRepository.findByKeycloakId(keycloakId)
                 .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    }
+    @Transactional
+    public void deleteByKeycloakId(String keycloakId) {
+        User user = userRepository.findByKeycloakId(keycloakId)
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
+        userRepository.delete(user);
     }
 
 }

@@ -7,6 +7,7 @@ import com.nextstep.entity.User;
 import com.nextstep.service.KeycloakAdminService;
 import com.nextstep.service.UserService;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
@@ -37,10 +38,27 @@ public class UserController {
         String firstName  = jwt.getClaimAsString("given_name");
         String lastName   = jwt.getClaimAsString("family_name");
 
-        User user = userService.findOrProvision(keycloakId, email, firstName, lastName);
+        // ✅ Extraire les rôles depuis le JWT pour déterminer Admin ou Client
+        boolean isAdmin = extractRoles(jwt).stream()
+                .anyMatch(role -> role.equalsIgnoreCase("admin"));
+        User user = userService.findOrProvision(
+                keycloakId, email, firstName, lastName, isAdmin
+        );
         return ResponseEntity.ok(new UserResponse(user));
     }
+    // ── Extraction des rôles depuis realm_access ──────────────────────────────
 
+    @SuppressWarnings("unchecked")
+    private List<String> extractRoles(Jwt jwt) {
+        try {
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess == null) return List.of();
+            Object roles = realmAccess.get("roles");
+            return roles instanceof List<?> l ? (List<String>) l : List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
+    }
     // ── PATCH /api/users/me ───────────────────────────────────────────────────
 
     @PatchMapping("/me")
@@ -102,6 +120,36 @@ public class UserController {
             return ResponseEntity.ok(Map.of("message", "Mot de passe modifié avec succès"));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
+    // ── DELETE /api/users/me ──────────────────────────────────────────────────────
+// Supprime le compte de l'utilisateur connecté (DB + Keycloak)
+
+    @DeleteMapping("/me")
+    public ResponseEntity<?> deleteMyAccount(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            String keycloakId = jwt.getSubject();
+            String email      = jwt.getClaimAsString("email");
+
+            // ✅ Vérifier que ce n'est pas un admin
+            boolean isAdmin = extractRoles(jwt).stream()
+                    .anyMatch(role -> role.equalsIgnoreCase("admin"));
+            if (isAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("message", "Un administrateur ne peut pas supprimer son propre compte."));
+            }
+
+            // 1. Supprimer de la DB
+            userService.deleteByKeycloakId(keycloakId);
+
+            // 2. Supprimer de Keycloak
+            keycloakAdminService.deleteUserById(keycloakId);
+
+            return ResponseEntity.noContent().build(); // 204
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("message", e.getMessage()));
         }
     }

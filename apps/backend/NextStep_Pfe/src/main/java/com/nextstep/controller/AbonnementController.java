@@ -18,6 +18,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -77,13 +78,29 @@ public class AbonnementController {
     // ── Helper ────────────────────────────────────────────────────────────────
     private UUID resolveClientId(Jwt jwt) {
         String keycloakId = jwt.getSubject();
-        //User user = userService.findByKeycloakId(keycloakId);
+
+        boolean isAdmin = extractRoles(jwt).stream()
+                .anyMatch(role -> role.equalsIgnoreCase("admin"));
+
         User user = userService.findOrProvision(
                 keycloakId,
                 jwt.getClaimAsString("email"),
                 jwt.getClaimAsString("given_name"),
-                jwt.getClaimAsString("family_name")
+                jwt.getClaimAsString("family_name"),
+                isAdmin   // ✅ CORRECTION ICI
         );
+
         return user.getId();
+    }
+    @SuppressWarnings("unchecked")
+    private List<String> extractRoles(Jwt jwt) {
+        try {
+            Map<String, Object> realmAccess = jwt.getClaim("realm_access");
+            if (realmAccess == null) return List.of();
+            Object roles = realmAccess.get("roles");
+            return roles instanceof List<?> l ? (List<String>) l : List.of();
+        } catch (Exception e) {
+            return List.of();
+        }
     }
 }

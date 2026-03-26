@@ -27,7 +27,7 @@ public class Client extends User {
     @Column(length = 255)
     private String adresse;
 
-    @Column(nullable = false)
+    //@Column(nullable = false)
     private BigDecimal soldePayAsYouGo = BigDecimal.ZERO;
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL)
     private List<Project> projects;

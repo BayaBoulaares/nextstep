@@ -117,3 +117,60 @@ export async function PATCH(req: NextRequest) {
 
   return NextResponse.json(data, { status: res.status })
 }
+// ─── DELETE /api/users/me ─────────────────────────────────────────────────────
+export async function DELETE() {
+  const session = await auth()
+
+  console.log("[proxy DELETE] session existe :", !!session)
+  console.log("[proxy DELETE] accessToken     :", session?.accessToken ? "✅ présent" : "❌ absent")
+
+  if (!session?.accessToken) {
+    return NextResponse.json({ message: "Non authentifié" }, { status: 401 })
+  }
+
+  const url = `${API_URL}/api/users/me`
+  console.log("[proxy DELETE] → fetch", url)
+
+  let res: Response
+  try {
+    res = await fetch(url, {
+      method:  "DELETE",
+      headers: {
+        "Authorization": `Bearer ${session.accessToken}`,
+        "Content-Type":  "application/json",
+      },
+    })
+  } catch (err) {
+    console.error("[proxy DELETE] ❌ Backend injoignable :", err)
+    return NextResponse.json(
+      { message: `Backend injoignable sur ${API_URL}` },
+      { status: 502 }
+    )
+  }
+
+  console.log("[proxy DELETE] ← status backend :", res.status)
+
+  // 204 No Content — pas de body à parser
+  if (res.status === 204) {
+    return new NextResponse(null, { status: 204 })
+  }
+
+  // 403 — admin ne peut pas supprimer son compte
+  if (res.status === 403) {
+    const data = await safeJson(res)
+    return NextResponse.json(
+      { message: data?.message ?? "Action non autorisée" },
+      { status: 403 }
+    )
+  }
+
+  if (!res.ok) {
+    const data = await safeJson(res)
+    return NextResponse.json(
+      { message: data?.message ?? `Erreur suppression (${res.status})` },
+      { status: res.status }
+    )
+  }
+
+  return new NextResponse(null, { status: 204 })
+}

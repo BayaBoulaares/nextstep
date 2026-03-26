@@ -17,7 +17,18 @@ apps/backend/NextStep_Pfe/src/main/resources/application-prod.properties
 
 # Java compiled files
 apps/backend/NextStep_Pfe/target/
-apps/backend/NextStep_Pfe/.idea/
-apps/backend/NextStep_Pfe/*.zip
+**/.idea/
 apps/frontend/frontend/*.zip
 apps/frontend/frontend/app\ (2).zip
+
+# Dossiers dupliqués et zips
+apps/backend/NextStep_Pfe.zip
+apps/backend/NextStep_Pfe (2).zip
+
+
+# Keycloak data
+keycloak/
+auth/docker/.env.txt
+
+# Rapports de sécurité
+security/

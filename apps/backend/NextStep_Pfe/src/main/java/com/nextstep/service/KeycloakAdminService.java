@@ -645,4 +645,24 @@ public class KeycloakAdminService {
         if (val instanceof Number n) return n.longValue();
         return 0L;
     }
+    // ── Supprimer un utilisateur par son keycloakId (UUID) ────────────────────────
+// Différent de deleteUser(email) qui cherche d'abord par email
+
+    public void deleteUserById(String keycloakId) {
+        try {
+            String adminToken = getAdminToken();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(adminToken);
+            restTemplate.exchange(
+                    keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakId,
+                    HttpMethod.DELETE,
+                    new HttpEntity<>(headers),
+                    Void.class
+            );
+            System.out.println("✅ Utilisateur Keycloak supprimé : " + keycloakId);
+        } catch (Exception e) {
+            System.err.println("❌ Suppression Keycloak échouée : " + e.getMessage());
+            throw new RuntimeException("Erreur suppression Keycloak : " + e.getMessage());
+        }
+    }
 }

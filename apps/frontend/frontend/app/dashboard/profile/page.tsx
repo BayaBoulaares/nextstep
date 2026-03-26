@@ -69,11 +69,11 @@ function formatDate(ms: number): string {
   const now   = new Date();
   const diffH = Math.floor((now.getTime() - d.getTime()) / 3600000);
   const diffD = Math.floor((now.getTime() - d.getTime()) / 86400000);
-  const time  = d.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" });
-  if (diffH < 1)   return "Just now";
-  if (diffH < 24)  return `${diffH}h ago`;
-  if (diffD === 1) return `Yesterday at ${time}`;
-  return d.toLocaleDateString("en-US", { month: "short", day: "numeric" }) + ` at ${time}`;
+  const time  = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (diffH < 1)   return "À l'instant";
+  if (diffH < 24)  return `Il y a ${diffH}h`;
+  if (diffD === 1) return `Hier à ${time}`;
+  return d.toLocaleDateString("fr-FR", { month: "short", day: "numeric" }) + ` à ${time}`;
 }
 
 // ─── Hooks ────────────────────────────────────────────────────────────────────
@@ -211,34 +211,55 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
 
   const submit = async () => {
     setError("");
-    if (newPwd.length < 8)  { setError("Min 8 characters"); return; }
-    if (newPwd !== confPwd) { setError("Passwords don't match"); return; }
+    if (newPwd.length < 8)  { setError("Minimum 8 caractères"); return; }
+    if (newPwd !== confPwd) { setError("Les mots de passe ne correspondent pas"); return; }
     await changePassword(newPwd);
   };
 
   if (success) return (
     <div className="border border-zinc-200 rounded-xl bg-white p-5 max-w-sm">
-      <p className="text-sm font-medium text-emerald-600 mb-3">✅ Password updated successfully</p>
-      <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600">Close</button>
+      <p className="text-sm font-medium text-emerald-600 mb-3">
+        ✅ Mot de passe mis à jour avec succès
+      </p>
+      <button
+        onClick={onClose}
+        className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600"
+      >
+        Fermer
+      </button>
     </div>
   );
 
   return (
     <div className="border border-zinc-200 rounded-xl bg-white shadow-sm p-5 max-w-sm w-full">
-      <p className="text-sm font-semibold text-zinc-800 mb-4">Set new password</p>
-      {error && <p className="text-xs text-red-500 mb-3 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">{error}</p>}
+      <p className="text-sm font-semibold text-zinc-800 mb-4">
+        Définir un nouveau mot de passe
+      </p>
+      {error && (
+        <p className="text-xs text-red-500 mb-3 bg-red-50 border border-red-100 px-3 py-2 rounded-lg">
+          {error}
+        </p>
+      )}
       <div className="space-y-3 mb-4">
         {[
-          { label: "New password",     val: newPwd,  set: setNewPwd,  show: showNew,  toggle: () => setShowNew(v  => !v) },
-          { label: "Confirm password", val: confPwd, set: setConfPwd, show: showConf, toggle: () => setShowConf(v => !v) },
+          { label: "Nouveau mot de passe",    val: newPwd,  set: setNewPwd,  show: showNew,  toggle: () => setShowNew(v  => !v) },
+          { label: "Confirmer le mot de passe", val: confPwd, set: setConfPwd, show: showConf, toggle: () => setShowConf(v => !v) },
         ].map(({ label, val, set, show, toggle }) => (
           <div key={label}>
             <label className="block text-xs font-medium text-zinc-600 mb-1.5">{label}</label>
             <div className="relative">
-              <input type={show ? "text" : "password"} value={val} onChange={e => set(e.target.value)}
-                placeholder="Min. 8 characters"
-                className="w-full border border-zinc-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300" />
-              <button type="button" onClick={toggle} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600">
+              <input
+                type={show ? "text" : "password"}
+                value={val}
+                onChange={e => set(e.target.value)}
+                placeholder="Min. 8 caractères"
+                className="w-full border border-zinc-200 rounded-lg px-3 py-2 pr-9 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              />
+              <button
+                type="button"
+                onClick={toggle}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
+              >
                 {show ? <EyeOff size={14} /> : <Eye size={14} />}
               </button>
             </div>
@@ -246,29 +267,127 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
         ))}
       </div>
       <div className="flex justify-end gap-2">
-        <button onClick={onClose} disabled={loading} className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 disabled:opacity-50">Cancel</button>
-        <button onClick={submit}  disabled={loading} className="text-sm px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-900 text-white font-medium flex items-center gap-1.5 disabled:opacity-60">
-          {loading && <Loader2 size={13} className="animate-spin" />} Save
+        <button
+          onClick={onClose}
+          disabled={loading}
+          className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 disabled:opacity-50"
+        >
+          Annuler
+        </button>
+        <button
+          onClick={submit}
+          disabled={loading}
+          className="text-sm px-4 py-2 rounded-lg bg-zinc-800 hover:bg-zinc-900 text-white font-medium flex items-center gap-1.5 disabled:opacity-60"
+        >
+          {loading && <Loader2 size={13} className="animate-spin" />}
+          Enregistrer
         </button>
       </div>
     </div>
   );
 }
 
+
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 function DeleteModal({ onClose }: { onClose: () => void }) {
+  const { data: session } = useSession()
+  const roles: string[]   = (session as any)?.roles ?? []
+  const isAdmin           = roles.includes("admin")
+  const [loading, setLoading] = useState(false)
+  const [error,   setError]   = useState("")
+
+  const handleDelete = async () => {
+    if (!session?.accessToken) return
+    setLoading(true)
+    setError("")
+    try {
+      const res = await fetch("/api/users/me", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${session.accessToken}` },
+      })
+
+      if (res.status === 403) {
+        setError("Les administrateurs ne peuvent pas supprimer leur compte.")
+        return
+      }
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        setError(data.message ?? "Erreur lors de la suppression.")
+        return
+      }
+
+      // ✅ Compte supprimé — déconnecter et rediriger
+      await signOut({ callbackUrl: "/login" })
+
+    } catch {
+      setError("Erreur réseau — réessayez.")
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-xl border border-zinc-200 p-6 w-full max-w-sm mx-4">
-        <h4 className="text-base font-semibold text-zinc-900 mb-1">Delete account</h4>
-        <p className="text-sm text-zinc-500 mb-5">This action is permanent and cannot be undone. All your data will be lost.</p>
-        <div className="flex justify-end gap-2">
-          <button onClick={onClose} className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium">Cancel</button>
-          <button className="text-sm px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium">Delete account</button>
-        </div>
+
+        <h4 className="text-base font-semibold text-zinc-900 mb-1">
+          Supprimer le compte
+        </h4>
+
+        {/* Cas admin — bouton désactivé */}
+        {isAdmin ? (
+          <>
+            <p className="text-sm text-zinc-500 mb-5">
+              Les administrateurs ne peuvent pas supprimer leur propre compte.
+              Contactez un autre administrateur si nécessaire.
+            </p>
+            <div className="flex justify-end">
+              <button
+                onClick={onClose}
+                className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium"
+              >
+                Fermer
+              </button>
+            </div>
+          </>
+        ) : (
+          <>
+            <p className="text-sm text-zinc-500 mb-2">
+              Cette action est <span className="font-semibold text-red-600">irréversible</span>.
+              Toutes vos données seront supprimées définitivement.
+            </p>
+            <p className="text-xs text-zinc-400 mb-5">
+              Votre compte sera supprimé de notre base de données et de notre système d'authentification.
+            </p>
+
+            {error && (
+              <p className="text-xs text-red-500 bg-red-50 border border-red-100 px-3 py-2 rounded-lg mb-4">
+                {error}
+              </p>
+            )}
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={onClose}
+                disabled={loading}
+                className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 font-medium disabled:opacity-50"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={handleDelete}
+                disabled={loading}
+                className="text-sm px-4 py-2 rounded-lg bg-red-600 hover:bg-red-700 text-white font-medium flex items-center gap-1.5 disabled:opacity-60"
+              >
+                {loading && <Loader2 size={13} className="animate-spin" />}
+                {loading ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
-  );
+  )
 }
 
 // ─── Profile Tab ──────────────────────────────────────────────────────────────
@@ -288,9 +407,27 @@ function ProfileTab() {
     if (profile?.email) setEmails([{ address: profile.email, primary: true }]);
   }, [profile]);
 
-  const openEdit = () => { setTempFirst(profile?.firstName ?? ""); setTempLast(profile?.lastName ?? ""); setTempAvatar(profile?.avatarUrl ?? null); setEditing(true); };
-  const handleSave = () => save({ firstName: tempFirst, lastName: tempLast, avatarUrl: tempAvatar }, updated => { setProfile(updated); setEditing(false); });
-  const addEmail = () => { if (!newEmail.trim()) return; setEmails(prev => [...prev, { address: newEmail.trim(), primary: false }]); setNewEmail(""); setAddingEmail(false); };
+  const openEdit = () => {
+    setTempFirst(profile?.firstName ?? "");
+    setTempLast(profile?.lastName ?? "");
+    // ✅ Ne pas charger un blob en édition — utiliser null si c'est un blob cassé
+    setTempAvatar(
+      profile?.avatarUrl && !profile.avatarUrl.startsWith("blob:")
+        ? profile.avatarUrl
+        : null
+    );
+    setEditing(true);
+  };  const handleSave = () => save(
+    {
+      firstName: tempFirst,
+      lastName:  tempLast,
+      ...(tempAvatar && !tempAvatar.startsWith("blob:")
+        ? { avatarUrl: tempAvatar }
+        : { avatarUrl: null }
+      ),
+    },
+    updated => { setProfile(updated); setEditing(false); }
+  );  const addEmail = () => { if (!newEmail.trim()) return; setEmails(prev => [...prev, { address: newEmail.trim(), primary: false }]); setNewEmail(""); setAddingEmail(false); };
 
   if (loading) return (
     <div className="space-y-6 animate-pulse">
@@ -299,43 +436,113 @@ function ProfileTab() {
     </div>
   );
 
-  return (
+ return (
     <>
-      <h3 className="text-base font-semibold text-zinc-900 mb-1">Profile details</h3>
+      <h3 className="text-base font-semibold text-zinc-900 mb-1">Informations du profil</h3>
       <div className="border-t border-zinc-100 mt-3 mb-6" />
 
       <div className="flex gap-10">
-        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-1">Profile</span>
+        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-1">Profil</span>
         <div className="flex-1">
           {editing ? (
             <div className="border border-zinc-200 rounded-xl bg-white shadow-sm p-5 w-full">
-              <p className="text-sm font-semibold text-zinc-800 mb-4">Update profile</p>
+              <p className="text-sm font-semibold text-zinc-800 mb-4">
+                Modifier le profil
+              </p>
               <div className="flex items-start gap-4 mb-5">
-                <AvatarCircle src={tempAvatar} size="lg" />
-                <div>
+                <AvatarCircle
+                  src={tempAvatar && !tempAvatar.startsWith("blob:") ? tempAvatar : null}
+                  size="lg"
+                />                <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <button onClick={() => inputRef.current?.click()} className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium"><Camera size={13} /> Upload</button>
-                    <button onClick={() => setTempAvatar(null)} className="text-sm px-3 py-1.5 rounded-md border border-red-100 hover:bg-red-50 text-red-500 font-medium">Remove</button>
-                    <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) setTempAvatar(URL.createObjectURL(f)); }} />
+                    <button
+                      onClick={() => inputRef.current?.click()}
+                      className="flex items-center gap-1.5 text-sm px-3 py-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50 text-zinc-700 font-medium"
+                    >
+                      <Camera size={13} /> Téléverser
+                    </button>
+                    <button
+                      onClick={() => setTempAvatar(null)}
+                      className="text-sm px-3 py-1.5 rounded-md border border-red-100 hover:bg-red-50 text-red-500 font-medium"
+                    >
+                      Supprimer
+                    </button>
+<input
+                      ref={inputRef}
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={e => {
+                        const f = e.target.files?.[0];
+                        if (f) {
+                          // ✅ Convertir en base64 au lieu de blob URL
+                          const reader = new FileReader();
+                          reader.onload = ev => {
+                            setTempAvatar(ev.target?.result as string);
+                          };
+                          reader.readAsDataURL(f);
+                        }
+                      }}
+                    />
                   </div>
-                  <p className="text-xs text-zinc-400">Recommended size 1:1, up to 10MB.</p>
+                  <p className="text-xs text-zinc-400">
+                    Format recommandé 1:1, max 10 Mo.
+                  </p>
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-5">
-                {[{ label: "First name", val: tempFirst, set: setTempFirst }, { label: "Last name", val: tempLast, set: setTempLast }].map(({ label, val, set }) => (
-                  <div key={label}><label className="block text-xs font-medium text-zinc-600 mb-1.5">{label}</label><input value={val} onChange={e => set(e.target.value)} className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300" /></div>
+                {[
+                  { label: "Prénom", val: tempFirst, set: setTempFirst },
+                  { label: "Nom",    val: tempLast,  set: setTempLast  },
+                ].map(({ label, val, set }) => (
+                  <div key={label}>
+                    <label className="block text-xs font-medium text-zinc-600 mb-1.5">
+                      {label}
+                    </label>
+                    <input
+                      value={val}
+                      onChange={e => set(e.target.value)}
+                      className="w-full border border-zinc-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+                    />
+                  </div>
                 ))}
               </div>
               <div className="flex justify-end gap-2">
-                <button onClick={() => setEditing(false)} disabled={saving} className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 disabled:opacity-50">Cancel</button>
-                <button onClick={handleSave} disabled={saving} className="text-sm px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-800 text-white font-medium flex items-center gap-1.5 disabled:opacity-60">{saving && <Loader2 size={13} className="animate-spin" />}Save</button>
+                <button
+                  onClick={() => setEditing(false)}
+                  disabled={saving}
+                  className="text-sm px-4 py-2 rounded-lg border border-zinc-200 hover:bg-zinc-50 text-zinc-600 disabled:opacity-50"
+                >
+                  Annuler
+                </button>
+                <button
+                  onClick={handleSave}
+                  disabled={saving}
+                  className="text-sm px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-800 text-white font-medium flex items-center gap-1.5 disabled:opacity-60"
+                >
+                  {saving && <Loader2 size={13} className="animate-spin" />}
+                  Enregistrer
+                </button>
               </div>
             </div>
           ) : (
             <div className="flex items-center gap-4">
-              <AvatarCircle src={profile?.avatarUrl} />
-              <span className="text-sm font-medium text-zinc-800 flex-1">{profile?.firstName} {profile?.lastName}</span>
-              <button onClick={openEdit} className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors">Update profile</button>
+              {/* ✅ Afficher l'avatar seulement si URL valide (pas blob) */}
+              <AvatarCircle
+                src={
+                  profile?.avatarUrl && !profile.avatarUrl.startsWith("blob:")
+                    ? profile.avatarUrl
+                    : null
+                }
+              />              <span className="text-sm font-medium text-zinc-800 flex-1">
+                {profile?.firstName} {profile?.lastName}
+              </span>
+              <button
+                onClick={openEdit}
+                className="text-sm text-zinc-500 hover:text-zinc-900 transition-colors"
+              >
+                Modifier le profil
+              </button>
             </div>
           )}
         </div>
@@ -344,25 +551,55 @@ function ProfileTab() {
       <Divider />
 
       <div className="flex gap-10">
-        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Email addresses</span>
+        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">
+          Adresses e-mail
+        </span>
         <div className="flex-1 space-y-2.5">
           {emails.map((e, i) => (
             <div key={i} className="flex items-center justify-between group">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-zinc-700">{e.address}</span>
-                {e.primary && <span className="text-[11px] bg-zinc-100 text-zinc-500 border border-zinc-200 px-2 py-0.5 rounded-full font-medium">Primary</span>}
+                {e.primary && (
+                  <span className="text-[11px] bg-zinc-100 text-zinc-500 border border-zinc-200 px-2 py-0.5 rounded-full font-medium">
+                    Principal
+                  </span>
+                )}
               </div>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-600"><MoreHorizontal size={15} /></button>
+              <button className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-600">
+                <MoreHorizontal size={15} />
+              </button>
             </div>
           ))}
           {addingEmail ? (
             <div className="flex items-center gap-2">
-              <input autoFocus value={newEmail} onChange={e => setNewEmail(e.target.value)} onKeyDown={e => e.key === "Enter" && addEmail()} placeholder="new@email.com" className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300" />
-              <button onClick={addEmail} className="text-sm px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700">Add</button>
-              <button onClick={() => setAddingEmail(false)} className="text-zinc-400 hover:text-zinc-600"><X size={15} /></button>
+              <input
+                autoFocus
+                value={newEmail}
+                onChange={e => setNewEmail(e.target.value)}
+                onKeyDown={e => e.key === "Enter" && addEmail()}
+                placeholder="nouveau@email.com"
+                className="flex-1 border border-zinc-200 rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-zinc-300"
+              />
+              <button
+                onClick={addEmail}
+                className="text-sm px-3 py-1.5 bg-zinc-800 text-white rounded-lg hover:bg-zinc-700"
+              >
+                Ajouter
+              </button>
+              <button
+                onClick={() => setAddingEmail(false)}
+                className="text-zinc-400 hover:text-zinc-600"
+              >
+                <X size={15} />
+              </button>
             </div>
           ) : (
-            <button onClick={() => setAddingEmail(true)} className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 font-medium"><Plus size={14} /> Add email address</button>
+            <button
+              onClick={() => setAddingEmail(true)}
+              className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 font-medium"
+            >
+              <Plus size={14} /> Ajouter une adresse e-mail
+            </button>
           )}
         </div>
       </div>
@@ -370,22 +607,33 @@ function ProfileTab() {
       <Divider />
 
       <div className="flex gap-10">
-        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Connected accounts</span>
+        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">
+          Comptes connectés
+        </span>
         <div className="flex-1 space-y-2.5">
           {(profile?.provider === "keycloak" || profile?.provider === "google") && (
             <div className="flex items-center justify-between group">
-              <div className="flex items-center gap-2"><GoogleIcon /><span className="text-sm font-medium text-zinc-800">Google</span><span className="text-zinc-300 text-sm">•</span><span className="text-sm text-zinc-500">{profile.email}</span></div>
-              <button className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-600"><MoreHorizontal size={15} /></button>
+              <div className="flex items-center gap-2">
+                <GoogleIcon />
+                <span className="text-sm font-medium text-zinc-800">Google</span>
+                <span className="text-zinc-300 text-sm">•</span>
+                <span className="text-sm text-zinc-500">{profile.email}</span>
+              </div>
+              <button className="opacity-0 group-hover:opacity-100 transition-opacity text-zinc-400 hover:text-zinc-600">
+                <MoreHorizontal size={15} />
+              </button>
             </div>
           )}
-          <button className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 font-medium"><Plus size={14} /> Connect account</button>
+          <button className="flex items-center gap-1.5 text-sm text-zinc-500 hover:text-zinc-800 font-medium">
+            <Plus size={14} /> Connecter un compte
+          </button>
         </div>
       </div>
     </>
   );
 }
 
-// ─── Security Tab ─────────────────────────────────────────────────────────────
+
 function SecurityTab() {
   const [showDeleteModal,  setShowDeleteModal]  = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -403,23 +651,32 @@ function SecurityTab() {
 
   return (
     <>
-      <h3 className="text-base font-semibold text-zinc-900 mb-1">Security</h3>
+      <h3 className="text-base font-semibold text-zinc-900 mb-1">Sécurité</h3>
       <div className="border-t border-zinc-100 mt-3 mb-6" />
 
+      {/* ── Mot de passe ── */}
       <div className="flex gap-10">
-        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Password</span>
+        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Mot de passe</span>
         <div className="flex-1">
           {showPasswordForm
             ? <PasswordForm onClose={() => setShowPasswordForm(false)} />
-            : <button onClick={() => setShowPasswordForm(true)} className="text-sm text-zinc-700 hover:text-zinc-900 font-medium transition-colors">Set password</button>
+            : (
+              <button
+                onClick={() => setShowPasswordForm(true)}
+                className="text-sm text-zinc-700 hover:text-zinc-900 font-medium transition-colors"
+              >
+                Modifier le mot de passe
+              </button>
+            )
           }
         </div>
       </div>
 
       <Divider />
 
+      {/* ── Appareils actifs ── */}
       <div className="flex gap-10">
-        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Active devices</span>
+        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Appareils actifs</span>
         <div className="flex-1 space-y-5">
 
           {loading && (
@@ -439,14 +696,11 @@ function SecurityTab() {
           )}
 
           {!loading && sessions.length === 0 && (
-            <p className="text-sm text-zinc-400">No active sessions found.</p>
+            <p className="text-sm text-zinc-400">Aucune session active trouvée.</p>
           )}
 
           {!loading && sorted.map(s => {
             const isCurrent = s.id === currentSessionId;
-
-            // ✅ Utiliser le vrai userAgent envoyé par le backend
-            // s.userAgent vient des events LOGIN Keycloak
             const ua      = s.userAgent ?? "";
             const os      = parseOS(ua);
             const browser = parseBrowser(ua);
@@ -456,29 +710,39 @@ function SecurityTab() {
               <div key={s.id} className="flex items-start justify-between group">
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-8 rounded-md bg-zinc-900 flex items-center justify-center shrink-0 mt-0.5">
-                    {mobile ? <Smartphone size={15} className="text-white" /> : <Monitor size={15} className="text-white" />}
+                    {mobile
+                      ? <Smartphone size={15} className="text-white" />
+                      : <Monitor    size={15} className="text-white" />
+                    }
                   </div>
                   <div>
                     <div className="flex items-center gap-2 mb-0.5">
                       <span className="text-sm font-medium text-zinc-800">{os}</span>
                       {isCurrent && (
                         <span className="text-[11px] bg-zinc-100 text-zinc-500 border border-zinc-200 px-2 py-0.5 rounded-full font-medium">
-                          This device
+                          Cet appareil
                         </span>
                       )}
                     </div>
                     <p className="text-xs text-zinc-500">{browser}</p>
                     <p className="text-xs text-zinc-400">{s.ipAddress}</p>
-                    <p className="text-xs text-zinc-400 mt-0.5">Last active {formatDate(s.lastAccess)}</p>
+                    <p className="text-xs text-zinc-400 mt-0.5">
+                      Dernière activité {formatDate(s.lastAccess)}
+                    </p>
                   </div>
                 </div>
                 <button
                   onClick={() => revokeSession(s.id, isCurrent)}
                   disabled={revoking === s.id}
-                  title={isCurrent ? "Sign out" : "Revoke session"}
+                  title={isCurrent ? "Se déconnecter" : "Révoquer la session"}
                   className="opacity-0 group-hover:opacity-100 transition-opacity mt-0.5 text-zinc-400 hover:text-red-500 disabled:opacity-30"
                 >
-                  {revoking === s.id ? <Loader2 size={15} className="animate-spin" /> : isCurrent ? <LogOut size={15} /> : <X size={15} />}
+                  {revoking === s.id
+                    ? <Loader2 size={15} className="animate-spin" />
+                    : isCurrent
+                      ? <LogOut size={15} />
+                      : <X size={15} />
+                  }
                 </button>
               </div>
             );
@@ -488,10 +752,18 @@ function SecurityTab() {
 
       <Divider />
 
+      {/* ── Suppression du compte ── */}
       <div className="flex gap-10">
-        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">Delete account</span>
+        <span className="text-sm text-zinc-500 w-36 shrink-0 pt-0.5">
+          Supprimer le compte
+        </span>
         <div className="flex-1">
-          <button onClick={() => setShowDeleteModal(true)} className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors">Delete account</button>
+          <button
+            onClick={() => setShowDeleteModal(true)}
+            className="text-sm text-red-500 hover:text-red-600 font-medium transition-colors"
+          >
+            Supprimer le compte
+          </button>
         </div>
       </div>
 
@@ -508,16 +780,24 @@ export default function AccountPage() {
     <div className="min-h-screen bg-zinc-100 flex items-start justify-center py-10 px-4">
       <div className="w-full max-w-4xl bg-white rounded-2xl shadow-md border border-zinc-200 flex overflow-hidden">
         <aside className="w-60 shrink-0 bg-zinc-50 border-r border-zinc-100 px-5 py-8">
-          <h2 className="text-2xl font-bold text-zinc-900 tracking-tight">Account</h2>
-          <p className="text-sm text-zinc-400 mt-1 mb-8">Manage your account info.</p>
+          <h2 className="text-2xl font-bold text-zinc-900 tracking-tight">Mon compte</h2>
+          <p className="text-sm text-zinc-400 mt-1 mb-8">Gérez vos informations personnelles.</p>
           <nav className="space-y-1">
             {(["profile", "security"] as const).map(tab => (
-              <button key={tab} onClick={() => setActiveTab(tab)}
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
                 className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  activeTab === tab ? "bg-zinc-200/80 text-zinc-900 font-medium" : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
-                }`}>
-                {tab === "profile" ? <User size={14} className="shrink-0" /> : <Shield size={14} className="shrink-0" />}
-                {tab === "profile" ? "Profile" : "Security"}
+                  activeTab === tab
+                    ? "bg-zinc-200/80 text-zinc-900 font-medium"
+                    : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
+                }`}
+              >
+                {tab === "profile"
+                  ? <User   size={14} className="shrink-0" />
+                  : <Shield size={14} className="shrink-0" />
+                }
+                {tab === "profile" ? "Profil" : "Sécurité"}
               </button>
             ))}
           </nav>

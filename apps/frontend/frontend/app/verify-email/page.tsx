@@ -10,14 +10,14 @@ type Status = "loading" | "success" | "error" | "expired"
 
 export default function VerifyEmailPage() {
   const searchParams = useSearchParams()
-  const router       = useRouter()
-  const token        = searchParams.get("token")
-  const email        = searchParams.get("email")
+  const router = useRouter()
+  const token = searchParams.get("token")
+  const email = searchParams.get("email")
 
-  const [status, setStatus]   = useState<Status>("loading")
+  const [status, setStatus] = useState<Status>("loading")
   const [message, setMessage] = useState("")
   const [resending, setResending] = useState(false)
-  const [resent, setResent]   = useState(false)
+  const [resent, setResent] = useState(false)
 
   useEffect(() => {
     if (!token || !email) {
@@ -108,7 +108,10 @@ export default function VerifyEmailPage() {
                 </div>
                 <Button
                   className="w-full mt-2"
-                  onClick={() => router.push("/login?verified=true")}
+                  onClick={() => {
+                    sessionStorage.setItem("email_verified", "true")   // ✅ stocké en mémoire
+                    router.push("/login")                              // ✅ URL propre
+                  }}
                 >
                   Se connecter
                 </Button>
