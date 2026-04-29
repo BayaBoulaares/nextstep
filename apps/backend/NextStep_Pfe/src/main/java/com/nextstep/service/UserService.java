@@ -6,6 +6,7 @@ import com.nextstep.entity.Admin;
 import com.nextstep.entity.Client;
 import com.nextstep.entity.User;
 import com.nextstep.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,7 +15,8 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final KeycloakAdminService keycloakAdminService;
-
+    @Autowired
+    private NamespaceService namespaceService;
     public UserService(UserRepository userRepository,
                        KeycloakAdminService keycloakAdminService) {
         this.userRepository       = userRepository;
@@ -50,10 +52,12 @@ public class UserService {
     //   3. Inconnu (ex: Google SSO première connexion) → crée en DB
 
     @Transactional
-    public User findOrProvision(String keycloakId, String email,
-                                String firstName,  String lastName,
-                                boolean isAdmin) {   // ← nouveau paramètre
+// UserService.java — la signature actuelle attend probablement String, c'est bon
+// Mais vérifie que findByKeycloakId accepte String :
 
+    public User findOrProvision(String keycloakId, String email,
+                                String firstName, String lastName,
+                                boolean isAdmin) {
         return userRepository.findByKeycloakId(keycloakId)
                 .orElseGet(() ->
                         userRepository.findByEmail(email)
@@ -64,29 +68,15 @@ public class UserService {
                                     return userRepository.save(existing);
                                 })
                                 .orElseGet(() -> {
-                                    // ✅ AJOUT — log pour vérifier
-                                    System.out.println("[UserService] Création user → isAdmin=" + isAdmin
-                                            + " email=" + email);
-
-                                    // ✅ Créer Admin ou Client selon le rôle Keycloak
-                                    User newUser;
-                                    if (isAdmin) {
-                                        Admin admin = new Admin();
-                                        newUser = admin;
-                                    } else {
-                                        Client client = new Client();
-                                        newUser = client;
-                                    }
-
+                                    User newUser = isAdmin ? new Admin() : new Client();
                                     newUser.setKeycloakId(keycloakId);
-                                    newUser.setEmail(email        != null ? email     : "");
-                                    newUser.setFirstName(firstName != null ? firstName : "");
-                                    newUser.setLastName(lastName   != null ? lastName  : "");
+                                    newUser.setEmail(email);
+                                    newUser.setFirstName(firstName);
+                                    newUser.setLastName(lastName);
                                     newUser.setProvider("keycloak");
                                     newUser.setProviderId(keycloakId);
                                     newUser.setEmailVerified(true);
                                     newUser.setEnabled(true);
-
                                     return userRepository.save(newUser);
                                 })
                 );

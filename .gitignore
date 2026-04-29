@@ -1,6 +1,8 @@
 # Java
 target/
 *.class
+**/.idea/
+apps/backend/NextStep_Pfe/target/
 
 # Node
 apps/frontend/frontend/node_modules/
@@ -9,10 +11,13 @@ apps/frontend/frontend/.next/
 # Keycloak
 infra/keycloak/data/
 
+
 # Secrets — ne jamais commiter
 apps/backend/NextStep_Pfe/.env
 apps/backend/NextStep_Pfe/src/main/resources/application-secret.properties
 apps/backend/NextStep_Pfe/src/main/resources/application-prod.properties
+infra/postgres/postgres-secret.yaml
+infra/postgres/postgresql-keycloak-secret.yaml
 *.env
 
 # Java compiled files
@@ -32,3 +37,42 @@ auth/docker/.env.txt
 
 # Rapports de sécurité
 security/
+
+
+*.env
+
+# Tokens et certificats sensibles ⚠️
+token.txt
+token.b64
+ca.b64
+oauth-actuel.yaml
+
+# Binaires et scripts locaux
+oc
+deploy.sh
+start.ps1
+
+# Zips inutiles
+*.zip
+apps/backend/NextStep_Pfe (2).zip
+apps/backend/NextStep_Pfe (3).zip
+apps/backend/NextStep_Pfe (4).zip
+apps/frontend/frontend/*.zip
+apps/frontend/frontend/app\ (2).zip
+output.zip
+infra.zip
+
+
+
+# Dossier dupliqué à la racine
+NextStep_Pfe/
+
+# Terraform — state et vars sensibles
+**/.terraform/
+**/terraform.tfstate
+**/terraform.tfstate.backup
+**/terraform.tfvars
+
+# Certificats et tokens infra
+infra/portal-sa-token.yaml
+apps/frontend/frontend/certs/

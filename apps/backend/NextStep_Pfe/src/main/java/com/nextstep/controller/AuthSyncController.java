@@ -1,6 +1,7 @@
 package com.nextstep.controller;
 
 import com.nextstep.dto.UserResponse;
+import com.nextstep.entity.User;
 import com.nextstep.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -11,7 +12,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.UUID;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -31,20 +32,27 @@ public class AuthSyncController {
 
     /**
      * POST /api/auth/sync
-     *
-     * Appelé automatiquement par Next.js auth.ts lors de chaque premier login.
-     * Crée l'utilisateur dans la base si inexistant (upsert par keycloakId).
-     * Idempotent — safe à appeler plusieurs fois.
+     * Appelé par Next.js auth.ts à chaque premier login (credentials ou OAuth).
+     * Crée l'utilisateur en DB si inexistant. Idempotent.
+     * ⚠️ Pas de @AuthenticationPrincipal — route publique (SecurityConfig @Order 1)
      */
-    /*@PostMapping("/sync")
+    @PostMapping("/sync")
     @Operation(summary = "Upsert utilisateur Keycloak dans la base locale")
-    public ResponseEntity<UserResponse> sync(@Valid @RequestBody SyncRequest req) {
-        UserResponse user = userService.syncFromKeycloak(
-                UUID.fromString(req.getKeycloakId()),
-                req.getEmail(),
-                req.getFirstName(),
-                req.getLastName()
-        );
-        return ResponseEntity.ok(user);
-    }*/
+    public ResponseEntity<?> sync(@Valid @RequestBody SyncRequest req) {
+        try {
+            // isAdmin = false par défaut au sync — les rôles sont gérés
+            // dynamiquement dans UserController.getMe() via le JWT
+            User user = userService.findOrProvision(
+                    req.getKeycloakId(),
+                    req.getEmail(),
+                    req.getFirstName()  != null ? req.getFirstName()  : "",
+                    req.getLastName()   != null ? req.getLastName()   : "",
+                    false
+            );
+            return ResponseEntity.ok(new UserResponse(user));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError()
+                    .body(Map.of("message", e.getMessage()));
+        }
+    }
 }

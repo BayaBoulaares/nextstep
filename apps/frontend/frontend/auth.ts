@@ -2,7 +2,21 @@
 import NextAuth, { type NextAuthConfig } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import KeycloakProvider from "next-auth/providers/keycloak"
+import { readFileSync } from "fs"
 
+import path from "path"
+// ── Patch SSL pour certificat auto-signé OpenShift (dev uniquement) ──────────
+if (process.env.NODE_ENV !== "production" && typeof window === "undefined") {
+  try {
+    const certPath = path.join(process.cwd(), "certs", "ocp-chain.crt")
+    const ca = readFileSync(certPath)
+    const { setGlobalDispatcher, Agent } = require("undici")
+    setGlobalDispatcher(new Agent({ connect: { ca } }))
+    console.log("[ssl] ✅ Certificat OpenShift chargé")
+  } catch (e) {
+    console.warn("[ssl] ⚠️ Impossible de charger le certificat:", e)
+  }
+}
 const SESSION_SHORT_S = 8 * 60 * 60
 const SESSION_LONG_S = 30 * 24 * 60 * 60
 const KEYCLOAK_SESSION = 7 * 24 * 60 * 60
@@ -86,12 +100,24 @@ export const config: NextAuthConfig = {
                 password: credentials.password as string,
                 scope: "openid profile email",
               }),
+              
             }
+
           )
           const rawText = await tokenRes.text()
+              console.log("[auth] tokenRes status:", tokenRes.status, rawText.slice(0, 200))
+
           if (!tokenRes.ok) return null
+          
+          
           if (!(tokenRes.headers.get("content-type") ?? "").includes("application/json")) return null
           const tokens = JSON.parse(rawText)
+          // ✅ AJOUT — log pour voir la valeur exacte de iss
+const payload = JSON.parse(
+  Buffer.from(tokens.access_token.split(".")[1], "base64url").toString()
+)
+console.log("[auth] JWT iss =", payload.iss)
+
 
           const userInfoRes = await fetch(
             `${process.env.KEYCLOAK_URL}/realms/${process.env.KEYCLOAK_REALM}/protocol/openid-connect/userinfo`,

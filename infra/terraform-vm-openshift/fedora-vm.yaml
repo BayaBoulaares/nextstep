@@ -1,0 +1,39 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: fedora-tf
+  namespace: tenant-baya 
+spec:
+  running: true
+  template:
+    spec:
+      domain:
+        cpu:
+          cores: 1
+        memory:
+          guest: 1Gi
+        devices:
+          disks:
+            - name: containerdisk
+              disk:
+                bus: virtio
+            - name: cloudinitdisk
+              disk:
+                bus: virtio
+          interfaces:
+            - name: default
+              masquerade: {}
+      networks:
+        - name: default
+          pod: {}
+      volumes:
+        - name: containerdisk
+          containerDisk:
+            image: quay.io/containerdisks/fedora:latest
+        - name: cloudinitdisk
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              password: fedora123
+              chpasswd: { expire: False }
+              ssh_pwauth: True

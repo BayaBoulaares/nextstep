@@ -1,6 +1,9 @@
 package com.nextstep.service;
 
 import com.nextstep.dto.RegisterRequest;
+import org.keycloak.admin.client.Keycloak;
+import org.keycloak.representations.idm.UserRepresentation;
+import org.keycloak.representations.idm.UserSessionRepresentation;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
@@ -340,6 +343,7 @@ public class KeycloakAdminService {
 
     private final RestTemplate restTemplate = new RestTemplate();
 
+
     // ── Créer un utilisateur ──────────────────────────────────────────────────
 
     public String createUser(RegisterRequest request) {
@@ -664,5 +668,69 @@ public class KeycloakAdminService {
             System.err.println("❌ Suppression Keycloak échouée : " + e.getMessage());
             throw new RuntimeException("Erreur suppression Keycloak : " + e.getMessage());
         }
+    }
+    @SuppressWarnings("unchecked")
+    public boolean isUserOnline(String keycloakId) {
+        try {
+            String adminToken = getAdminToken();
+            HttpHeaders headers = new HttpHeaders();
+            headers.setBearerAuth(adminToken);
+            ResponseEntity<List> response = restTemplate.exchange(
+                    keycloakUrl + "/admin/realms/" + realm
+                            + "/users/" + keycloakId + "/sessions",
+                    HttpMethod.GET,
+                    new HttpEntity<>(headers),
+                    List.class
+            );
+            List<?> sessions = response.getBody();
+            return sessions != null && !sessions.isEmpty();
+        } catch (Exception e) {
+            System.err.println("⚠️ isUserOnline error for " + keycloakId + ": " + e.getMessage());
+            return false;
+        }
+    }
+
+    // ── Désactiver dans Keycloak + invalider toutes les sessions ───
+    public void disableUser(String keycloakId) {
+        String adminToken = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        // 1. Désactiver le compte
+        restTemplate.exchange(
+                keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakId,
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("enabled", false), headers),
+                Void.class
+        );
+
+        // 2. Invalider toutes les sessions actives
+        restTemplate.exchange(
+                keycloakUrl + "/admin/realms/" + realm
+                        + "/users/" + keycloakId + "/logout",
+                HttpMethod.POST,
+                new HttpEntity<>(headers),
+                Void.class
+        );
+
+        System.out.println("✅ User " + keycloakId + " désactivé dans Keycloak");
+    }
+
+    // ── Réactiver dans Keycloak ────────────────────────────────────
+    public void enableUser(String keycloakId) {
+        String adminToken = getAdminToken();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setBearerAuth(adminToken);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        restTemplate.exchange(
+                keycloakUrl + "/admin/realms/" + realm + "/users/" + keycloakId,
+                HttpMethod.PUT,
+                new HttpEntity<>(Map.of("enabled", true), headers),
+                Void.class
+        );
+
+        System.out.println("✅ User " + keycloakId + " réactivé dans Keycloak");
     }
 }

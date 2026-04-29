@@ -4,34 +4,28 @@ import com.nextstep.dto.DeploymentDTO;
 import com.nextstep.dto.DeploymentRequest;
 import com.nextstep.entity.DeploymentStatus;
 import com.nextstep.entity.User;
+import com.nextstep.entity.VirtualMachine;
+import com.nextstep.repository.VirtualMachineRepository;
 import com.nextstep.service.DeploymentService;
 import com.nextstep.service.UserService;
+import com.nextstep.service.VmProvisioningService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-/**
- * Endpoints correspondant au tunnel de déploiement des maquettes :
- *
- *  POST   /api/deployments              → confirme et crée le déploiement (récapitulatif s2 → s3)
- *  GET    /api/deployments/user/{userId} → liste les services actifs du dashboard s4
- *  GET    /api/deployments/{id}          → détail d'un service (ligne du dashboard)
- *  PATCH  /api/deployments/{id}/provision → déclenche le provisionnement (maquette s3)
- *  PATCH  /api/deployments/{id}/running   → marque le service comme opérationnel
- *  PATCH  /api/deployments/{id}/status    → changement de statut (MAINTENANCE, STOPPED…)
- *  DELETE /api/deployments/{id}           → suppression du service
- */
 @RestController
 @RequestMapping("/api/deployments")
 @RequiredArgsConstructor
@@ -39,75 +33,85 @@ import java.util.UUID;
 @SecurityRequirement(name = "bearerAuth")
 public class DeploymentController {
 
-    private final DeploymentService deploymentService;
-    private final UserService userService;
+    private final DeploymentService        deploymentService;
+    private final UserService              userService;
+    private final VirtualMachineRepository vmRepository; // ✅ nouveau
 
+    @Autowired
+    private VmProvisioningService vmProvisioningService;
 
-    // ✅ Correction dans le controller
     @GetMapping("/user/{userId}")
-    /*public List<DeploymentDTO> getByUser(@PathVariable UUID userId,
-                                         @AuthenticationPrincipal Jwt jwt) {
-        // Vérifier que l'userId demandé = l'utilisateur connecté (sauf admin)
+    public List<DeploymentDTO> getByUser(
+            @PathVariable UUID userId,
+            @AuthenticationPrincipal Jwt jwt) {
         String keycloakId = jwt.getSubject();
         User caller = userService.findByKeycloakId(keycloakId);
-        if (!caller.getId().equals(userId)) {
-            throw new AccessDeniedException("Accès interdit");
-        }
-        return deploymentService.getByUser(userId);
-    }*/
-    public List<DeploymentDTO> getByUser(@PathVariable UUID userId,
-                                         @AuthenticationPrincipal Jwt jwt) {
-        String keycloakId = jwt.getSubject();
-        User caller = userService.findByKeycloakId(keycloakId);
-
-        // ✅ Utiliser l'ID DB du caller, pas le {userId} de l'URL
         return deploymentService.getByUser(caller.getId());
     }
 
+    // ✅ Retourne le vmPassword quand statut = EN_LIGNE
     @GetMapping("/{id}")
     @Operation(summary = "Détail d'un déploiement")
-    public DeploymentDTO getById(@PathVariable Long id) {
-        return deploymentService.getById(id);
+    public ResponseEntity<?> getById(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        DeploymentDTO dto = deploymentService.getById(id);
+
+        // Si EN_LIGNE → chercher le password en BDD
+        String vmPassword = null;
+        if (DeploymentStatus.EN_LIGNE.name().equals(dto.getStatus())) {
+            String username = jwt.getClaimAsString("email")
+                    .split("@")[0].replace(".", "-");
+            String vmName   = sanitize(dto.getResourceName());
+
+            vmPassword = vmRepository
+                    .findByNameAndUsername(vmName, username)
+                    .map(VirtualMachine::getVmPassword)
+                    .orElse(null);
+        }
+
+        // ✅ Enrichir la réponse avec vmPassword
+        Map<String, Object> response = new HashMap<>();
+        response.put("id",         dto.getId());
+        response.put("status",     dto.getStatus());
+        response.put("resourceName", dto.getResourceName());
+        response.put("vmPassword", vmPassword != null ? vmPassword : "");
+        // Ajouter les autres champs du DTO si nécessaire
+        response.put("planId",     dto.getPlanId());
+        response.put("createdAt",  dto.getCreatedAt());
+
+        return ResponseEntity.ok(response);
     }
 
-    /*@PostMapping("/user/{userId}")
-    @Operation(summary = "Créer un déploiement — confirmer la commande (étape récapitulatif)")
-    public ResponseEntity<DeploymentDTO> create(
-            @PathVariable UUID userId,
-            @Valid @RequestBody DeploymentRequest request) {
-        return ResponseEntity
-                .status(HttpStatus.CREATED)
-                .body(deploymentService.create(caller.getId(), request));
-    }*/
     @PostMapping("/user/{userId}")
     public ResponseEntity<DeploymentDTO> create(
             @PathVariable UUID userId,
-            @AuthenticationPrincipal Jwt jwt,        // ← ajouter
+            @AuthenticationPrincipal Jwt jwt,
             @Valid @RequestBody DeploymentRequest request) {
 
-        // Résoudre l'utilisateur via le JWT (keycloakId = jwt.sub)
         String keycloakId = jwt.getSubject();
         User caller = userService.findByKeycloakId(keycloakId);
-
         return ResponseEntity
                 .status(HttpStatus.CREATED)
-                .body(deploymentService.create(caller.getId(), request)); // ← UUID DB réel
+                .body(deploymentService.create(caller.getId(), request));
     }
 
     @PatchMapping("/{id}/provision")
-    @Operation(summary = "Démarrer le provisionnement (étape 3 — spinner maquette)")
-    public DeploymentDTO startProvisioning(@PathVariable Long id) {
-        return deploymentService.startProvisioning(id);
+    public ResponseEntity<DeploymentDTO> startProvisioning(@PathVariable Long id) {
+        DeploymentDTO dto = deploymentService.startProvisioning(id);
+        vmProvisioningService.provisionAsync(id);
+        return ResponseEntity.ok(dto);
     }
 
     @PatchMapping("/{id}/running")
-    @Operation(summary = "Marquer le déploiement comme opérationnel (fin du provisionnement)")
+    @Operation(summary = "Marquer le déploiement comme opérationnel")
     public DeploymentDTO markRunning(@PathVariable Long id) {
         return deploymentService.markRunning(id);
     }
 
     @PatchMapping("/{id}/status")
-    @Operation(summary = "Changer le statut d'un déploiement (MAINTENANCE, STOPPED, TERMINATED…)")
+    @Operation(summary = "Changer le statut d'un déploiement")
     public DeploymentDTO changeStatus(
             @PathVariable Long id,
             @RequestParam DeploymentStatus status) {
@@ -119,5 +123,12 @@ public class DeploymentController {
     public ResponseEntity<Void> delete(@PathVariable Long id) {
         deploymentService.delete(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private String sanitize(String name) {
+        return name.toLowerCase()
+                .replaceAll("[^a-z0-9-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
     }
 }

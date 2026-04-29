@@ -19,6 +19,7 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
 import java.util.UUID;
 
@@ -268,5 +269,30 @@ public class EmailVerificationService {
         </body>
         </html>
         """.formatted(userName, link);
+    }
+    // Dans EmailVerificationService.java — ajouter cette méthode
+    public void sendSuspensionEmail(String toEmail, String clientName,
+                                    String reason, String adminName) {
+        String subject = "⚠️ Votre compte NextStep IT a été suspendu";
+        String body = """
+        Bonjour %s,
+
+        Votre compte sur la plateforme NextStep IT a été suspendu.
+
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        Motif    : %s
+        Par      : %s (Administrateur)
+        Date     : %s
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Pour contester cette décision : support@nextstep.tn
+
+        Cordialement,
+        L'équipe NextStep IT
+        """.formatted(
+                clientName, reason, adminName,
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm"))
+        );
+        sendEmail(toEmail, subject, body);  // ta méthode d'envoi existante
     }
 }

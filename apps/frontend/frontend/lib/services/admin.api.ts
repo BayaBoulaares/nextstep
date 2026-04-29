@@ -98,3 +98,23 @@ export {
   changeDeploymentStatus    as adminChangeDeploymentStatus,
   deleteDeployment          as adminDeleteDeployment,
 } from "@/lib/services/deployments.api"
+// ✅ REMPLACER par ceci — utilise apiFetch comme le reste du projet
+import { apiFetch } from "@/lib/apiClient"
+import type { UserAdminDTO, PageResponse } from "@/types/admin"
+
+export const fetchClients = (page: number, size = 10) =>
+  apiFetch<PageResponse<UserAdminDTO>>(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users?page=${page}&size=${size}`
+  )
+
+export const suspendClient = (keycloakId: string, reason: string) =>
+  apiFetch<void>(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${keycloakId}/suspend`,
+    { method: "PATCH", body: JSON.stringify({ reason }) }
+  )
+
+export const reactivateClient = (keycloakId: string) =>
+  apiFetch<void>(
+    `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${keycloakId}/reactivate`,
+    { method: "PATCH" }
+  )

@@ -51,7 +51,8 @@ public class WebMvcConfig implements WebMvcConfigurer {
                         "/swagger-ui.html",
                         "/v3/api-docs/**",
                         "/favicon.ico",
-                        "/error"
+                        "/error",
+                        "/api/admin/users"
                 );
 
         log.info("[AUDIT] ✅ AuditLogInterceptor registered on /**");

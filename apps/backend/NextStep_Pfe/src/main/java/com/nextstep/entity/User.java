@@ -35,7 +35,7 @@ public abstract class User {
     @Column(nullable = false)
     private String lastName;
     // ← nouveau : URL de la photo de profil (stockée sur S3 / Cloudinary / etc.)
-    @Column(length = 512)
+    @Column(columnDefinition = "TEXT")
     private String avatarUrl;
 
 
@@ -53,6 +53,14 @@ public abstract class User {
 
     @Column(length = 500)
     private String providerId;              // ID chez le provider
+    @Column(name = "suspension_reason")
+    private String suspensionReason;
+
+    @Column(name = "suspended_by")
+    private String suspendedBy;        // username de l'admin
+
+    @Column(name = "suspended_at")
+    private LocalDateTime suspendedAt;
 
     @CreationTimestamp
     @Column(nullable = false, updatable = false)

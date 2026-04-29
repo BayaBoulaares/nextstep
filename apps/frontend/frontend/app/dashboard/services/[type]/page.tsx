@@ -48,8 +48,7 @@ function planSpecs(plan: PlanDTO): string {
 function planPrice(plan: PlanDTO): string {
   if (plan.price === 0) return "Gratuit"
   const cycle = CYCLE_LABEL[plan.billingCycle] ?? ""
-  return `${plan.price.toFixed(2)} €${cycle}`
-}
+return `${(plan.price ?? 0).toFixed(2)} €${cycle}`}
 
 // ✅ Extrait l'id du plan depuis tous les champs possibles
 // Jackson avec Lombok peut sérialiser l'id sous différents noms

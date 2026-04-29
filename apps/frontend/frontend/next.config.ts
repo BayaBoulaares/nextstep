@@ -10,6 +10,10 @@ const nextConfig: NextConfig = {
         source:      "/api/:path((?!auth).*)",
         destination: "http://localhost:8081/api/:path",
       },
+       {
+        source:      "/vnc-proxy/:path*",
+        destination: "https://api.ocp4.nextstep-it.com:6443/:path*",
+      },
     ]
   },
 }
