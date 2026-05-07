@@ -1,11 +1,13 @@
 package com.nextstep.controller;
 
+import com.nextstep.dto.AbonnementRequest;
 import com.nextstep.dto.DeploymentDTO;
 import com.nextstep.dto.DeploymentRequest;
 import com.nextstep.entity.DeploymentStatus;
 import com.nextstep.entity.User;
 import com.nextstep.entity.VirtualMachine;
 import com.nextstep.repository.VirtualMachineRepository;
+import com.nextstep.service.AbonnementService;
 import com.nextstep.service.DeploymentService;
 import com.nextstep.service.UserService;
 import com.nextstep.service.VmProvisioningService;
@@ -36,7 +38,7 @@ public class DeploymentController {
     private final DeploymentService        deploymentService;
     private final UserService              userService;
     private final VirtualMachineRepository vmRepository; // ✅ nouveau
-
+    private final AbonnementService abonnementService;
     @Autowired
     private VmProvisioningService vmProvisioningService;
 
@@ -84,7 +86,7 @@ public class DeploymentController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/user/{userId}")
+    /*@PostMapping("/user/{userId}")
     public ResponseEntity<DeploymentDTO> create(
             @PathVariable UUID userId,
             @AuthenticationPrincipal Jwt jwt,
@@ -95,6 +97,26 @@ public class DeploymentController {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(deploymentService.create(caller.getId(), request));
+    }*/
+    @PostMapping
+    public ResponseEntity<DeploymentDTO> create(
+            @AuthenticationPrincipal Jwt jwt,
+            @Valid @RequestBody DeploymentRequest request) {
+
+        String keycloakId = jwt.getSubject();
+        User caller = userService.findByKeycloakId(keycloakId);
+
+        // 1. Créer le Deployment
+        DeploymentDTO dto = deploymentService.create(caller.getId(), request);
+
+        // 2. Créer l'Abonnement lié automatiquement
+        AbonnementRequest aboReq = new AbonnementRequest();
+        aboReq.setPlanId(request.getPlanId());
+        aboReq.setAutoRenouvellement(true);
+        aboReq.setDeploymentId(dto.getId());
+        abonnementService.souscrire(caller.getId(), aboReq);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PatchMapping("/{id}/provision")
@@ -130,5 +152,12 @@ public class DeploymentController {
                 .replaceAll("[^a-z0-9-]", "-")
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
+    }
+    @PostMapping("/{id}/provision")
+    public ResponseEntity<DeploymentDTO> provision(@PathVariable Long id) {
+        deploymentService.startProvisioning(id);
+        // Lance le provisionAsync en background
+        vmProvisioningService.provisionAsync(id);
+        return ResponseEntity.ok(deploymentService.getById(id));
     }
 }

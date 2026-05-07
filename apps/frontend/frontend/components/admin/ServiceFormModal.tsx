@@ -15,7 +15,6 @@ import { adminCreateService, adminUpdateService } from "@/lib/services/admin.api
 import type {
   CloudServiceDTO,
   CloudServiceRequest,
-  CloudType,
   ServiceCategory,
   ServiceStatus,
 } from "@/lib/types"
@@ -26,12 +25,7 @@ interface Props {
   onSaved:  (s: CloudServiceDTO) => void
 }
 
-// ✅ CloudType.java : PRIVÉ | PUBLIC | HYBRIDE
-const CLOUD_TYPES: { value: CloudType; label: string }[] = [
-  { value: "PRIVÉ",   label: "Cloud Privé"   },
-  { value: "PUBLIC",  label: "Cloud Public"  },
-  { value: "HYBRIDE", label: "Cloud Hybride" },
-]
+
 
 // ✅ ServiceCategory.java
 const CATEGORIES: { value: ServiceCategory; label: string }[] = [
@@ -63,7 +57,6 @@ export function ServiceFormModal({ service, onClose, onSaved }: Props) {
     name:        service?.name        ?? "",
     description: service?.description ?? "",
     icon:        service?.icon        ?? "🖥️",
-    cloudType:   service?.cloudType   ?? "PRIVÉ",
     category:    service?.category    ?? "CALCUL",
     status:      service?.status      ?? "ACTIF",   // ✅ @NotNull — obligatoire
   })
@@ -153,17 +146,7 @@ export function ServiceFormModal({ service, onClose, onSaved }: Props) {
 
           {/* Type cloud + Catégorie + Statut */}
           <div className="grid grid-cols-3 gap-3">
-            <div className="space-y-1.5">
-              <Label className="text-[12px]">Type cloud <span className="text-destructive">*</span></Label>
-              <Select value={form.cloudType} onValueChange={v => set("cloudType")(v as CloudType)}>
-                <SelectTrigger className="h-9 text-[12px]"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {CLOUD_TYPES.map(t => (
-                    <SelectItem key={t.value} value={t.value}>{t.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+
 
             <div className="space-y-1.5">
               <Label className="text-[12px]">Catégorie <span className="text-destructive">*</span></Label>

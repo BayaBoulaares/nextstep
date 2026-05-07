@@ -22,12 +22,5 @@ public class PlanDTO {
     private Boolean isActive;
     private Long serviceId;
     private String serviceName;
-    /** NOUVEAU — ex: "POPULAIRE", "RECOMMANDÉ", null */
-    private String badge;
-    /** NOUVEAU */
-    private Boolean isPopular;
-    /** NOUVEAU */
-    private Boolean isPayAsYouGo;
-    /** NOUVEAU — grille tarifaire PAYG (liste vide pour les plans fixes) */
-    private List<PlanPricingDTO> planPricings;
+
 }

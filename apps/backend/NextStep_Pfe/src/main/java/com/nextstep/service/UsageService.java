@@ -1,6 +1,5 @@
 package com.nextstep.service;
 
-
 import com.nextstep.dto.InvoiceResponse;
 import com.nextstep.dto.UsageRecordResponse;
 import com.nextstep.entity.*;
@@ -23,86 +22,15 @@ import java.util.UUID;
 @Transactional
 public class UsageService {
 
-    private final UsageRecordRepository  usageRecordRepository;
-    private final PlanPricingRepository  planPricingRepository;
-    private final AbonnementRepository   abonnementRepository;
-    private final DeploymentRepository   deploymentRepository;
-    private final InvoiceRepository      invoiceRepository;
-    private final UserRepository         userRepository;
-
-    // ── Enregistrer une consommation (appelé par le scheduler) ───────────────
-
-    /**
-     * Calcule et enregistre une mesure de consommation pour un abonnement PAYG.
-     * Déduit le coût du soldePayAsYouGo du client.
-     *
-     * @param abonnementId  ID de l'abonnement PAYG
-     * @param deploymentId  ID du déploiement source
-     * @param metricType    Type de ressource mesurée
-     * @param quantity      Quantité consommée sur la période
-     * @param periodStart   Début de la fenêtre de mesure
-     * @param periodEnd     Fin de la fenêtre de mesure
-     */
-    public UsageRecord enregistrerConsommation(
-            Long abonnementId,
-            Long deploymentId,
-            UsageMetricType metricType,
-            BigDecimal quantity,
-            LocalDateTime periodStart,
-            LocalDateTime periodEnd) {
-
-        Abonnement abo = abonnementRepository.findById(abonnementId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Abonnement introuvable : " + abonnementId));
-
-        Deployment dep = deploymentRepository.findById(deploymentId)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Déploiement introuvable : " + deploymentId));
-
-        // Récupérer le tarif unitaire depuis la grille PlanPricing
-        PlanPricing pricing = planPricingRepository
-                .findByPlanIdAndMetricType(abo.getPlan().getId(), metricType)
-                .orElseThrow(() -> new EntityNotFoundException(
-                        "Tarif introuvable pour plan=" + abo.getPlan().getId()
-                                + " metricType=" + metricType));
-
-        // Appliquer le quota gratuit
-        BigDecimal facturable = quantity
-                .subtract(pricing.getFreeQuota())
-                .max(BigDecimal.ZERO);
-
-        BigDecimal cost = facturable.multiply(pricing.getPricePerUnit());
-
-        // Débiter le solde PAYG du client
-        Client client = abo.getClient();
-        client.setSoldePayAsYouGo(
-                client.getSoldePayAsYouGo().subtract(cost)
-        );
-        // (Client est managé via cascade — pas besoin de save explicite ici
-        //  si le contexte transactionnel est actif, mais on le force par sécurité)
-        userRepository.save(client);
-
-        UsageRecord record = UsageRecord.builder()
-                .abonnement(abo)
-                .deployment(dep)
-                .metricType(metricType)
-                .quantity(quantity)
-                .cost(cost)
-                .periodStart(periodStart)
-                .periodEnd(periodEnd)
-                .build();
-
-        log.info("[PAYG] abo={} dep={} metric={} qty={} cost={}",
-                abonnementId, deploymentId, metricType, quantity, cost);
-
-        return usageRecordRepository.save(record);
-    }
+    private final AbonnementRepository  abonnementRepository;
+    private final DeploymentRepository  deploymentRepository;
+    private final InvoiceRepository     invoiceRepository;
 
     // ── Générer la facture du mois ────────────────────────────────────────────
 
     /**
-     * Consolide tous les UsageRecord d'un abonnement sur un mois
-     * et crée une Invoice en statut EMISE.
+     * Pour les plans à prix fixe, la facture mensuelle = price du plan
+     * + éventuels suppléments (backup, monitoring, antiDdos, stockage additionnel).
      * Idempotent : si la facture existe déjà pour ce mois, elle est retournée.
      */
     public Invoice genererFactureMois(Long abonnementId, YearMonth mois) {
@@ -117,14 +45,16 @@ public class UsageService {
         // Idempotence
         if (invoiceRepository.existsByAbonnementIdAndPeriodStart(abonnementId, debut)) {
             log.warn("[INVOICE] Facture déjà générée pour abo={} mois={}", abonnementId, mois);
-            return null;
+            return invoiceRepository.findByAbonnementIdAndPeriodStart(abonnementId, debut)
+                    .orElse(null);
         }
 
-        BigDecimal total = usageRecordRepository
-                .sumCostByAbonnementAndPeriod(abonnementId, debut, fin);
+        // Prix fixe du plan
+        BigDecimal total = abo.getPlan().getPrice() != null
+                ? abo.getPlan().getPrice()
+                : BigDecimal.ZERO;
 
         Invoice invoice = Invoice.builder()
-                .client(abo.getClient())
                 .abonnement(abo)
                 .periodStart(debut)
                 .periodEnd(fin)
@@ -138,17 +68,6 @@ public class UsageService {
         return saved;
     }
 
-    // ── Lire les records d'un abonnement ─────────────────────────────────────
-
-    @Transactional(readOnly = true)
-    public List<UsageRecordResponse> getUsageParAbonnement(Long abonnementId,
-                                                           LocalDateTime debut,
-                                                           LocalDateTime fin) {
-        return usageRecordRepository
-                .findByAbonnementIdAndPeriodStartBetween(abonnementId, debut, fin)
-                .stream().map(this::toUsageResponse).toList();
-    }
-
     // ── Lire les factures d'un client ─────────────────────────────────────────
 
     @Transactional(readOnly = true)
@@ -157,23 +76,7 @@ public class UsageService {
                 .stream().map(this::toInvoiceResponse).toList();
     }
 
-    // ── Mappers ───────────────────────────────────────────────────────────────
-
-    private UsageRecordResponse toUsageResponse(UsageRecord u) {
-        UsageRecordResponse r = new UsageRecordResponse();
-        r.setId(u.getId());
-        r.setAbonnementId(u.getAbonnement().getId());
-        r.setDeploymentId(u.getDeployment().getId());
-        r.setResourceName(u.getDeployment().getResourceName());
-        r.setMetricType(u.getMetricType());
-        r.setMetricLabel(u.getMetricType().getLabel());
-        r.setQuantity(u.getQuantity());
-        r.setCost(u.getCost());
-        r.setPeriodStart(u.getPeriodStart());
-        r.setPeriodEnd(u.getPeriodEnd());
-        r.setRecordedAt(u.getRecordedAt());
-        return r;
-    }
+    // ── Mapper ────────────────────────────────────────────────────────────────
 
     private InvoiceResponse toInvoiceResponse(Invoice i) {
         InvoiceResponse r = new InvoiceResponse();

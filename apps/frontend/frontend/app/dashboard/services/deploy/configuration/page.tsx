@@ -43,11 +43,9 @@ const CYCLE_LABEL: Record<string, string> = {
   HORAIRE: "/h",
   MENSUEL: "/mois",
   ANNUEL:  "/an",
-  USAGE:   " à l'usage",
 }
 
 // C1 — Regex Kubernetes : kebab-case strict, 1 à 63 caractères
-// Règles : commence par [a-z], termine par [a-z0-9], tirets autorisés au milieu
 const RESOURCE_NAME_REGEX = /^[a-z][a-z0-9-]{0,61}[a-z0-9]$|^[a-z]$/
 
 // C2 — Catégories pour lesquelles un OS n'a pas de sens
@@ -108,7 +106,7 @@ export default function ConfigurationPage() {
   const [service,   setService]   = React.useState<CloudServiceDTO | null>(null)
   const [plan,      setPlan]      = React.useState<PlanDTO | null>(null)
   const [fetching,  setFetching]  = React.useState(true)
-  const [loadError, setLoadError] = React.useState<string | null>(null)   // E1
+  const [loadError, setLoadError] = React.useState<string | null>(null)
   const [serviceId, setServiceId] = React.useState<number | null>(null)
   const [planId,    setPlanId]    = React.useState<number | null>(null)
 
@@ -120,7 +118,6 @@ export default function ConfigurationPage() {
   const [operatingSystem, setOperatingSystem] = React.useState<OperatingSystem>("UBUNTU_24_04_LTS")
 
   // C1 — Validation resourceName
-  // Déclaré AVANT tout return conditionnel pour respecter la règle des hooks
   const resourceNameError = React.useMemo(() => {
     if (!resourceName) return null
     if (resourceName.length < 2)  return "Minimum 2 caractères"
@@ -152,19 +149,14 @@ export default function ConfigurationPage() {
     setServiceId(sid)
     setPlanId(pid)
 
-    // Valeur d'OS issue du draft (peut être undefined si premier passage)
     const draftOs: OperatingSystem | undefined = draft.operatingSystem
 
     getServiceById(sid)
       .then(svc => {
         setService(svc)
 
-        // C2 — Calcul des OS disponibles pour cette catégorie
         const options = getOsOptions(svc.category)
 
-        // Ordre de priorité :
-        //  1. OS du draft SI compatible avec la catégorie (retour en arrière)
-        //  2. Premier OS de la liste sinon (nouveau passage ou OS incompatible)
         setOperatingSystem(
           draftOs && options.includes(draftOs) ? draftOs : options[0]
         )
@@ -174,15 +166,13 @@ export default function ConfigurationPage() {
       })
       .catch(err => {
         console.error("[CONFIG] erreur getServiceById:", err)
-        // E1 — stocke l'erreur pour afficher un écran dédié (pas juste un log)
         setLoadError("Impossible de charger le service. Vérifiez votre connexion.")
       })
       .finally(() => setFetching(false))
   }, [])
 
   // Calcul prix
-  const isPayg    = plan?.isPayAsYouGo ?? false
-  const basePrice = plan?.price ?? null   // null si plan PAYG
+  const basePrice = plan?.price ?? 0
   const cycleStr  = plan ? (CYCLE_LABEL[plan.billingCycle] ?? "") : ""
 
   // Sauvegarde du draft et navigation vers le récapitulatif
@@ -207,16 +197,11 @@ export default function ConfigurationPage() {
     router.push("/dashboard/services/deploy/recapitulatif")
   }
 
-  // E2 — "Changer" : remet à zéro les champs dépendants du plan
-  // avant de revenir à la page de sélection, pour éviter qu'un OS
-  // du plan précédent soit conservé pour un nouveau plan incompatible
   const handleChangePlan = () => {
     const existing = (() => {
       try { return JSON.parse(sessionStorage.getItem("deploy_draft") ?? "{}") }
       catch { return {} }
     })()
-    // On retire operatingSystem et backupEnabled du draft
-    // serviceId et planId seront réécrit par la page de sélection
     const { operatingSystem: _os, backupEnabled: _bk, ...rest } = existing
     sessionStorage.setItem("deploy_draft", JSON.stringify(rest))
     router.back()
@@ -232,7 +217,6 @@ export default function ConfigurationPage() {
     )
   }
 
-  // E1 — Écran d'erreur réseau avec retry (au lieu d'une page vide avec "—")
   if (loadError) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4">
@@ -276,43 +260,10 @@ export default function ConfigurationPage() {
       <div className="flex gap-6 p-6 max-w-6xl mx-auto w-full items-start">
         <div className="flex-1 min-w-0 space-y-5">
 
-          {/* Bandeau plan sélectionné */}
-          <div className="flex items-center justify-between border border-border rounded-xl px-5 py-3.5 bg-muted/20">
-            <div className="flex items-center gap-3">
-              <span className="text-xl">{service?.icon ?? "🖥️"}</span>
-              <div>
-                <p className="text-[13px] font-semibold text-foreground">
-                  {plan?.name ?? "—"}{plan && planSpecs(plan) ? ` — ${planSpecs(plan)}` : ""}
-                </p>
-                <p className="text-[11px] text-muted-foreground">
-                  {service?.cloudType} · {service?.name}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-[13px] font-semibold tabular-nums">
-                {isPayg
-                  ? <span className="text-amber-600">⚡ À l'usage</span>
-                  : basePrice === 0 ? "Gratuit" : `${basePrice!.toFixed(2)} €${cycleStr}`
-                }
-              </span>
-              {/* E2 — reset du draft avant retour à la sélection */}
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-7 text-[12px]"
-                onClick={handleChangePlan}
-              >
-                Changer
-              </Button>
-            </div>
-          </div>
-
           {/* Identification */}
           <SectionCard icon="🏷️" title="Identification" sub="Nom de la ressource">
             <div className="space-y-1.5">
               <Label className="text-[12px]">Nom de la ressource *</Label>
-              {/* C1 — toLowerCase automatique pour éviter les fautes de frappe */}
               <Input
                 value={resourceName}
                 onChange={e => setResourceName(e.target.value.toLowerCase())}
@@ -399,41 +350,33 @@ export default function ConfigurationPage() {
           </SectionCard>
         </div>
 
-        {/* Résumé sticky */}
+        {/* Résumé sticky — cloudType retiré (supprimé du DTO) */}
         <div className="w-72 shrink-0 sticky top-[88px] space-y-3">
           <div className="border border-border rounded-2xl overflow-hidden">
             <div className="px-5 py-4 bg-foreground text-background">
               <p className="text-[10px] font-semibold uppercase tracking-widest opacity-60 mb-1">Résumé</p>
               <p className="text-base font-semibold">{service?.name ?? "—"}</p>
-              <p className="text-[12px] opacity-60 mt-0.5">{service?.cloudType} · {service?.category}</p>
             </div>
             <div className="px-5 py-4 space-y-2.5 bg-card border-b border-border">
               {[
-                { label: "Plan",   value: plan?.name ?? "—"                },
-                { label: "Specs",  value: plan ? planSpecs(plan) : "—"     },
-                { label: "Zone",   value: zone                             },
-                { label: "OS",     value: OS_LABELS[operatingSystem]       },
-                { label: "Backup", value: backupEnabled ? "Activé" : "Non" },
+                { label: "Plan",      value: plan?.name ?? "—"            },
+                { label: "Tier",      value: plan?.tier ?? "—"            },
+                { label: "Specs",     value: plan ? planSpecs(plan) : "—" },
+                { label: "Zone",      value: zone                         },
+                { label: "OS",        value: OS_LABELS[operatingSystem]   },
+                { label: "Backup",    value: backupEnabled ? "Activé" : "Non" },
+                {
+                  label: "Prix",
+                  value: basePrice > 0
+                    ? `${basePrice.toFixed(2)} €${cycleStr}`
+                    : "—"
+                },
               ].map(row => (
                 <div key={row.label} className="flex items-center justify-between">
                   <span className="text-[12px] text-muted-foreground">{row.label}</span>
                   <span className="text-[12px] font-medium text-foreground">{row.value}</span>
                 </div>
               ))}
-            </div>
-            <div className="px-5 py-4 bg-card">
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-[11px] text-muted-foreground">Total</p>
-                  <p className="text-[10px] text-muted-foreground">HT · {plan?.billingCycle ?? "MENSUEL"}</p>
-                </div>
-                {isPayg
-                  ? <p className="text-[13px] font-semibold text-amber-600">⚡ Variable</p>
-                  : <p className="text-2xl font-semibold tabular-nums text-foreground">
-                      {basePrice === 0 ? "Gratuit" : `${basePrice!.toFixed(2)} €`}
-                    </p>
-                }
-              </div>
             </div>
           </div>
 

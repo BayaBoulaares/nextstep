@@ -53,8 +53,6 @@ public class CloudServiceService {
         service.setDescription(request.getDescription());
         service.setCategory(request.getCategory());
         service.setStatus(request.getStatus() != null ? request.getStatus() : ServiceStatus.ACTIF);
-        // NOUVEAU
-        service.setCloudType(request.getCloudType());
         service.setIcon(request.getIcon());
 
         return toDTO(repository.save(service));
@@ -69,8 +67,6 @@ public class CloudServiceService {
         if (request.getStatus() != null) {
             service.setStatus(request.getStatus());
         }
-        // NOUVEAU
-        if (request.getCloudType() != null) service.setCloudType(request.getCloudType());
         service.setIcon(request.getIcon());
 
         return toDTO(repository.save(service));
@@ -97,9 +93,11 @@ public class CloudServiceService {
         dto.setDescription(s.getDescription());
         dto.setCategory(s.getCategory());
         dto.setStatus(s.getStatus());
-        // NOUVEAU
-        dto.setCloudType(s.getCloudType());
         dto.setIcon(s.getIcon());
+        if (s.getCategory().requiresVm()) {
+            dto.setDefaultInstanceType(s.getCategory().defaultInstanceType);
+            dto.setAvailableInstanceTypes(s.getCategory().availableInstanceTypes);
+        }
         if (s.getPlans() != null) {
             dto.setPlans(s.getPlans().stream().map(this::planToDTO).toList());
         }
@@ -118,19 +116,9 @@ public class CloudServiceService {
         dto.setRamGb(p.getRamGb());
         dto.setStorageGb(p.getStorageGb());
         dto.setIsActive(p.getIsActive());
-        // NOUVEAU
-        dto.setBadge(p.getBadge());
-        dto.setIsPopular(p.getIsPopular());
         dto.setServiceId(p.getService().getId());
         dto.setServiceName(p.getService().getName());
         return dto;
     }
-    // ── Filtrer par type de cloud ─────────────────────────────
-    @Transactional(readOnly = true)
-    public List<CloudServiceDTO> getByCloudType(CloudType cloudType) {
-        return repository.findByCloudType(cloudType)
-                .stream()
-                .map(this::toDTO)
-                .toList();
-    }
+
 }

@@ -21,32 +21,15 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/usage")
 @RequiredArgsConstructor
-@Tag(name = "Usage PAYG", description = "Consommation et factures Pay-As-You-Go")
+@Tag(name = "Facturation", description = "Factures mensuelles")
 @SecurityRequirement(name = "bearerAuth")
 public class UsageController {
 
     private final UsageService usageService;
     private final UserService  userService;
 
-    /**
-     * Records de consommation d'un abonnement sur une période.
-     * GET /api/usage/abonnements/{id}?debut=...&fin=...
-     */
-    @GetMapping("/abonnements/{abonnementId}")
-    @Operation(summary = "Consommation d'un abonnement PAYG sur une période")
-    public List<UsageRecordResponse> getUsage(
-            @PathVariable Long abonnementId,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime debut,
-            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin) {
-        return usageService.getUsageParAbonnement(abonnementId, debut, fin);
-    }
-
-    /**
-     * Factures du client connecté.
-     * GET /api/usage/factures
-     */
     @GetMapping("/factures")
-    @Operation(summary = "Factures PAYG du client connecté")
+    @Operation(summary = "Factures du client connecté")
     public List<InvoiceResponse> mesFactures(@AuthenticationPrincipal Jwt jwt) {
         UUID clientId = userService.findByKeycloakId(jwt.getSubject()).getId();
         return usageService.getFacturesParClient(clientId);

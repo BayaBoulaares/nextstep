@@ -14,7 +14,7 @@ import { apiFetch } from "@/lib/apiClient"
 import type {
   CloudServiceDTO,
   CloudServiceRequest,
-  CloudType,
+  
   ServiceCategory,
 } from "@/lib/types"
 
@@ -26,8 +26,7 @@ export const getAllServices = () =>
 export const getServiceById = (id: number) =>
   apiFetch<CloudServiceDTO>(`/api/services/${id}`)
 
-export const getServicesByCloudType = (cloudType: CloudType) =>
-  apiFetch<CloudServiceDTO[]>(`/api/services/cloud/${cloudType}`)
+
 
 export const getServicesByCategory = (category: ServiceCategory) =>
   apiFetch<CloudServiceDTO[]>(`/api/services/category/${category}`)

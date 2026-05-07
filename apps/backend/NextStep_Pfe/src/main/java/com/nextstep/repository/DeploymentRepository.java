@@ -16,6 +16,10 @@ public interface DeploymentRepository extends JpaRepository<Deployment, Long> {
     List<Deployment> findByUserIdAndStatus(UUID userId, DeploymentStatus status);
     long countByUserIdAndStatus(UUID userId, DeploymentStatus status);
     // ✅ Charge le deployment avec le user en une seule requête JOIN FETCH
-    @Query("SELECT d FROM Deployment d JOIN FETCH d.user JOIN FETCH d.plan WHERE d.id = :id")
+    @Query("SELECT d FROM Deployment d " +
+            "JOIN FETCH d.user " +
+            "JOIN FETCH d.plan p " +
+            "JOIN FETCH p.service s " +
+            "WHERE d.id = :id")
     Optional<Deployment> findByIdWithUser(@Param("id") Long id);
 }

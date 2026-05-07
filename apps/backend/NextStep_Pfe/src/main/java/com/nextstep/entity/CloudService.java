@@ -25,13 +25,6 @@ public class CloudService {
     @Column(nullable = false)
     @Enumerated(EnumType.STRING)
     private ServiceCategory category;    // ex: COMPUTE, HOSTING, DATABASE
-    /**
-     * NOUVEAU — Type de cloud auquel ce service appartient.
-     * Permet de filtrer /api/services?cloudType=PRIVATE pour la page Cloud Privé du marketplace.
-     */
-    @Column(nullable = false)
-    @Enumerated(EnumType.STRING)
-    private CloudType cloudType;        // PRIVATE, PUBLIC, HYBRID
 
     /**
      * NOUVEAU — Icône emoji affichée dans la carte du service (ex: "💾", "🖥️", "☸️").

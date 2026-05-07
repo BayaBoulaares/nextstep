@@ -1,6 +1,5 @@
 package com.nextstep.dto;
 
-import com.nextstep.entity.CloudType;
 import com.nextstep.entity.ServiceCategory;
 import com.nextstep.entity.ServiceStatus;
 import jakarta.validation.constraints.NotBlank;
@@ -14,12 +13,7 @@ public class CloudServiceRequest {
     private String name;
 
     private String description;
-    /**
-     * NOUVEAU — Type de cloud : PRIVATE, PUBLIC ou HYBRID.
-     * Obligatoire pour correctement classer le service dans le marketplace.
-     */
-    @NotNull(message = "Le type de cloud est obligatoire")
-    private CloudType cloudType;
+
 
     /**
      * NOUVEAU — Icône emoji du service (ex: "💾", "🖥️").

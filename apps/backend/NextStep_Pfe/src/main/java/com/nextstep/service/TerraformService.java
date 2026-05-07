@@ -34,6 +34,8 @@ public class TerraformService {
 
     @Value("${terraform.workspaces-dir}")
     private String workspacesDir;
+    @Value("${terraform.plugin-dir}")  // ← ajoute cette ligne
+    private String pluginDir;
 
     private static final String TEMPLATE_PATH = "terraform/vm-template";
 
@@ -79,12 +81,13 @@ public class TerraformService {
 
        copyTemplateFiles(workspaceDir);
        generateTfVars(workspaceDir, request, namespace, password); // ✅ passer password
-       runTerraform(workspaceDir, "init", "-input=false");
-       String output = runTerraform(workspaceDir, "apply", "-auto-approve", "-input=false");
+       runTerraform(workspaceDir, "init", "-input=false",
+               "-plugin-dir=" + pluginDir,
+               "-upgrade");       String output = runTerraform(workspaceDir, "apply", "-auto-approve", "-input=false");
 
        return new TerraformResult("SUCCESS", request.getVmName(), output, password); // ✅ retourner password
    }
-    private void generateTfVars(Path dir, VmRequest req,
+    /*private void generateTfVars(Path dir, VmRequest req,
                                 String namespace) throws IOException {
         String content = """
             vm_name    = "%s"
@@ -104,7 +107,7 @@ public class TerraformService {
         );
 
         Files.writeString(dir.resolve("terraform.tfvars"), content);
-    }
+    }*/
 
     /*private String runTerraform(Path dir, String... args) throws Exception {
         List<String> cmd = new ArrayList<>();
@@ -172,19 +175,19 @@ public class TerraformService {
     private void generateTfVars(Path dir, VmRequest req,
                                 String namespace, String password) throws IOException {
         String content = """
-        vm_name    = "%s"
-        namespace  = "%s"
-        cpu_cores  = %d
-        ram_gb     = %d
-        disk_gb    = %d
-        os_image   = "%s"
-        vm_password = "%s"
-        kube_host  = "%s"
-        kube_token = "%s"
-        kube_ca    = "%s"
+        vm_name       = "%s"
+        namespace     = "%s"
+        instance_type = "%s"
+        disk_gb       = %d
+        os_image      = "%s"
+        vm_password   = "%s"
+        kube_host     = "%s"
+        kube_token    = "%s"
+        kube_ca       = "%s"
         """.formatted(
                 req.getVmName(), namespace,
-                req.getCpuCores(), req.getRamGb(), req.getDiskGb(),
+                req.getInstanceType() != null ? req.getInstanceType() : "u1.small",
+                req.getDiskGb(),
                 req.getOsImage(),
                 password,
                 kubeHost, kubeToken, kubeCa

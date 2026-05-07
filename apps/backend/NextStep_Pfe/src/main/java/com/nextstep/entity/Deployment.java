@@ -137,4 +137,11 @@ public class Deployment {
     private LocalDateTime deployedAt;
 
     private LocalDateTime terminatedAt;
+    /**
+     * Ressource OpenShift provisionnée.
+     * Peuplé après provisionnement réussi selon la catégorie du service.
+     */
+    @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "virtual_machine_id")
+    private VirtualMachine virtualMachine;
 }

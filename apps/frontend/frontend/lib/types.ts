@@ -1,222 +1,51 @@
-// // ─── SOURCE DE VÉRITÉ UNIQUE ──────────────────────────────────────────────────
-// // Miroir exact des classes Java backend (DTOs + enums + requests)
-// // NE PAS dupliquer dans d'autres fichiers types.
-// // ─────────────────────────────────────────────────────────────────────────────
-
-// // ─── Enums (miroir exact des enums Java) ──────────────────────────────────────
-
-// /** ServiceStatus.java */
-// export type ServiceStatus = "ACTIF" | "INACTIF" | "MAINTENANCE"
-
-// /** ServiceCategory.java */
-// export type ServiceCategory =
-//   | "CALCUL"
-//   | "HEBERGEMENT"
-//   | "STOCKAGE"
-//   | "BASE_DONNEES"
-//   | "RESEAU"
-//   | "EMAIL"
-//   | "IA"
-//   | "SECURITE"
-//   | "IAM"
-
-// /** CloudType.java */
-// export type CloudType = "PRIVÉ" | "PUBLIC" | "HYBRIDE"
-
-// /** PlanTier.java */
-// export type PlanTier =
-//   | "DEMARRAGE"
-//   | "AVANTAGE"
-//   | "ESSENTIEL"
-//   | "CONFORT"
-//   | "ELITE"
-//   | "PROFESSIONNEL"
-//   | "ENTREPRISE"
-
-// /** BillingCycle.java */
-// export type BillingCycle = "HORAIRE" | "MENSUEL" | "ANNUEL"
-
-// /** DeploymentStatus.java */
-// export type DeploymentStatus =
-//   | "EN_LIGNE"
-//   | "MAINTENANCE"
-//   | "ECHEC"
-//   | "PROVISIONNEMENT"
-//   | "ARRETÉ"
-//   | "EN_ATTENTE"
-//   | "SUPPRIMÉ"
-
-// export type AvailabilityZone = "EO" | "DATAXION" | "TT"
-
-// // ─── DTOs retournés par le backend ────────────────────────────────────────────
-
-// /**
-//  * Miroir de PlanDTO.java
-//  * ⚠️  isActive (Boolean Java) → isActive (boolean TS) — PAS "active"
-//  */
-// export interface PlanDTO {
-//   id:           number
-//   name:         string
-//   description:  string | null
-//   tier:         PlanTier
-//   price:        number           // BigDecimal Java → number JS
-//   billingCycle: BillingCycle
-//   vcores:       number | null
-//   ramGb:        number | null
-//   storageGb:    number | null
-//   isActive:     boolean          // ← Boolean Java sérialisé en "isActive" par Jackson
-//   serviceId:    number
-//   serviceName:  string | null
-//   badge:        string | null    // ex: "POPULAIRE", "RECOMMANDÉ"
-//   isPopular:    boolean | null
-// }
-
-// /**
-//  * Miroir de CloudServiceDTO.java
-//  */
-// export interface CloudServiceDTO {
-//   id:          number
-//   name:        string            // ← "name" (pas "title")
-//   description: string | null
-//   category:    ServiceCategory
-//   cloudType:   CloudType
-//   icon:        string | null
-//   status:      ServiceStatus
-//   plans:       PlanDTO[]
-// }
-
-// // ─── Payloads envoyés au backend (@Valid @RequestBody) ────────────────────────
-
-// /**
-//  * Miroir de CloudServiceRequest.java
-//  * @NotBlank name
-//  * @NotNull  cloudType, category, status
-//  */
-// export interface CloudServiceRequest {
-//   name:         string           // @NotBlank — obligatoire
-//   description?: string           // optionnel
-//   cloudType:    CloudType        // @NotNull — obligatoire
-//   icon?:        string           // optionnel
-//   category:     ServiceCategory  // @NotNull — obligatoire
-//   status:       ServiceStatus    // @NotNull — obligatoire
-// }
-
-// /**
-//  * Miroir de PlanRequest.java
-//  * @NotBlank name
-//  * @NotNull  tier, price, billingCycle, serviceId
-//  * ⚠️  PAS de champ "isActive" ici — géré uniquement via PATCH /plans/:id/toggle
-//  * ⚠️  PAS de champ "specs"   ici — calculé côté backend à partir de vcores/ramGb/storageGb
-//  */
-// export interface PlanRequest {
-//   name:         string           // @NotBlank
-//   description?: string
-//   tier:         PlanTier         // @NotNull
-//   price:        number           // @NotNull BigDecimal
-//   billingCycle: BillingCycle     // @NotNull
-//   serviceId:    number           // @NotNull Long
-//   vcores?:      number
-//   ramGb?:       number
-//   storageGb?:   number
-//   badge?:       string
-//   isPopular?:   boolean
-// }
-
-// // ─── Déploiements ─────────────────────────────────────────────────────────────
-
-// export interface DeploymentMetric {
-//   label: string
-//   value: string
-//   warn:  boolean
-// }
-
-// export interface DeploymentDTO {
-//   id:            number
-//   name:          string
-//   cloudType:     CloudType
-//   planName:      string
-//   region:        string
-//   status:        DeploymentStatus
-//   pricePerMonth: number
-//   metrics:       DeploymentMetric[]
-// }
-
-// export interface DeploymentRequest {
-//   serviceId:   number
-//   planId:      number
-//   name:        string
-//   projectName: string
-//   region:      string
-//   zone:        AvailabilityZone
-//   os?:         string
-//   storageGb?:  number
-//   vpcId?:      string
-//   options?: {
-//     backup?:     boolean
-//     monitoring?: boolean
-//     ddos?:       boolean
-//     ssh?:        boolean
-//   }
-// }
-
-// // ─── Alias pour la couche feature (services/) ─────────────────────────────────
-// // Permet d'importer depuis "features/services/types" sans redéfinir
-
-// export type CloudService         = CloudServiceDTO
-// export type Plan                 = PlanDTO
-// export type CreateServicePayload = CloudServiceRequest
-// export type UpdateServicePayload = Partial<CloudServiceRequest>
-// export type CreatePlanPayload    = PlanRequest
-// export type UpdatePlanPayload    = Partial<PlanRequest>
-
-// ─── SOURCE DE VÉRITÉ UNIQUE ──────────────────────────────────────────────────
-// Miroir exact des classes Java backend (DTOs + enums + requests)
-// ─────────────────────────────────────────────────────────────────────────────
-//@/lib/types
 // @/lib/types.ts
-// Source unique de vérité pour tous les types TypeScript du projet.
-// Importe toujours depuis "@/lib/types", jamais depuis "@/features/services/types".
+// Source unique de vérité — miroir exact des DTOs et enums Java backend.
 // ─────────────────────────────────────────────────────────────────────────────
 
 // ══════════════════════════════════════════════════════════════════════════════
 // ENUMS
 // ══════════════════════════════════════════════════════════════════════════════
 
-export type ServiceStatus = "ACTIF" | "INACTIF" | "MAINTENANCE"
+export type ServiceStatus   = "ACTIF" | "INACTIF" | "MAINTENANCE"
 
 export type ServiceCategory =
-  | "CALCUL" | "HEBERGEMENT" | "STOCKAGE" | "BASE_DONNEES"
-  | "RESEAU" | "EMAIL" | "IA" | "SECURITE" | "IAM"
+  | "CALCUL"
+  | "HEBERGEMENT"
+  | "STOCKAGE"
+  | "BASE_DONNEES"
+  | "RESEAU"
+  | "EMAIL"
+  | "IA"
+  | "SECURITE"
+  | "IAM"
 
-export type CloudType = "PRIVÉ" | "PUBLIC" | "HYBRIDE"
+export type InstanceTypeFamily = "u1" | "cx1" | "m1" | "d1" | "n1" | "o1" | "rt1"
 
-export type PlanTier =
-  | "DEMARRAGE" | "AVANTAGE" | "ESSENTIEL" | "CONFORT"
-  | "ELITE" | "PROFESSIONNEL" | "ENTREPRISE"
+export type PlanTier      = "STARTER" | "BUSINESS" | "ENTERPRISE"
+export type BillingCycle  = "HORAIRE" | "MENSUEL" | "ANNUEL"
 
-/** BillingCycle.java — USAGE ajouté pour les plans Pay-As-You-Go */
-export type BillingCycle = "HORAIRE" | "MENSUEL" | "ANNUEL" | "USAGE"
-
+/** Miroir exact de DeploymentStatus.java */
 export type DeploymentStatus =
-  | "EN_LIGNE" | "MAINTENANCE" | "ECHEC" | "PROVISIONNEMENT"
-  | "ARRETÉ" | "EN_ATTENTE" | "SUPPRIMÉ"
+  | "EN_ATTENTE"
+  | "PROVISIONNEMENT"
+  | "ACTIF"
+  | "EN_LIGNE"
+  | "MAINTENANCE"
+  | "ARRETE"
+  | "ECHEC"
+  | "SUPPRIME"
 
+/** Miroir exact de AvailabilityZone.java */
 export type AvailabilityZone = "EO" | "DATAXION" | "TT"
 
-/** OperatingSystem.java — remplace le String libre dans Deployment */
 export type OperatingSystem =
-  | "UBUNTU_24_04_LTS"
-  | "UBUNTU_22_04_LTS"
-  | "DEBIAN_12"
-  | "DEBIAN_11"
-  | "ROCKY_LINUX_9"
-  | "ALMA_LINUX_9"
+  | "UBUNTU_24_04_LTS" | "UBUNTU_22_04_LTS"
+  | "DEBIAN_12"        | "DEBIAN_11"
+  | "ROCKY_LINUX_9"    | "ALMA_LINUX_9"
   | "CENTOS_STREAM_9"
-  | "WINDOWS_SERVER_2022"
-  | "WINDOWS_SERVER_2019"
+  | "WINDOWS_SERVER_2022" | "WINDOWS_SERVER_2019"
   | "NONE"
 
-/** Labels lisibles pour les selects — miroir du champ `label` dans l'enum Java */
 export const OS_LABELS: Record<OperatingSystem, string> = {
   UBUNTU_24_04_LTS:    "Ubuntu 24.04 LTS",
   UBUNTU_22_04_LTS:    "Ubuntu 22.04 LTS",
@@ -230,39 +59,55 @@ export const OS_LABELS: Record<OperatingSystem, string> = {
   NONE:                "Sans OS (stockage / réseau)",
 }
 
-/** AbonnementStatus.java */
-export type AbonnementStatus =
-  | "EN_ATTENTE" | "ACTIF" | "SUSPENDU" | "RESILIE" | "EXPIRE"
-
-/** UsageMetricType.java */
-export type UsageMetricType =
-  | "VCPU_HEURE" | "RAM_GB_HEURE" | "STOCKAGE_GB_MOIS"
-  | "REQUETES_1000" | "BANDE_PASSANTE_GB"
-
-/** InvoiceStatus.java */
-export type InvoiceStatus = "BROUILLON" | "EMISE" | "PAYEE" | "EN_RETARD"
-
-// ══════════════════════════════════════════════════════════════════════════════
-// DTOs
-// ══════════════════════════════════════════════════════════════════════════════
-
-/** PlanPricingDTO.java — grille tarifaire unitaire d'un plan PAYG */
-export interface PlanPricingDTO {
-  id:           number
-  metricType:   UsageMetricType
-  metricLabel:  string   // fourni par le backend via UsageMetricType.label
-  pricePerUnit: number   // BigDecimal → number (6 décimales côté Java)
-  unit:         string   // ex: "heure", "Go", "1 000 req."
-  freeQuota:    number   // quota gratuit avant facturation
+export const CATEGORY_INSTANCE_TYPE: Record<ServiceCategory, string | null> = {
+  // ── VM ──────────────────────────────
+  CALCUL:       "u1.small",
+  HEBERGEMENT:  "o1.small",
+  IA:           "cx1.xlarge",
+  // ── Non-VM ──────────────────────────
+  STOCKAGE:     null,
+  BASE_DONNEES: null,
+  RESEAU:       null,
+  EMAIL:        null,
+  SECURITE:     null,
+  IAM:          null,
+}
+export const CATEGORY_ICONS: Record<ServiceCategory, string> = {
+  CALCUL:       "🖥️",
+  HEBERGEMENT:  "🌐",
+  IA:           "🤖",
+  STOCKAGE:     "💾",
+  BASE_DONNEES: "🗄️",
+  RESEAU:       "🔀",
+  EMAIL:        "📧",
+  SECURITE:     "🔒",
+  IAM:          "👤",
+}
+export const CATEGORY_LABELS: Record<ServiceCategory, string> = {
+  CALCUL:       "Calcul",
+  HEBERGEMENT:  "Hébergement",
+  STOCKAGE:     "Stockage",
+  BASE_DONNEES: "Base de données",
+  RESEAU:       "Réseau",
+  EMAIL:        "Email",
+  IA:           "Intelligence Artificielle",
+  SECURITE:     "Sécurité",
+  IAM:          "Gestion d'accès",
 }
 
-/** PlanDTO.java — price nullable pour les plans PAYG */
+export type AbonnementStatus = "EN_ATTENTE" | "ACTIF" | "SUSPENDU" | "RESILIE" | "EXPIRE"
+export type InvoiceStatus    = "BROUILLON"  | "EMISE" | "PAYEE"    | "EN_RETARD"
+
+// ══════════════════════════════════════════════════════════════════════════════
+// DTOs — miroirs exacts des classes Java
+// ══════════════════════════════════════════════════════════════════════════════
+
 export interface PlanDTO {
   id:           number
   name:         string
   description:  string | null
   tier:         PlanTier
-  price:        number | null    // null si isPayAsYouGo = true
+  price:        number           // BigDecimal Java → number JS
   billingCycle: BillingCycle
   vcores:       number | null
   ramGb:        number | null
@@ -270,91 +115,100 @@ export interface PlanDTO {
   isActive:     boolean
   serviceId:    number
   serviceName:  string | null
-  badge:        string | null
-  isPopular:    boolean | null
-  isPayAsYouGo: boolean          // nouveau
-  planPricings: PlanPricingDTO[] // vide pour les plans fixes
+
 }
 
-/** CloudServiceDTO.java */
 export interface CloudServiceDTO {
-  id:          number
-  name:        string
-  description: string | null
-  category:    ServiceCategory
-  cloudType:   CloudType
-  icon:        string | null
-  status:      ServiceStatus
-  plans:       PlanDTO[]
+  id:                      number
+  name:                    string
+  description:             string | null
+  category:                ServiceCategory
+  icon:                    string | null
+  status:                  ServiceStatus
+  plans:                   PlanDTO[]
+  defaultInstanceType?:    string | null
+  availableInstanceTypes?: string[]
 }
 
-/** DeploymentDTO.java — operatingSystem passe de string à enum */
+/**
+ * Miroir exact de DeploymentDTO.java
+ * Utilisé par GET /api/deployments et GET /api/deployments/{id}
+ * Correspond au tableau "Mes Services" du dashboard.
+ */
 export interface DeploymentDTO {
   id:                   number
   resourceName:         string
   description:          string | null
   status:               DeploymentStatus
-  planId:               number
-  planName:             string
-  serviceId:            number
-  serviceName:          string
+
+  // Plan & service
+  planId:               number | null
+  planName:             string | null
+  serviceId:            number | null
+  serviceName:          string | null
   serviceIcon:          string | null
-  cloudTypeName:        string
-  regionName:           string
-  datacenterLabel:      string | null
+  categoryName:         string | null
+
+  // Localisation
+  regionName:           string | null      // ex: "Paris"
+  datacenterLabel:      string | null      // ex: "DC1"
   availabilityZone:     AvailabilityZone | null
-  operatingSystem:      OperatingSystem | null  // était string, maintenant enum
-  operatingSystemLabel: string | null           // nouveau — label lisible du backend
+
+  // OS — enum OperatingSystem (pas string)
+  operatingSystem:      OperatingSystem | null
+  operatingSystemLabel: string | null      // ex: "Ubuntu 24.04 LTS"
+
+  // Specs
   vcores:               number | null
   ramGb:                number | null
-  storageGb:            number | null
+  storageGb:            number | null      // base + additionalStorageGb
+
+  // Options
   backupEnabled:        boolean | null
   monitoringEnabled:    boolean | null
   antiDdosEnabled:      boolean | null
+
+  // Réseau
   vpcId:                string | null
   subnetId:             string | null
-  monthlyPriceHt:       number
+
+  // Tarif
+  monthlyPriceHt:       number | null      // BigDecimal Java → number JS
+
+  // Projet
   projectId:            number | null
   projectName:          string | null
-  createdAt:            string | null
+
+  // Dates
+  createdAt:            string | null      // LocalDateTime → ISO string
   deployedAt:           string | null
 }
 
-/** AbonnementResponse.java */
+// ──────────────────────────────────────────────────────────────────────────────
+
 export interface AbonnementResponse {
   id:                 number
   planId:             number
   planName:           string
   serviceName:        string | null
-  isPayAsYouGo:       boolean
   status:             AbonnementStatus
-  prixSnapshot:       number        // 0 pour les plans PAYG
+  prixSnapshot:       number
   billingCycle:       BillingCycle
   dateDebut:          string
-  dateFin:            string | null // null si PAYG ou autoRenouvellement
+  dateFin:            string | null
   dateResiliation:    string | null
   autoRenouvellement: boolean
   deploymentId:       number | null
-  resourceName:       string | null // nom du déploiement lié
+  resourceName:       string | null
   createdAt:          string
 }
 
-/** UsageRecordResponse.java */
-export interface UsageRecordResponse {
-  id:           number
-  abonnementId: number
-  deploymentId: number
-  resourceName: string
-  metricType:   UsageMetricType
-  metricLabel:  string
-  quantity:     number  // quantité brute mesurée
-  cost:         number  // max(0, qty - freeQuota) × pricePerUnit
-  periodStart:  string
-  periodEnd:    string
-  recordedAt:   string
+export interface AbonnementRequest {
+  planId:              number
+  deploymentId?:       number
+  autoRenouvellement?: boolean
 }
 
-/** InvoiceResponse.java */
 export interface InvoiceResponse {
   id:           number
   abonnementId: number
@@ -369,35 +223,36 @@ export interface InvoiceResponse {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// REQUEST PAYLOADS
+// PAYLOADS — miroirs des @RequestBody Java
 // ══════════════════════════════════════════════════════════════════════════════
 
 export interface CloudServiceRequest {
   name:         string
   description?: string
-  cloudType:    CloudType
   icon?:        string
   category:     ServiceCategory
   status:       ServiceStatus
 }
 
-/** PlanRequest.java — price nullable, isPayAsYouGo ajouté */
 export interface PlanRequest {
-  name:          string
-  description?:  string
-  tier:          PlanTier
-  price?:        number | null   // null si isPayAsYouGo = true
-  billingCycle?: BillingCycle    // forcé à USAGE côté backend si PAYG
-  serviceId:     number
-  vcores?:       number
-  ramGb?:        number
-  storageGb?:    number
-  badge?:        string
-  isPopular?:    boolean
-  isPayAsYouGo?: boolean         // nouveau
+  name:         string
+  description?: string
+  tier:         PlanTier
+  price:        number
+  billingCycle: BillingCycle
+  vcores?:      number
+  ramGb?:       number
+  storageGb?:   number
+  serviceId:    number
+}
+/*export type DeploymentPollResult = {
+  status: string
+  resourceName?: string
+}*/
+export interface DeploymentPollResult extends DeploymentDTO {
+  vmPassword?: string
 }
 
-/** DeploymentRequest.java — operatingSystem passe de string à enum */
 export interface DeploymentRequest {
   resourceName:         string
   planId:               number
@@ -405,27 +260,15 @@ export interface DeploymentRequest {
   regionId?:            number
   availabilityZone?:    AvailabilityZone
   description?:         string
-  operatingSystem?:     OperatingSystem  // était string, maintenant enum
-  additionalStorageGb?: number
-  tagsJson?:            string
   backupEnabled?:       boolean
   monitoringEnabled?:   boolean
   antiDdosEnabled?:     boolean
-  sshKeyManagement?:    boolean
-  vpcId?:               string
-  subnetId?:            string
-  securityGroup?:       string
-}
-
-/** AbonnementRequest.java */
-export interface AbonnementRequest {
-  planId:              number
-  deploymentId?:       number
-  autoRenouvellement?: boolean
+  additionalStorageGb?: number
+  operatingSystem?:     OperatingSystem
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// ALIAS
+// ALIASES
 // ══════════════════════════════════════════════════════════════════════════════
 
 export type CloudService         = CloudServiceDTO

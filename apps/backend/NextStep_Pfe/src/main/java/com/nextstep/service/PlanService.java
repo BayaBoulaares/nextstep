@@ -59,13 +59,11 @@ public class PlanService {
         plan.setDescription(request.getDescription());
         plan.setTier(request.getTier());
         plan.setPrice(request.getPrice());
-        plan.setBillingCycle(request.getBillingCycle() != null ? request.getBillingCycle() : BillingCycle.MENSUEL);
+        plan.setBillingCycle(request.getBillingCycle());
         plan.setVcores(request.getVcores());
         plan.setRamGb(request.getRamGb());
         plan.setStorageGb(request.getStorageGb());
-        // NOUVEAU
-        plan.setBadge(request.getBadge());
-        plan.setIsPopular(Boolean.TRUE.equals(request.getIsPopular()));
+
 
         plan.setService(service);
 
@@ -83,8 +81,7 @@ public class PlanService {
         plan.setVcores(request.getVcores());
         plan.setRamGb(request.getRamGb());
         plan.setStorageGb(request.getStorageGb());
-        plan.setBadge(request.getBadge());
-        if (request.getIsPopular() != null) plan.setIsPopular(request.getIsPopular());
+
         return toDTO(planRepository.save(plan));
     }
 
@@ -119,8 +116,6 @@ public class PlanService {
         dto.setRamGb(p.getRamGb());
         dto.setStorageGb(p.getStorageGb());
         dto.setIsActive(p.getIsActive());
-        dto.setBadge(p.getBadge());
-        dto.setIsPopular(p.getIsPopular());
         dto.setServiceId(p.getService().getId());
         dto.setServiceName(p.getService().getName());
         return dto;

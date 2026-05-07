@@ -14,180 +14,96 @@ import {
   AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
-import { Button }    from "@/components/ui/button"
-import { Badge }     from "@/components/ui/badge"
-import { Input }     from "@/components/ui/input"
-import { Label }     from "@/components/ui/label"
-import { Textarea }  from "@/components/ui/textarea"
-import { Switch }    from "@/components/ui/switch"
+import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Textarea } from "@/components/ui/textarea"
+import { Switch } from "@/components/ui/switch"
 import { Separator } from "@/components/ui/separator"
 import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { apiFetch } from "@/lib/apiClient"
 import type {
-  CloudServiceDTO, PlanDTO,
-  ServiceStatus, ServiceCategory, CloudType,
-  PlanTier, BillingCycle,
-  CloudServiceRequest, PlanRequest,
-} from "../types"
+  ServiceCategory, ServiceStatus, PlanTier, BillingCycle,
+  CloudServiceRequest, CloudServiceDTO, PlanDTO, PlanRequest,
+} from "@/lib/types"
+import { useRouter } from "next/navigation"
+import { CATEGORY_OPTIONS, TIER_OPTIONS, BILLING_OPTIONS, STATUS_OPTIONS, CYCLE_SUFFIX } from "@/lib/constants"
 
-// ─── Constantes alignées sur les enums Java ───────────────────────────────────
+const cycleLabel = CYCLE_SUFFIX
 
-const CLOUD_TYPE_OPTIONS: { value: CloudType; label: string }[] = [
-  { value: "PRIVÉ",   label: "Cloud Privé"   },
-  { value: "PUBLIC",  label: "Cloud Public"  },
-  { value: "HYBRIDE", label: "Cloud Hybride" },
-]
-
-const CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = [
-  { value: "CALCUL",       label: "Calcul"                    },
-  { value: "HEBERGEMENT",  label: "Hébergement"               },
-  { value: "STOCKAGE",     label: "Stockage"                  },
-  { value: "BASE_DONNEES", label: "Base de données"           },
-  { value: "RESEAU",       label: "Réseau"                    },
-  { value: "EMAIL",        label: "Email"                     },
-  { value: "IA",           label: "Intelligence Artificielle" },
-  { value: "SECURITE",     label: "Sécurité"                  },
-  { value: "IAM",          label: "Gestion d'accès"           },
-]
-
-// ✅ ServiceStatus.java : ACTIF | INACTIF | MAINTENANCE
-const STATUS_OPTIONS: { value: ServiceStatus; label: string }[] = [
-  { value: "ACTIF",       label: "Actif"       },
-  { value: "INACTIF",     label: "Inactif"     },
-  { value: "MAINTENANCE", label: "Maintenance" },
-]
-
-// ✅ PlanTier.java
-const TIER_OPTIONS: { value: PlanTier; label: string }[] = [
-  { value: "DEMARRAGE",     label: "Démarrage"     },
-  { value: "AVANTAGE",      label: "Avantage"      },
-  { value: "ESSENTIEL",     label: "Essentiel"     },
-  { value: "CONFORT",       label: "Confort"       },
-  { value: "ELITE",         label: "Élite"         },
-  { value: "PROFESSIONNEL", label: "Professionnel" },
-  { value: "ENTREPRISE",    label: "Entreprise"    },
-]
-
-// ✅ BillingCycle.java : HORAIRE | MENSUEL | ANNUEL
-const BILLING_OPTIONS: { value: BillingCycle; label: string }[] = [
-  { value: "HORAIRE", label: "À l'heure" },
-  { value: "MENSUEL", label: "Mensuel"   },
-  { value: "ANNUEL",  label: "Annuel"    },
-]
-
-const cycleLabel: Record<BillingCycle, string> = {
-  HORAIRE: "/h",
-  MENSUEL: "/mois",
-  ANNUEL:  "/an",
-}
-
-// ─── Types locaux formulaires ──────────────────────────────────────────────────
+// ─── Types locaux ─────────────────────────────────────────────────────────────
 
 type ServiceFormData = {
-  name:        string
+  name: string
   description: string
-  icon:        string
-  cloudType:   CloudType
-  category:    ServiceCategory
-  status:      ServiceStatus
+  icon: string
+  category: ServiceCategory
+  status: ServiceStatus
 }
 
 type PlanFormData = {
-  name:         string
-  description:  string
-  tier:         PlanTier
-  price:        string
+  name: string
+  description: string
+  tier: PlanTier
+  price: string
   billingCycle: BillingCycle
-  vcores:       string
-  ramGb:        string
-  storageGb:    string
-  badge:        string
-  isPopular:    boolean
-  // NB: isActive n'est PAS dans PlanRequest.java → géré via /toggle séparément
+  vcores: string
+  ramGb: string
+  storageGb: string
 }
 
 const EMPTY_SERVICE: ServiceFormData = {
-  name:        "",
+  name: "",
   description: "",
-  icon:        "🖥️",
-  cloudType:   "PRIVÉ",
-  category:    "CALCUL",
-  status:      "ACTIF",
+  icon: "🖥️",
+  category: "CALCUL",
+  status: "ACTIF",
 }
 
 const EMPTY_PLAN: PlanFormData = {
-  name:         "",
-  description:  "",
-  tier:         "ESSENTIEL",
-  price:        "",
+  name: "",
+  description: "",
+  tier: "STARTER",
+  price: "",
   billingCycle: "MENSUEL",
-  vcores:       "",
-  ramGb:        "",
-  storageGb:    "",
-  badge:        "",
-  isPopular:    false,
+  vcores: "",
+  ramGb: "",
+  storageGb: "",
 }
 
-// ─── API calls ────────────────────────────────────────────────────────────────
+// ─── API calls — tous via apiFetch ───────────────────────────────────────────
 
 async function apiCreateService(data: CloudServiceRequest): Promise<CloudServiceDTO> {
-  const res = await fetch("/api/services", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return apiFetch<CloudServiceDTO>("/api/services", { method: "POST", body: JSON.stringify(data) })
 }
 
 async function apiUpdateService(id: number, data: CloudServiceRequest): Promise<CloudServiceDTO> {
-  const res = await fetch(`/api/services/${id}`, {
-    method:  "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return apiFetch<CloudServiceDTO>(`/api/services/${id}`, { method: "PUT", body: JSON.stringify(data) })
 }
 
 async function apiCreatePlan(data: PlanRequest): Promise<PlanDTO> {
-  const res = await fetch("/api/plans", {
-    method:  "POST",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return apiFetch<PlanDTO>("/api/plans", { method: "POST", body: JSON.stringify(data) })
 }
 
 async function apiUpdatePlan(id: number, data: PlanRequest): Promise<PlanDTO> {
-  const res = await fetch(`/api/plans/${id}`, {
-    method:  "PUT",
-    headers: { "Content-Type": "application/json" },
-    body:    JSON.stringify(data),
-  })
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return apiFetch<PlanDTO>(`/api/plans/${id}`, { method: "PUT", body: JSON.stringify(data) })
 }
 
 async function apiDeletePlan(id: number): Promise<void> {
-  const res = await fetch(`/api/plans/${id}`, { method: "DELETE" })
-  if (!res.ok) throw new Error(await res.text())
+  return apiFetch<void>(`/api/plans/${id}`, { method: "DELETE" })
 }
 
 async function apiTogglePlan(id: number): Promise<PlanDTO> {
-  const res = await fetch(`/api/plans/${id}/toggle`, { method: "PATCH" })
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return apiFetch<PlanDTO>(`/api/plans/${id}/toggle`, { method: "PATCH" })
 }
 
 async function apiGetPlansByService(serviceId: number): Promise<PlanDTO[]> {
-  const res = await fetch(`/api/plans/service/${serviceId}`)
-  if (!res.ok) throw new Error(await res.text())
-  return res.json()
+  return apiFetch<PlanDTO[]>(`/api/plans/service/${serviceId}`)
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -195,11 +111,11 @@ async function apiGetPlansByService(serviceId: number): Promise<PlanDTO[]> {
 export type DialogMode = "view" | "edit" | "create"
 
 interface ServiceDialogProps {
-  service:         CloudServiceDTO | null
-  mode?:           DialogMode
-  open:            boolean
-  onClose:         () => void
-  isAdmin?:        boolean
+  service: CloudServiceDTO | null
+  mode?: DialogMode
+  open: boolean
+  onClose: () => void
+  isAdmin?: boolean
   onServiceSaved?: () => void
 }
 
@@ -211,20 +127,20 @@ export function ServiceDialog({
   service, mode = "view", open, onClose, isAdmin = false, onServiceSaved,
 }: ServiceDialogProps) {
 
-  const [plans,        setPlans]        = React.useState<PlanDTO[]>([])
+  const [plans, setPlans] = React.useState<PlanDTO[]>([])
   const [plansLoading, setPlansLoading] = React.useState(false)
-  const [plansError,   setPlansError]   = React.useState<string | null>(null)
+  const [plansError, setPlansError] = React.useState<string | null>(null)
 
-  const [planForm,     setPlanForm]     = React.useState<PlanFormData | null>(null)
-  const [editingPlan,  setEditingPlan]  = React.useState<PlanDTO | null>(null)
+  const [planForm, setPlanForm] = React.useState<PlanFormData | null>(null)
+  const [editingPlan, setEditingPlan] = React.useState<PlanDTO | null>(null)
   const [deleteTarget, setDeleteTarget] = React.useState<PlanDTO | null>(null)
-  const [planSaving,   setPlanSaving]   = React.useState(false)
+  const [planSaving, setPlanSaving] = React.useState(false)
   const [planDeleting, setPlanDeleting] = React.useState(false)
-  const [planError,    setPlanError]    = React.useState<string | null>(null)
+  const [planError, setPlanError] = React.useState<string | null>(null)
 
-  const [serviceForm,   setServiceForm]   = React.useState<ServiceFormData>(EMPTY_SERVICE)
+  const [serviceForm, setServiceForm] = React.useState<ServiceFormData>(EMPTY_SERVICE)
   const [serviceSaving, setServiceSaving] = React.useState(false)
-  const [serviceError,  setServiceError]  = React.useState<string | null>(null)
+  const [serviceError, setServiceError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
     if (!open) return
@@ -236,12 +152,11 @@ export function ServiceDialog({
 
     if (mode === "edit" && service) {
       setServiceForm({
-        name:        service.name,
+        name: service.name,
         description: service.description ?? "",
-        icon:        service.icon         ?? "🖥️",
-        cloudType:   service.cloudType,
-        category:    service.category,
-        status:      service.status,
+        icon: service.icon ?? "🖥️",
+        category: service.category,
+        status: service.status,
       })
     } else if (mode === "create") {
       setServiceForm({ ...EMPTY_SERVICE })
@@ -261,22 +176,29 @@ export function ServiceDialog({
 
   // ─── Handlers plan ────────────────────────────────────────────────────────
 
-  function openAddPlan()   { setEditingPlan(null); setPlanForm({ ...EMPTY_PLAN }); setPlanError(null) }
-  function closePlanForm() { setPlanForm(null); setEditingPlan(null); setPlanError(null) }
+  function openAddPlan() {
+    setEditingPlan(null)
+    setPlanForm({ ...EMPTY_PLAN })
+    setPlanError(null)
+  }
+
+  function closePlanForm() {
+    setPlanForm(null)
+    setEditingPlan(null)
+    setPlanError(null)
+  }
 
   function openEditPlan(plan: PlanDTO) {
     setEditingPlan(plan)
     setPlanForm({
-      name:         plan.name,
-      description:  plan.description  ?? "",
-      tier:         plan.tier,
-      price:        plan.price.toString(),
+      name: plan.name,
+      description: plan.description ?? "",
+      tier: plan.tier,
+      price: plan.price.toString(),
       billingCycle: plan.billingCycle,
-      vcores:       plan.vcores?.toString()    ?? "",
-      ramGb:        plan.ramGb?.toString()     ?? "",
-      storageGb:    plan.storageGb?.toString() ?? "",
-      badge:        plan.badge                 ?? "",
-      isPopular:    plan.isPopular             ?? false,
+      vcores: plan.vcores?.toString() ?? "",
+      ramGb: plan.ramGb?.toString() ?? "",
+      storageGb: plan.storageGb?.toString() ?? "",
     })
     setPlanError(null)
   }
@@ -286,19 +208,16 @@ export function ServiceDialog({
     setPlanSaving(true)
     setPlanError(null)
     try {
-      // ✅ PlanRequest.java — isActive absent (géré via /toggle)
       const requestBody: PlanRequest = {
         serviceId:    service.id,
         name:         planForm.name,
-        description:  planForm.description  || undefined,
+        description:  planForm.description || undefined,
         tier:         planForm.tier,
         price:        parseFloat(planForm.price) || 0,
         billingCycle: planForm.billingCycle,
-        vcores:       planForm.vcores    ? parseInt(planForm.vcores,    10) : undefined,
-        ramGb:        planForm.ramGb     ? parseInt(planForm.ramGb,     10) : undefined,
+        vcores:       planForm.vcores    ? parseInt(planForm.vcores, 10)    : undefined,
+        ramGb:        planForm.ramGb     ? parseInt(planForm.ramGb, 10)     : undefined,
         storageGb:    planForm.storageGb ? parseInt(planForm.storageGb, 10) : undefined,
-        badge:        planForm.badge     || undefined,
-        isPopular:    planForm.isPopular,
       }
 
       if (editingPlan) {
@@ -311,6 +230,7 @@ export function ServiceDialog({
       closePlanForm()
       onServiceSaved?.()
     } catch (err: any) {
+      console.error("[submitPlan] error:", err)
       setPlanError(err?.message ?? "Une erreur est survenue.")
     } finally {
       setPlanSaving(false)
@@ -332,7 +252,6 @@ export function ServiceDialog({
     }
   }
 
-  // ✅ Toggle via PATCH /api/plans/:id/toggle (isActive géré côté backend)
   async function handleTogglePlan(plan: PlanDTO) {
     try {
       const updated = await apiTogglePlan(plan.id)
@@ -350,16 +269,13 @@ export function ServiceDialog({
     setServiceSaving(true)
     setServiceError(null)
     try {
-      // ✅ CloudServiceRequest.java : name, cloudType, category, status obligatoires
       const payload: CloudServiceRequest = {
         name:        serviceForm.name.trim(),
         description: serviceForm.description || undefined,
-        icon:        serviceForm.icon        || "🖥️",
-        cloudType:   serviceForm.cloudType,
+        icon:        serviceForm.icon || "🖥️",
         category:    serviceForm.category,
         status:      serviceForm.status,
       }
-
       if (mode === "create") {
         await apiCreateService(payload)
       } else if (mode === "edit" && service) {
@@ -381,12 +297,12 @@ export function ServiceDialog({
 
   const dialogTitle =
     mode === "create" ? "Nouveau service" :
-    mode === "edit"   ? `Modifier — ${service?.name ?? ""}` :
-                        (service?.name ?? "")
+      mode === "edit" ? `Modifier — ${service?.name ?? ""}` :
+        (service?.name ?? "")
 
   const dialogDesc =
     mode === "create" ? "Renseignez les informations du nouveau service cloud." :
-                        (service?.description ?? "")
+      (service?.description ?? "")
 
   return (
     <>
@@ -431,7 +347,7 @@ export function ServiceDialog({
                   disabled={serviceSaving || !serviceForm.name.trim()}>
                   {serviceSaving
                     ? <IconLoader2 className="size-3.5 animate-spin" />
-                    : <IconCheck   className="size-3.5" />}
+                    : <IconCheck className="size-3.5" />}
                   {mode === "create" ? "Créer le service" : "Enregistrer"}
                 </Button>
               </div>
@@ -443,7 +359,7 @@ export function ServiceDialog({
             <AdminPlansView
               plans={plans}
               loading={plansLoading}
-              error={plansError ?? planError}
+              error={planError}
               planForm={planForm}
               editingPlan={editingPlan}
               planSaving={planSaving}
@@ -495,9 +411,9 @@ export function ServiceDialog({
 function ServiceForm({
   form, onChange, error,
 }: {
-  form:     ServiceFormData
+  form: ServiceFormData
   onChange: (field: keyof ServiceFormData, value: string) => void
-  error:    string | null
+  error: string | null
 }) {
   return (
     <div className="space-y-4">
@@ -508,7 +424,6 @@ function ServiceForm({
         </div>
       )}
 
-      {/* Icône + Nom */}
       <div className="grid grid-cols-[64px_1fr] gap-3">
         <div className="space-y-1.5">
           <Label className="text-xs">Icône</Label>
@@ -520,9 +435,7 @@ function ServiceForm({
           />
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">
-            Nom <span className="text-destructive">*</span>
-          </Label>
+          <Label className="text-xs">Nom <span className="text-destructive">*</span></Label>
           <Input
             value={form.name}
             onChange={e => onChange("name", e.target.value)}
@@ -533,7 +446,6 @@ function ServiceForm({
         </div>
       </div>
 
-      {/* Description */}
       <div className="space-y-1.5">
         <Label className="text-xs">Description</Label>
         <Textarea
@@ -545,26 +457,10 @@ function ServiceForm({
         />
       </div>
 
-      {/* CloudType + Catégorie + Statut */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-xs">
-            Type cloud <span className="text-destructive">*</span>
-          </Label>
-          <Select value={form.cloudType} onValueChange={v => onChange("cloudType", v)}>
-            <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              {CLOUD_TYPE_OPTIONS.map(c => (
-                <SelectItem key={c.value} value={c.value} className="text-sm">{c.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">
-            Catégorie <span className="text-destructive">*</span>
-          </Label>
-          <Select value={form.category} onValueChange={v => onChange("category", v)}>
+          <Label className="text-xs">Catégorie <span className="text-destructive">*</span></Label>
+          <Select value={form.category} onValueChange={v => onChange("category", v as ServiceCategory)}>
             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {CATEGORY_OPTIONS.map(c => (
@@ -574,10 +470,8 @@ function ServiceForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <Label className="text-xs">
-            Statut <span className="text-destructive">*</span>
-          </Label>
-          <Select value={form.status} onValueChange={v => onChange("status", v)}>
+          <Label className="text-xs">Statut <span className="text-destructive">*</span></Label>
+          <Select value={form.status} onValueChange={v => onChange("status", v as ServiceStatus)}>
             <SelectTrigger className="h-9 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
               {STATUS_OPTIONS.map(s => (
@@ -594,19 +488,19 @@ function ServiceForm({
 // ── Admin plans view ──────────────────────────────────────────────────────────
 
 interface AdminPlansViewProps {
-  plans:        PlanDTO[]
-  loading:      boolean
-  error:        string | null
-  planForm:     PlanFormData | null
-  editingPlan:  PlanDTO | null
-  planSaving:   boolean
-  onAddPlan:    () => void
-  onEditPlan:   (p: PlanDTO) => void
+  plans: PlanDTO[]
+  loading: boolean
+  error: string | null
+  planForm: PlanFormData | null
+  editingPlan: PlanDTO | null
+  planSaving: boolean
+  onAddPlan: () => void
+  onEditPlan: (p: PlanDTO) => void
   onDeletePlan: (p: PlanDTO) => void
   onTogglePlan: (p: PlanDTO) => void
   onSubmitPlan: () => void
   onCancelPlan: () => void
-  setPlanForm:  React.Dispatch<React.SetStateAction<PlanFormData | null>>
+  setPlanForm: React.Dispatch<React.SetStateAction<PlanFormData | null>>
 }
 
 function AdminPlansView({
@@ -616,11 +510,6 @@ function AdminPlansView({
 }: AdminPlansViewProps) {
   return (
     <div className="p-6 pt-4 space-y-3">
-      {error && !planForm && (
-        <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
-          <IconAlertCircle className="size-4 flex-shrink-0" />{error}
-        </div>
-      )}
 
       {planForm ? (
         <PlanForm
@@ -636,6 +525,11 @@ function AdminPlansView({
         />
       ) : (
         <>
+          {error && (
+            <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2.5 text-sm text-destructive">
+              <IconAlertCircle className="size-4 flex-shrink-0" />{error}
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <p className="text-xs font-medium text-muted-foreground">
               {loading ? "Chargement…" : `${plans.length} plan(s) configuré(s)`}
@@ -647,7 +541,7 @@ function AdminPlansView({
 
           {loading ? (
             <div className="space-y-2">
-              {[1,2,3].map(i => (
+              {[1, 2, 3].map(i => (
                 <div key={i} className="h-14 rounded-lg border border-border/60 bg-muted/20 animate-pulse" />
               ))}
             </div>
@@ -681,9 +575,9 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
   plan: PlanDTO; onEdit: () => void; onDelete: () => void; onToggle: () => void
 }) {
   const tierLabel = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
-  const cycle     = cycleLabel[plan.billingCycle] ?? ""
-  const priceStr  = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
-  const specs     = [
+  const cycle = cycleLabel[plan.billingCycle] ?? ""
+  const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
+  const specs = [
     plan.vcores    ? `${plan.vcores} vCPU`  : "",
     plan.ramGb     ? `${plan.ramGb} Go RAM` : "",
     plan.storageGb ? `${plan.storageGb} Go` : "",
@@ -694,31 +588,15 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
     <div className="group flex items-center gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5 transition-colors hover:bg-muted/40">
       <div className="flex flex-col items-start gap-0.5 flex-shrink-0">
         <Badge variant="outline" className="text-[10px] h-5 px-1.5 font-medium">{tierLabel}</Badge>
-        {/* ✅ PlanDTO.isActive (pas .active) */}
         {!plan.isActive && <span className="text-[9px] text-muted-foreground">inactif</span>}
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="text-sm font-medium leading-tight">{plan.name}</p>
-          {/* ✅ PlanDTO.badge */}
-          {plan.badge && (
-            <Badge className="text-[9px] h-4 px-1.5 flex-shrink-0 bg-foreground text-background">
-              {plan.badge}
-            </Badge>
-          )}
-          {/* ✅ PlanDTO.isPopular */}
-          {plan.isPopular && !plan.badge && (
-            <Badge className="text-[9px] h-4 px-1.5 flex-shrink-0 bg-primary text-primary-foreground">
-              Populaire
-            </Badge>
-          )}
-        </div>
+        <p className="text-sm font-medium leading-tight">{plan.name}</p>
         {specsDisplay && <p className="text-[11px] text-muted-foreground truncate">{specsDisplay}</p>}
       </div>
       <span className="text-sm font-mono font-semibold tabular-nums text-right flex-shrink-0">
         {priceStr}
       </span>
-      {/* ✅ Toggle via PATCH /toggle — checked sur isActive */}
       <Switch checked={plan.isActive ?? false} onCheckedChange={onToggle} className="flex-shrink-0" />
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button size="icon" variant="ghost"
@@ -737,13 +615,13 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
 }
 
 function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel }: {
-  form:      PlanFormData
+  form: PlanFormData
   isEditing: boolean
-  saving:    boolean
-  error:     string | null
-  onChange:  (field: keyof PlanFormData, value: string | boolean) => void
-  onSubmit:  () => void
-  onCancel:  () => void
+  saving: boolean
+  error: string | null
+  onChange: (field: keyof PlanFormData, value: string) => void
+  onSubmit: () => void
+  onCancel: () => void
 }) {
   return (
     <div className="rounded-lg border border-border/60 bg-muted/10 p-4 space-y-4">
@@ -822,23 +700,6 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
         </div>
       </div>
 
-      {/* ✅ Champ badge (nouveau PlanRequest.badge) */}
-      <div className="grid grid-cols-2 gap-3">
-        <div className="space-y-1.5">
-          <Label className="text-xs">Badge</Label>
-          <Input value={form.badge} onChange={e => onChange("badge", e.target.value)}
-            placeholder="POPULAIRE" className="h-8 text-sm" />
-        </div>
-        <div className="space-y-1.5 flex flex-col justify-end">
-          {/* ✅ isPopular (nouveau PlanRequest.isPopular) */}
-          <div className="flex items-center gap-2 h-8">
-            <Switch id="plan-popular" checked={form.isPopular}
-              onCheckedChange={v => onChange("isPopular", v)} />
-            <Label htmlFor="plan-popular" className="text-xs cursor-pointer">Mettre en avant</Label>
-          </div>
-        </div>
-      </div>
-
       <div className="space-y-1.5">
         <Label className="text-xs">Description</Label>
         <Textarea value={form.description} onChange={e => onChange("description", e.target.value)}
@@ -854,7 +715,7 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
           disabled={saving || !form.name.trim() || !form.price.trim()}>
           {saving
             ? <IconLoader2 className="size-3.5 animate-spin" />
-            : <IconCheck   className="size-3.5" />}
+            : <IconCheck className="size-3.5" />}
           {isEditing ? "Enregistrer" : "Créer le plan"}
         </Button>
       </div>
@@ -867,9 +728,23 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
 function ClientView({ service, plans, loading }: {
   service: CloudServiceDTO; plans: PlanDTO[]; loading: boolean
 }) {
+  const router = useRouter()
   const [selected, setSelected] = React.useState<number | null>(null)
-  // ✅ Filtre sur isActive (pas active)
   const activePlans = plans.filter(p => p.isActive)
+
+  const handleDeploy = () => {
+    if (!selected) return
+    const existing = (() => {
+      try { return JSON.parse(sessionStorage.getItem("deploy_draft") ?? "{}") }
+      catch { return {} }
+    })()
+    sessionStorage.setItem("deploy_draft", JSON.stringify({
+      ...existing,
+      serviceId: service.id,
+      planId: selected,
+    }))
+    router.push("/dashboard/services/deploy/configuration")
+  }
 
   return (
     <div className="p-6 space-y-4">
@@ -879,7 +754,7 @@ function ClientView({ service, plans, loading }: {
 
       {loading ? (
         <div className="space-y-2">
-          {[1,2,3].map(i => (
+          {[1, 2, 3].map(i => (
             <div key={i} className="h-16 rounded-lg border border-border/60 bg-muted/20 animate-pulse" />
           ))}
         </div>
@@ -891,10 +766,10 @@ function ClientView({ service, plans, loading }: {
         <div className="space-y-2">
           {activePlans.map(plan => {
             const isSelected = selected === plan.id
-            const cycle      = cycleLabel[plan.billingCycle] ?? ""
-            const priceStr   = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
-            const tierLabel  = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
-            const specs      = [
+            const cycle = cycleLabel[plan.billingCycle] ?? ""
+            const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
+            const tierLabel = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
+            const specs = [
               plan.vcores    ? `${plan.vcores} vCPU`  : "",
               plan.ramGb     ? `${plan.ramGb} Go RAM` : "",
               plan.storageGb ? `${plan.storageGb} Go` : "",
@@ -920,18 +795,6 @@ function ClientView({ service, plans, loading }: {
                     <div className="flex items-center gap-2 flex-wrap">
                       <p className="text-sm font-medium">{plan.name}</p>
                       <Badge variant="outline" className="text-[10px] h-4 px-1.5">{tierLabel}</Badge>
-                      {/* ✅ badge depuis PlanDTO */}
-                      {plan.badge && (
-                        <Badge className="text-[10px] h-4 px-1.5 bg-foreground text-background">
-                          {plan.badge}
-                        </Badge>
-                      )}
-                      {/* ✅ isPopular depuis PlanDTO */}
-                      {plan.isPopular && !plan.badge && (
-                        <Badge className="text-[10px] h-4 px-1.5 bg-primary text-primary-foreground">
-                          Populaire
-                        </Badge>
-                      )}
                     </div>
                     {specsDisplay && (
                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate">{specsDisplay}</p>
@@ -955,7 +818,8 @@ function ClientView({ service, plans, loading }: {
       )}
 
       <div className="flex justify-end pt-1">
-        <Button size="sm" className="h-8 text-xs gap-1.5" disabled={!selected}>
+        <Button size="sm" className="h-8 text-xs gap-1.5"
+          disabled={!selected} onClick={handleDeploy}>
           Déployer{selected ? ` — ${activePlans.find(p => p.id === selected)?.name}` : " un plan"} →
         </Button>
       </div>

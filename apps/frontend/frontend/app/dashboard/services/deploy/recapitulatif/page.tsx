@@ -10,8 +10,9 @@ import { Button }    from "@/components/ui/button"
 import { Loader2, AlertTriangle } from "lucide-react"
 import { Stepper }   from "@/components/deploy/stepper"
 import { useDeploymentTunnel, type DeploymentDraft } from "@/lib/hooks/useDeployments"
-// loadDraft retiré : on lit sessionStorage directement comme dans configuration/page
 import { getServiceById } from "@/lib/services/cloud-services.api"
+// ✅ DeploymentRequest mis à jour : resourceName, planId, projectId, regionId...
+//    CloudType supprimé de CloudServiceDTO → plus de colonne "Cloud"
 import type { CloudServiceDTO, PlanDTO, DeploymentRequest } from "@/lib/types"
 import { OS_LABELS } from "@/lib/types"
 import { cn } from "@/lib/utils"
@@ -34,6 +35,7 @@ function planSpecs(plan: PlanDTO): string {
     plan.storageGb ? `${plan.storageGb} Go SSD` : "",
   ].filter(Boolean).join(" · ") || "—"
 }
+
 
 // ─── RecapSection ─────────────────────────────────────────────────────────────
 
@@ -58,13 +60,14 @@ function RecapSection({ title, rows }: {
   )
 }
 
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RecapPage() {
   const router = useRouter()
   const { confirm, loading, error } = useDeploymentTunnel()
 
-  // C3 — protection double-submit
+  // Protection double-submit
   const isSubmitting = React.useRef(false)
 
   // États
@@ -72,7 +75,7 @@ export default function RecapPage() {
   const [plan,      setPlan]      = React.useState<PlanDTO | null>(null)
   const [draft,     setDraft]     = React.useState<DeploymentDraft | null>(null)
   const [fetching,  setFetching]  = React.useState(true)
-  const [loadError, setLoadError] = React.useState<string | null>(null)  // E4
+  const [loadError, setLoadError] = React.useState<string | null>(null)
   const [debugInfo, setDebugInfo] = React.useState<string>("")
 
   // Chargement du draft + service
@@ -114,53 +117,61 @@ export default function RecapPage() {
       })
       .catch(err => {
         console.error("[RECAP] erreur getServiceById:", err)
-        // E4 — état d'erreur dédié au lieu de juste logger
         setLoadError("Impossible de charger les détails du service. Vérifiez votre connexion.")
       })
       .finally(() => setFetching(false))
   }, [])
 
-  // C3 — handleConfirm avec protection double-submit
+  // handleConfirm avec protection double-submit
   const handleConfirm = async () => {
     if (!draft?.planId || !draft?.resourceName || !plan) return
     if (isSubmitting.current) return
     isSubmitting.current = true
 
+    // ✅ DeploymentRequest revu : resourceName (pas name), plus de serviceId ni vpcId
     const request: DeploymentRequest = {
-      resourceName:        draft.resourceName!,
-      planId:              draft.planId!,
-      projectId:           draft.projectId,
-      regionId:            draft.regionId,
-      availabilityZone:    draft.availabilityZone,
-      description:         draft.description,
-      backupEnabled:       draft.backupEnabled     ?? false,
-      monitoringEnabled:   draft.monitoringEnabled ?? false,
-      antiDdosEnabled:     draft.antiDdosEnabled   ?? false,
-      additionalStorageGb: draft.additionalStorageGb ?? 0,
-      operatingSystem:     draft.operatingSystem,
+      resourceName:         draft.resourceName!,
+      planId:               draft.planId!,
+      projectId:            draft.projectId,
+      regionId:             draft.regionId,
+      availabilityZone:     draft.availabilityZone,
+      description:          draft.description,
+      backupEnabled:        draft.backupEnabled        ?? false,
+      monitoringEnabled:    draft.monitoringEnabled    ?? false,
+      antiDdosEnabled:      draft.antiDdosEnabled      ?? false,
+      additionalStorageGb:  draft.additionalStorageGb  ?? 0,
+      operatingSystem:      draft.operatingSystem,
     }
 
-    console.log("[RECAP] envoi DeploymentRequest:", request)
-    try {
-      const deployment = await confirm(request)
-      // isSubmitting reste true → navigation immédiate, pas de reset nécessaire
-      router.push(`/dashboard/services/deploy/deploiement?id=${deployment.id}`)
-    } catch {
-      // E4 — réactive le bouton uniquement en cas d'erreur
-      isSubmitting.current = false
-    }
+  console.log("[RECAP] request:", request)  // déjà présent
+  try {
+    const deployment = await confirm(request)
+    console.log("[RECAP] deployment reçu:", deployment)  // ← ajoute ça
+    console.log("[RECAP] deployment.id:", deployment?.id) // ← et ça
+    router.push(`/dashboard/services/deploy/deploiement?id=${deployment.id}`)
+  } catch (e) {
+    console.error("[RECAP] confirm error:", e)  // ← et ça
+    isSubmitting.current = false
   }
-
-  // Calcul tarifaire — gère le cas null (plan PAYG)
-  const isPayg = plan?.isPayAsYouGo ?? false
-  const ht     = isPayg ? null : (plan?.price ?? 0)
-  const tva    = ht != null ? ht * 0.2  : null
-  const total  = ht != null ? ht + tva! : null
+  }
 
   // Label OS lisible
   const osLabel = draft?.operatingSystem
     ? (OS_LABELS[draft.operatingSystem] ?? draft.operatingSystem)
     : null
+
+  // ✅ Calcul tarifaire — BillingCycle : HORAIRE | MENSUEL | ANNUEL (USAGE supprimé)
+  // On n'a plus de USAGE → isPayg toujours false, bloc PAYG retiré
+  const ht    = plan ? plan.price : null
+  const tva   = ht != null ? ht * 0.2 : null
+  const total = ht != null && tva != null ? ht + tva : null
+
+  const CYCLE_SUFFIX: Record<string, string> = {
+    HORAIRE: "/h",
+    MENSUEL: "/mois",
+    ANNUEL:  "/an",
+  }
+  const cycleSuffix = plan ? (CYCLE_SUFFIX[plan.billingCycle] ?? "") : ""
 
   // ── Rendus conditionnels ──────────────────────────────────────────────────
 
@@ -172,7 +183,6 @@ export default function RecapPage() {
     )
   }
 
-  // E4 — écran d'erreur réseau avec retry
   if (loadError) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4">
@@ -189,7 +199,6 @@ export default function RecapPage() {
     )
   }
 
-  // Draft invalide
   if (!draft?.serviceId || !draft?.planId) {
     return (
       <div className="flex h-screen flex-col items-center justify-center gap-4 px-6">
@@ -245,16 +254,16 @@ export default function RecapPage() {
 
         <div className="space-y-6">
 
-          {/* Service commandé */}
+          {/* Service commandé — cloudType retiré (plus dans CloudServiceDTO) */}
           <RecapSection
             title="Service commandé"
             rows={[
               { label: "Service",   value: `${service?.icon ?? ""} ${service?.name ?? "—"}`.trim() },
-              { label: "Cloud",     value: service?.cloudType ?? "—"                                },
+              { label: "Catégorie", value: service?.category ?? "—"                                 },
               { label: "Plan",      value: plan?.name ?? "—"                                        },
+              { label: "Tier",      value: plan?.tier ?? "—"                                        },
               { label: "Specs",     value: plan ? planSpecs(plan) : "—"                             },
               { label: "Ressource", value: <span className="font-mono text-[12px]">{draft.resourceName ?? "—"}</span> },
-              // OS affiché uniquement si présent dans le draft
               ...(osLabel ? [{ label: "OS", value: osLabel }] : []),
             ]}
           />
@@ -263,52 +272,37 @@ export default function RecapPage() {
           <RecapSection
             title="Configuration"
             rows={[
-              { label: "Zone",   value: draft.availabilityZone ?? "—"            },
-              { label: "Backup", value: draft.backupEnabled ? "✓ Activé" : "Non" },
+              { label: "Zone",        value: draft.availabilityZone  ?? "—"            },
+              { label: "Backup",      value: draft.backupEnabled      ? "✓ Activé" : "Non" },
+              { label: "Monitoring",  value: draft.monitoringEnabled  ? "✓ Activé" : "Non" },
+              { label: "Anti-DDoS",   value: draft.antiDdosEnabled    ? "✓ Activé" : "Non" },
             ]}
           />
 
-          {/* Détail tarifaire — adapté PAYG vs prix fixe */}
+          {/* Détail tarifaire — USAGE supprimé des BillingCycle, bloc PAYG retiré */}
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground mb-2">
               Détail tarifaire
             </p>
             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
-              {isPayg ? (
-                <>
-                  <div className="flex items-center justify-between px-5 py-3 bg-card">
-                    <span className="text-[13px] text-muted-foreground">Type de facturation</span>
-                    <span className="text-[13px] font-medium text-amber-600">⚡ Pay-As-You-Go</span>
-                  </div>
-                  <div className="flex items-center justify-between px-5 py-3 bg-card">
-                    <span className="text-[13px] text-muted-foreground">Montant mensuel estimé</span>
-                    <span className="text-[13px] font-medium">Variable selon consommation</span>
-                  </div>
-                  <div className="flex items-center justify-between px-5 py-3 bg-card">
-                    <span className="text-[13px] text-muted-foreground">Débit</span>
-                    <span className="text-[13px] font-medium">Sur votre solde PAYG</span>
-                  </div>
-                </>
-              ) : (
-                [
-                  { label: `Plan ${plan?.name ?? ""}`, price: `${ht!.toFixed(2)} €`,    bold: false },
-                  { label: "Sous-total HT",             price: `${ht!.toFixed(2)} €`,    bold: false },
-                  { label: "TVA (20%)",                 price: `+${tva!.toFixed(2)} €`,  bold: false },
-                  { label: "Total TTC / mois",          price: `${total!.toFixed(2)} €`, bold: true  },
-                ].map((line, i) => (
-                  <div key={i} className={cn(
-                    "flex items-center justify-between px-5 py-3 bg-card",
-                    line.bold && "font-semibold"
-                  )}>
-                    <span className={cn("text-[13px]", line.bold ? "text-foreground" : "text-muted-foreground")}>
-                      {line.label}
-                    </span>
-                    <span className={cn("text-[13px] tabular-nums", line.bold && "text-base")}>
-                      {line.price}
-                    </span>
-                  </div>
-                ))
-              )}
+              {[
+                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht    != null ? `${ht.toFixed(2)} €`    : "—", bold: false },
+                { label: "Sous-total HT",                                price: ht    != null ? `${ht.toFixed(2)} €`    : "—", bold: false },
+                { label: "TVA (20%)",                                    price: tva   != null ? `+${tva.toFixed(2)} €`  : "—", bold: false },
+                { label: `Total TTC${cycleSuffix}`,                      price: total != null ? `${total.toFixed(2)} €` : "—", bold: true  },
+              ].map((line, i) => (
+                <div key={i} className={cn(
+                  "flex items-center justify-between px-5 py-3 bg-card",
+                  line.bold && "font-semibold"
+                )}>
+                  <span className={cn("text-[13px]", line.bold ? "text-foreground" : "text-muted-foreground")}>
+                    {line.label}
+                  </span>
+                  <span className={cn("text-[13px] tabular-nums", line.bold && "text-base")}>
+                    {line.price}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -317,10 +311,7 @@ export default function RecapPage() {
             <span className="shrink-0 mt-0.5">⚠️</span>
             <p className="text-[12px] text-amber-800 leading-relaxed">
               En confirmant, vous acceptez les Conditions Générales de Service.{" "}
-              {isPayg
-                ? "La facturation débutera dès le provisionnement et sera prélevée sur votre solde PAYG."
-                : "La première facture sera émise à la date de déploiement."
-              }
+              La première facture sera émise à la date de déploiement.
             </p>
           </div>
 

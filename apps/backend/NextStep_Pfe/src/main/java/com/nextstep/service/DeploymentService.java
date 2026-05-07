@@ -6,8 +6,10 @@ import com.nextstep.entity.*;
 import com.nextstep.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -72,10 +74,7 @@ public class DeploymentService {
                             "Région introuvable : " + request.getRegionId()));
         }
 
-        // Prix = 0 pour les plans PAYG (facturation à l'usage)
-        BigDecimal price = Boolean.TRUE.equals(plan.getIsPayAsYouGo())
-                ? BigDecimal.ZERO
-                : calculateMonthlyPrice(plan, request);
+
 
         Deployment deployment = Deployment.builder()
                 .resourceName(request.getResourceName())
@@ -95,25 +94,42 @@ public class DeploymentService {
                 .vpcId(request.getVpcId())
                 .subnetId(request.getSubnetId())
                 .securityGroup(request.getSecurityGroup())
-                .monthlyPriceHt(price)
+                .monthlyPriceHt(calculateMonthlyPrice(plan, request))  // ← cette ligne manquait
                 .status(DeploymentStatus.EN_ATTENTE)
                 .build();
 
         return toDTO(deploymentRepository.save(deployment));
     }
 
-    public DeploymentDTO startProvisioning(Long id) {
+    /*public DeploymentDTO startProvisioning(Long id) {
         Deployment d = findOrThrow(id);
         if (d.getStatus() != DeploymentStatus.EN_ATTENTE) {
             throw new IllegalStateException("Le déploiement n'est pas en état EN_ATTENTE");
         }
         d.setStatus(DeploymentStatus.PROVISIONNEMENT);
         return toDTO(deploymentRepository.save(d));
+    }*/
+    public DeploymentDTO startProvisioning(Long id) {
+        Deployment d = findOrThrow(id);
+
+        // Déjà provisionné → retourner sans erreur
+        if (d.getStatus() == DeploymentStatus.ACTIF
+                || d.getStatus() == DeploymentStatus.PROVISIONNEMENT) {
+            return toDTO(d);
+        }
+
+        if (d.getStatus() != DeploymentStatus.EN_ATTENTE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Statut incompatible : " + d.getStatus());
+        }
+
+        d.setStatus(DeploymentStatus.PROVISIONNEMENT);
+        return toDTO(deploymentRepository.save(d));
     }
 
     public DeploymentDTO markRunning(Long id) {
         Deployment d = findOrThrow(id);
-        d.setStatus(DeploymentStatus.EN_LIGNE);
+        d.setStatus(DeploymentStatus.ACTIF);
         d.setDeployedAt(LocalDateTime.now());
         return toDTO(deploymentRepository.save(d));
     }
@@ -121,7 +137,7 @@ public class DeploymentService {
     public DeploymentDTO changeStatus(Long id, DeploymentStatus newStatus) {
         Deployment d = findOrThrow(id);
         d.setStatus(newStatus);
-        if (newStatus == DeploymentStatus.ARRETÉ) {
+        if (newStatus == DeploymentStatus.ARRETE) {
             d.setTerminatedAt(LocalDateTime.now());
         }
         return toDTO(deploymentRepository.save(d));
@@ -169,7 +185,7 @@ public class DeploymentService {
                 dto.setServiceId(svc.getId());
                 dto.setServiceName(svc.getName());
                 dto.setServiceIcon(svc.getIcon());
-                dto.setCloudTypeName(formatCloudType(svc.getCloudType()));
+                dto.setCategoryName(svc.getCategory().name());   // ← remplace cloudTypeName
             }
         }
         if (d.getRegion() != null) {
@@ -205,13 +221,14 @@ public class DeploymentService {
         dto.setDeployedAt(d.getDeployedAt());
         return dto;
     }
+    // Ajouter cette méthode publique dans DeploymentService.java
+// findOrThrow() est déjà private — on l'expose juste publiquement
 
-    private String formatCloudType(CloudType type) {
-        if (type == null) return null;
-        return switch (type) {
-            case PRIVÉ   -> "Cloud Privé";
-            case PUBLIC  -> "Cloud Public";
-            case HYBRIDE -> "Cloud Hybride";
-        };
+    public Deployment findEntityById(Long id) {
+        return deploymentRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Déploiement introuvable : " + id));
     }
+
+
 }

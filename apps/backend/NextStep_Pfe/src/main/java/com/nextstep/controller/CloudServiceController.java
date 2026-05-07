@@ -2,7 +2,6 @@ package com.nextstep.controller;
 
 import com.nextstep.dto.CloudServiceDTO;
 import com.nextstep.dto.CloudServiceRequest;
-import com.nextstep.entity.CloudType;
 import com.nextstep.entity.ServiceCategory;
 import com.nextstep.service.CloudServiceService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -62,14 +61,5 @@ public class CloudServiceController {
         service.delete(id);
         return ResponseEntity.noContent().build();
     }
-    /**
-     * NOUVEAU — Filtrer par type de cloud.
-     * Utilisé par les pages marketplace : GET /api/services/cloud/PRIVATE
-     * Correspond aux 3 pages vue2_cloud_prive, vue4_cloud_public, et page hybride.
-     */
-    @GetMapping("/cloud/{cloudType}")
-    @Operation(summary = "Filtrer par type de cloud (PRIVATE, PUBLIC, HYBRID)")
-    public List<CloudServiceDTO> getByCloudType(@PathVariable CloudType cloudType) {
-        return service.getByCloudType(cloudType);
-    }
+
 }

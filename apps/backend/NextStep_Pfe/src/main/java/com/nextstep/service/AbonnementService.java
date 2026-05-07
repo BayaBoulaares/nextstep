@@ -8,6 +8,7 @@ import com.nextstep.exceptions.ConflictException;
 import com.nextstep.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,12 +26,11 @@ public class AbonnementService {
     private final PlanRepository        planRepository;
     private final UserRepository        userRepository;
     private final DeploymentRepository  deploymentRepository;
-
-    // ── Souscrire à un plan ───────────────────────────────────────────────────
+    @Autowired  // ajouter dans le constructeur @RequiredArgsConstructor
+    private final DeploymentFactory deploymentFactory;
 
     public AbonnementResponse souscrire(UUID clientId, AbonnementRequest req) {
 
-        // Récupérer le client (sous-type User)
         User user = userRepository.findById(clientId)
                 .orElseThrow(() -> new EntityNotFoundException("Utilisateur introuvable : " + clientId));
         if (!(user instanceof Client client)) {
@@ -40,31 +40,33 @@ public class AbonnementService {
         Plan plan = planRepository.findById(req.getPlanId())
                 .orElseThrow(() -> new EntityNotFoundException("Plan introuvable : " + req.getPlanId()));
 
-        // Règle : un seul abonnement ACTIF par (client, plan)
-        if (abonnementRepository.existsByClientIdAndPlanIdAndStatus(
+        /*if (abonnementRepository.existsByClientIdAndPlanIdAndStatus(
                 clientId, req.getPlanId(), AbonnementStatus.ACTIF)) {
             throw new ConflictException(
                     "Un abonnement actif existe déjà pour le plan : " + plan.getName());
+        }*/
+        if (req.getDeploymentId() != null &&
+                abonnementRepository.existsByDeploymentId(req.getDeploymentId())) {
+            throw new ConflictException("Un abonnement existe déjà pour ce déploiement");
         }
 
-        // Snapshot du prix : 0 si PAYG
-        BigDecimal snapshot = Boolean.TRUE.equals(plan.getIsPayAsYouGo())
-                ? BigDecimal.ZERO
-                : (plan.getPrice() != null ? plan.getPrice() : BigDecimal.ZERO);
+        // Prix fixe — toujours défini maintenant
+        BigDecimal snapshot = plan.getPrice() != null ? plan.getPrice() : BigDecimal.ZERO;
+
+        BillingCycle cycle = plan.getBillingCycle() != null
+                ? plan.getBillingCycle()
+                : BillingCycle.MENSUEL;
 
         Abonnement abo = new Abonnement();
         abo.setClient(client);
         abo.setPlan(plan);
         abo.setPrixSnapshot(snapshot);
-        abo.setBillingCycle(plan.getBillingCycle() != null
-                ? plan.getBillingCycle()
-                : BillingCycle.MENSUEL);
+        abo.setBillingCycle(cycle);
         abo.setDateDebut(LocalDateTime.now());
-        abo.setDateFin(calculerDateFin(plan.getBillingCycle()));
+        abo.setDateFin(calculerDateFin(cycle));
         abo.setStatus(AbonnementStatus.ACTIF);
         abo.setAutoRenouvellement(Boolean.TRUE.equals(req.getAutoRenouvellement()));
 
-        // Lier un déploiement existant si fourni
         if (req.getDeploymentId() != null) {
             Deployment dep = deploymentRepository.findById(req.getDeploymentId())
                     .orElseThrow(() -> new EntityNotFoundException(
@@ -75,22 +77,16 @@ public class AbonnementService {
         return toResponse(abonnementRepository.save(abo));
     }
 
-    // ── Lister les abonnements d'un client ────────────────────────────────────
-
     @Transactional(readOnly = true)
     public List<AbonnementResponse> listerParClient(UUID clientId) {
         return abonnementRepository.findByClientId(clientId)
                 .stream().map(this::toResponse).toList();
     }
 
-    // ── Détail d'un abonnement ────────────────────────────────────────────────
-
     @Transactional(readOnly = true)
     public AbonnementResponse getById(Long id) {
         return toResponse(findOrThrow(id));
     }
-
-    // ── Résilier ──────────────────────────────────────────────────────────────
 
     public AbonnementResponse resilier(Long abonnementId, UUID clientId) {
         Abonnement abo = findOrThrow(abonnementId);
@@ -109,8 +105,6 @@ public class AbonnementService {
         return toResponse(abonnementRepository.save(abo));
     }
 
-    // ── Lier un déploiement à un abonnement (après provisionnement) ───────────
-
     public AbonnementResponse lierDeployment(Long abonnementId, Long deploymentId) {
         Abonnement abo = findOrThrow(abonnementId);
         Deployment dep = deploymentRepository.findById(deploymentId)
@@ -120,19 +114,12 @@ public class AbonnementService {
         return toResponse(abonnementRepository.save(abo));
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
-
-    /**
-     * Calcule la dateFin selon le cycle.
-     * USAGE (PAYG) → null (pas de fin définie, facturation continue).
-     */
     private LocalDateTime calculerDateFin(BillingCycle cycle) {
-        if (cycle == null || cycle == BillingCycle.USAGE) return null;
+        if (cycle == null) return LocalDateTime.now().plusMonths(1);
         return switch (cycle) {
             case HORAIRE -> LocalDateTime.now().plusHours(1);
             case MENSUEL -> LocalDateTime.now().plusMonths(1);
             case ANNUEL  -> LocalDateTime.now().plusYears(1);
-            default      -> null;
         };
     }
 
@@ -157,7 +144,6 @@ public class AbonnementService {
         if (p != null) {
             r.setPlanId(p.getId());
             r.setPlanName(p.getName());
-            r.setIsPayAsYouGo(p.getIsPayAsYouGo());
             if (p.getService() != null) r.setServiceName(p.getService().getName());
         }
         if (a.getDeployment() != null) {

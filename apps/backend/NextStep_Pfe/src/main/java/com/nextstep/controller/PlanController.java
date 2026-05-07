@@ -17,7 +17,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/plans")
 @RequiredArgsConstructor
-@Tag(name = "Plans", description = "Gestion des offres/plans (Starter, Essential, Business...)")
+@Tag(name = "Plans", description = "Gestion des plans tarifaires (STARTER, BUSINESS, ENTERPRISE)")
 @SecurityRequirement(name = "bearerAuth")
 public class PlanController {
 

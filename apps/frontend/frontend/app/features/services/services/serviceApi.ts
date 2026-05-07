@@ -195,7 +195,7 @@
 //
 //  Tout le reste est IDENTIQUE à ton fichier actuel.
 // ─────────────────────────────────────────────────────────────────────────────
-import { apiFetch } from "@/lib/apiClient"
+/*import { apiFetch } from "@/lib/apiClient"
 import type {
   CloudService,
   Plan,
@@ -232,7 +232,7 @@ function toPlan(raw: any): Plan {
     name:         raw.name,
     description:  raw.description  ?? null,
     tier:         raw.tier,
-    // ⚠️ MODIFICATION : price est null pour les plans PAYG
+    //  MODIFICATION : price est null pour les plans PAYG
     price:        raw.price != null ? Number(raw.price) : null,
     billingCycle: raw.billingCycle,
     vcores:       raw.vcores        ?? null,
@@ -243,7 +243,7 @@ function toPlan(raw: any): Plan {
     serviceName:  raw.serviceName   ?? null,
     badge:        raw.badge         ?? null,
     isPopular:    raw.isPopular     ?? null,
-    // ⚠️ NOUVEAU
+    //  NOUVEAU
     isPayAsYouGo: raw.isPayAsYouGo  ?? false,
     planPricings: Array.isArray(raw.planPricings)
       ? raw.planPricings.map(toPlanPricing)
@@ -328,19 +328,19 @@ export const serviceApi = {
 
   /**
    * createPlan — MODIFIÉ
-   * ⚠️ Si isPayAsYouGo = true :
+   *  Si isPayAsYouGo = true :
    *   - price envoyé comme null (PlanService.java valide que price est null)
    *   - billingCycle forcé à "USAGE" (inutile de l'envoyer, le backend le force aussi)
-   * ⚠️ Ajout de isPayAsYouGo dans le body
+   *  Ajout de isPayAsYouGo dans le body
    */
-  createPlan: async (payload: CreatePlanPayload): Promise<Plan> => {
+  /*createPlan: async (payload: CreatePlanPayload): Promise<Plan> => {
     const isPayg = payload.isPayAsYouGo ?? false
     const body = {
       serviceId:    payload.serviceId,
       name:         payload.name,
       description:  payload.description  ?? null,
       tier:         payload.tier,
-      // ⚠️ MODIFICATION : null si PAYG, sinon valeur obligatoire
+      //  MODIFICATION : null si PAYG, sinon valeur obligatoire
       price:        isPayg ? null : payload.price,
       billingCycle: isPayg ? "USAGE" : (payload.billingCycle ?? "MENSUEL"),
       vcores:       payload.vcores        ?? null,
@@ -348,7 +348,6 @@ export const serviceApi = {
       storageGb:    payload.storageGb     ?? null,
       badge:        payload.badge         ?? null,
       isPopular:    payload.isPopular     ?? false,
-      // ⚠️ NOUVEAU
       isPayAsYouGo: isPayg,
     }
     const raw = await apiFetch(PLANS, { method: "POST", body: JSON.stringify(body) })
@@ -357,10 +356,10 @@ export const serviceApi = {
 
   /**
    * updatePlan — MODIFIÉ
-   * ⚠️ Ajout de isPayAsYouGo dans la liste des champs conditionnels
+   *  Ajout de isPayAsYouGo dans la liste des champs conditionnels
    */
-  updatePlan: async (planId: number, payload: UpdatePlanPayload): Promise<Plan> => {
-    const body: Record<string, unknown> = {}
+  //updatePlan: async (planId: number, payload: UpdatePlanPayload): Promise<Plan> => {
+    /*const body: Record<string, unknown> = {}
     if (payload.name         !== undefined) body.name         = payload.name
     if (payload.description  !== undefined) body.description  = payload.description
     if (payload.tier         !== undefined) body.tier         = payload.tier
@@ -372,7 +371,7 @@ export const serviceApi = {
     if (payload.badge        !== undefined) body.badge        = payload.badge
     if (payload.isPopular    !== undefined) body.isPopular    = payload.isPopular
     if (payload.serviceId    !== undefined) body.serviceId    = payload.serviceId
-    // ⚠️ NOUVEAU
+    //  NOUVEAU
     if (payload.isPayAsYouGo !== undefined) body.isPayAsYouGo = payload.isPayAsYouGo
 
     const raw = await apiFetch(`${PLANS}/${planId}`, {
@@ -388,6 +387,99 @@ export const serviceApi = {
     const raw = await apiFetch(`${PLANS}/${planId}/toggle`, { method: "PATCH" })
     return toPlan(raw)
   },
+
+  deletePlan: (planId: number): Promise<void> =>
+    apiFetch(`${PLANS}/${planId}`, { method: "DELETE" }),
+}*/
+import { apiFetch } from "@/lib/apiClient"
+import type {
+  CloudService,
+  Plan,
+  CreateServicePayload,
+  UpdateServicePayload,
+  CreatePlanPayload,
+  UpdatePlanPayload
+} from "@/lib/types"
+
+function toPlan(raw: any): Plan {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description ?? null,
+    tier: raw.tier,
+    price: Number(raw.price ?? 0),
+    billingCycle: raw.billingCycle, // ✅ FIX IMPORTANT
+    vcores: raw.vcores ?? null,
+    ramGb: raw.ramGb ?? null,
+    storageGb: raw.storageGb ?? null,
+    isActive: raw.isActive ?? false,
+    serviceId: raw.serviceId,
+    serviceName: raw.serviceName ?? null,
+
+  }
+}
+
+function toService(raw: any): CloudService {
+  return {
+    id: raw.id,
+    name: raw.name,
+    description: raw.description ?? null,
+    category: raw.category,
+    icon: raw.icon ?? null,
+    status: raw.status,
+    plans: Array.isArray(raw.plans) ? raw.plans.map(toPlan) : [],
+    defaultInstanceType: raw.defaultInstanceType ?? null,
+    availableInstanceTypes: raw.availableInstanceTypes ?? [],
+  }
+}
+
+const SERVICES = "/api/services"
+const PLANS = "/api/plans"
+
+export const serviceApi = {
+  getAll: async (): Promise<CloudService[]> =>
+    ((await apiFetch(SERVICES)) as any[]).map(toService),
+
+  getById: async (id: number): Promise<CloudService> =>
+    toService(await apiFetch(`${SERVICES}/${id}`)),
+
+  getByCategory: async (category: string): Promise<CloudService[]> =>
+    ((await apiFetch(`${SERVICES}/category/${category}`)) as any[]).map(toService),
+
+  create: async (payload: CreateServicePayload): Promise<CloudService> =>
+    toService(await apiFetch(SERVICES, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })),
+
+  update: async (id: number, payload: UpdateServicePayload): Promise<CloudService> =>
+    toService(await apiFetch(`${SERVICES}/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    })),
+
+  delete: (id: number): Promise<void> =>
+    apiFetch(`${SERVICES}/${id}`, { method: "DELETE" }),
+
+  getPlansByService: async (serviceId: number): Promise<Plan[]> =>
+    ((await apiFetch(`${PLANS}/service/${serviceId}`)) as any[]).map(toPlan),
+
+  createPlan: async (payload: CreatePlanPayload): Promise<Plan> =>
+    toPlan(await apiFetch(PLANS, {
+      method: "POST",
+      body: JSON.stringify(payload)
+    })),
+
+  updatePlan: async (planId: number, payload: UpdatePlanPayload): Promise<Plan> =>
+    toPlan(await apiFetch(`${PLANS}/${planId}`, {
+      method: "PUT",
+      body: JSON.stringify(payload)
+    })),
+
+  togglePlan: async (planId: number): Promise<Plan> =>
+    toPlan(await apiFetch(`${PLANS}/${planId}/toggle`, {
+      method: "PATCH"
+    })),
 
   deletePlan: (planId: number): Promise<void> =>
     apiFetch(`${PLANS}/${planId}`, { method: "DELETE" }),

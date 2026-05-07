@@ -12,13 +12,9 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
 const TIER_LABEL: Record<string, string> = {
-  DEMARRAGE:     "Démarrage",
-  AVANTAGE:      "Avantage",
-  ESSENTIEL:     "Essentiel",
-  CONFORT:       "Confort",
-  ELITE:         "Élite",
-  PROFESSIONNEL: "Professionnel",
-  ENTREPRISE:    "Entreprise",
+  STARTER:    "Starter",
+  BUSINESS:   "Business",
+  ENTERPRISE: "Enterprise",
 }
 
 const CYCLE_LABEL: Record<string, string> = {
@@ -66,9 +62,10 @@ export function ServicePlansDialog({
 
   React.useEffect(() => { loadPlans() }, [loadPlans])
 
-  // Fermeture sur Escape
   React.useEffect(() => {
-    const h = (e: KeyboardEvent) => { if (e.key === "Escape" && !showPlanForm && !deletingPlan) onClose() }
+    const h = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && !showPlanForm && !deletingPlan) onClose()
+    }
     window.addEventListener("keydown", h)
     return () => window.removeEventListener("keydown", h)
   }, [onClose, showPlanForm, deletingPlan])
@@ -115,17 +112,14 @@ export function ServicePlansDialog({
     }
   }
 
-  // ── Tri : actifs d'abord, inactifs ensous ──────────────────────────────────
   const activePlans   = plans.filter(p => p.isActive)
   const inactivePlans = plans.filter(p => !p.isActive)
 
   return (
     <>
       <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
-        {/* Backdrop */}
         <div className="absolute inset-0 bg-black/30 backdrop-blur-[2px]" onClick={onClose} />
 
-        {/* Dialog */}
         <div className="relative z-10 bg-background border border-border/70 rounded-2xl shadow-2xl w-full max-w-lg flex flex-col max-h-[85vh] overflow-hidden">
 
           {/* ── Header ── */}
@@ -158,13 +152,11 @@ export function ServicePlansDialog({
               </div>
             )}
 
-            {/* Chargement */}
             {loading ? (
               <div className="flex items-center justify-center py-12">
                 <Loader2 className="size-4 animate-spin text-muted-foreground" />
               </div>
 
-            /* Aucun plan */
             ) : plans.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-12 gap-2 text-center">
                 <p className="text-[13px] text-muted-foreground">Aucun plan configuré pour ce service.</p>
@@ -178,7 +170,6 @@ export function ServicePlansDialog({
                 )}
               </div>
 
-            /* Liste */
             ) : (
               <>
                 {activePlans.map(plan => (
@@ -193,7 +184,6 @@ export function ServicePlansDialog({
                   />
                 ))}
 
-                {/* Séparateur inactifs */}
                 {inactivePlans.length > 0 && activePlans.length > 0 && (
                   <div className="flex items-center gap-2 py-1">
                     <div className="flex-1 h-px bg-border/40" />
@@ -221,15 +211,12 @@ export function ServicePlansDialog({
 
           {/* ── Footer ── */}
           <div className="flex-shrink-0 border-t border-border/60 px-5 py-3.5 flex items-center justify-between">
-            {/* Compteur */}
             {!loading && (
               <p className="text-[11px] text-muted-foreground">
                 {activePlans.length} plan{activePlans.length > 1 ? "s" : ""} actif{activePlans.length > 1 ? "s" : ""}
                 {inactivePlans.length > 0 && ` · ${inactivePlans.length} inactif${inactivePlans.length > 1 ? "s" : ""}`}
               </p>
             )}
-
-            {/* Bouton ajouter plan (admin uniquement) */}
             {isAdmin && (
               <Button
                 size="sm" className="h-8 text-[12px] gap-1.5 ml-auto"
@@ -242,7 +229,6 @@ export function ServicePlansDialog({
         </div>
       </div>
 
-      {/* Modal ajout / édition plan */}
       {showPlanForm && (
         <PlanFormModal
           serviceId={service.id}
@@ -252,7 +238,6 @@ export function ServicePlansDialog({
         />
       )}
 
-      {/* Confirmation suppression */}
       {deletingPlan && (
         <ConfirmDialog
           title="Supprimer ce plan ?"
@@ -278,16 +263,16 @@ function PlanCard({ plan, isAdmin, toggling, onEdit, onDelete, onToggle }: {
   onDelete: () => void
   onToggle: () => void
 }) {
-  const cycle    = CYCLE_LABEL[plan.billingCycle] ?? ""
-  const tier     = TIER_LABEL[plan.tier] ?? plan.tier
+  const cycle = CYCLE_LABEL[plan.billingCycle] ?? ""
+  const tier  = TIER_LABEL[plan.tier] ?? plan.tier
 
   const specs = [
-    plan.vcores    ? `${plan.vcores} vCPU`   : "",
-    plan.ramGb     ? `${plan.ramGb} Go RAM`  : "",
-    plan.storageGb ? `${plan.storageGb} Go`  : "",
+    plan.vcores    ? `${plan.vcores} vCPU`  : "",
+    plan.ramGb     ? `${plan.ramGb} Go RAM` : "",
+    plan.storageGb ? `${plan.storageGb} Go` : "",
   ].filter(Boolean)
 
-  const subline = specs.length > 0 ? specs.join(", ") : plan.description ?? ""
+  const subline = specs.length > 0 ? specs.join(", ") : (plan.description ?? "")
 
   return (
     <div className={cn(
@@ -313,20 +298,6 @@ function PlanCard({ plan, isAdmin, toggling, onEdit, onDelete, onToggle }: {
             {plan.name}
           </span>
 
-          {/* Badge marketing (RECOMMANDÉ, etc.) */}
-          {plan.badge && (
-            <span className="text-[9px] font-bold tracking-[0.08em] px-1.5 py-[2px] rounded bg-foreground text-background uppercase">
-              {plan.badge}
-            </span>
-          )}
-
-          {/* isPopular sans badge */}
-          {plan.isPopular && !plan.badge && (
-            <span className="text-[9px] font-bold tracking-[0.08em] px-1.5 py-[2px] rounded bg-primary/90 text-primary-foreground uppercase">
-              Populaire
-            </span>
-          )}
-
           {/* Tier discret */}
           <span className="text-[10px] text-muted-foreground/60 border border-border/40 px-1.5 py-[1px] rounded">
             {tier}
@@ -346,13 +317,13 @@ function PlanCard({ plan, isAdmin, toggling, onEdit, onDelete, onToggle }: {
           <span className="text-[13px] font-semibold text-emerald-500">Gratuit</span>
         ) : (
           <span className={cn("text-[13px] font-semibold tabular-nums", !plan.isActive && "text-muted-foreground")}>
-            {plan.price.toFixed(0)}€
+            {plan.price.toFixed(2)}€
             <span className="text-[11px] font-normal text-muted-foreground">{cycle}</span>
           </span>
         )}
       </div>
 
-      {/* Actions admin (hover) */}
+      {/* Actions admin */}
       {isAdmin && (
         <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0 -mr-1">
           <button

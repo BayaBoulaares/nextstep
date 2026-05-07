@@ -108,7 +108,7 @@
 //   return { deployment, loading, error, confirm, provision, pollUntilRunning }
 // }
 // lib/hooks/useDeployments.ts
-"use client"
+/*"use client"
 
 import * as React from "react"
 import { useSession } from "next-auth/react"
@@ -170,6 +170,7 @@ export function useDeploymentTunnel() {
       setLoading(false)
     }
   }, [userId])
+  
 
   const provision = React.useCallback(async (id: number) => {
     setLoading(true)
@@ -234,5 +235,134 @@ export function useDeploymentTunnel() {
     deployment, loading, error,
     confirm, provision, pollUntilRunning,
     vmPassword, vmName, clearVmPassword  // ✅ exposés pour le PasswordDialog
+  }
+}*/
+// lib/hooks/useDeployments.ts
+"use client"
+
+import * as React from "react"
+import {
+  createDeployment,
+  startProvisioning,
+} from "@/lib/services/deployments.api"
+import type { DeploymentRequest, DeploymentDTO, DeploymentPollResult } from "@/lib/types"
+
+// ── Draft ─────────────────────────────────────────────────────────────────────
+
+export interface DeploymentDraft extends Partial<DeploymentRequest> {
+  serviceId?: number
+}
+
+const KEY = "deploy_draft"
+
+export function saveDraft(req: DeploymentDraft) {
+  sessionStorage.setItem(KEY, JSON.stringify(req))
+}
+
+export function loadDraft(): DeploymentDraft | null {
+  try {
+    const raw = sessionStorage.getItem(KEY)
+    return raw ? JSON.parse(raw) : null
+  } catch { return null }
+}
+
+export function clearDraft() {
+  sessionStorage.removeItem(KEY)
+}
+
+// ── Hook ──────────────────────────────────────────────────────────────────────
+
+export function useDeploymentTunnel() {
+
+  const [deployment, setDeployment] = React.useState<DeploymentDTO | null>(null)
+  const [loading, setLoading] = React.useState(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [vmPassword, setVmPassword] = React.useState<string | null>(null)
+  const [vmName, setVmName] = React.useState<string | null>(null)
+
+  // ── confirm : POST /api/deployments — userId lu depuis JWT côté backend ────
+  const confirm = React.useCallback(async (request: DeploymentRequest) => {
+    setLoading(true)
+    setError(null)
+    try {
+      const d = await createDeployment(request)  // ← plus de userId
+      setDeployment(d)
+      return d
+    } catch (e: any) {
+      setError(e.message)
+      throw e
+    } finally {
+      setLoading(false)
+    }
+  }, [])  // ← plus de dépendance userId
+
+  // ── provision : POST /api/deployments/{id}/provision ─────────────────────
+  const provision = React.useCallback(async (id: number) => {
+    setLoading(true)
+    try {
+      // ← Attendre 1 seconde avant d'appeler /provision
+      await new Promise(resolve => setTimeout(resolve, 1000))
+      const d = await startProvisioning(id)
+      setDeployment(d)
+      return d
+    } catch (e: any) {
+      // ← Si 409 (déjà en cours), ignorer et continuer le polling
+      if (e?.status === 409) {
+        console.warn("[provision] 409 ignoré — déjà en provisionnement")
+        return { id, status: "PROVISIONNEMENT" } as any
+      }
+      setError(e.message)
+      throw e
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  // ── pollUntilRunning : poll toutes les 3s jusqu'à ACTIF ou ECHEC ──────────
+  const pollUntilRunning = React.useCallback(async (
+    id: number,
+    onStep: (d: DeploymentPollResult) => void,
+    maxMs = 300_000  // 5 minutes
+  ) => {
+    const start = Date.now()
+    return new Promise<DeploymentPollResult>((resolve, reject) => {
+      const tick = async () => {
+        try {
+          const { getDeploymentById } = await import("@/lib/services/deployments.api")
+          const d = await getDeploymentById(id) as DeploymentPollResult
+          onStep(d)
+
+          if (d.status === "ACTIF") {       // ← était EN_LIGNE, aligné avec backend
+            if (d.vmPassword) {
+              setVmPassword(d.vmPassword)
+              setVmName(d.resourceName ?? null)
+            }
+            return resolve(d)
+          }
+
+          if (d.status === "ECHEC")
+            return reject(new Error("Provisionnement échoué"))
+
+          if (Date.now() - start > maxMs)
+            return reject(new Error("Timeout"))
+
+          setTimeout(tick, 3000)
+        } catch (e) {
+          reject(e)
+        }
+      }
+      tick()
+    })
+  }, [])
+
+  const clearVmPassword = React.useCallback(() => {
+    setVmPassword(null)
+    setVmName(null)
+  }, [])
+
+  return {
+    deployment, loading, error,
+    confirm, provision, pollUntilRunning,
+    vmPassword, vmName, clearVmPassword,
   }
 }

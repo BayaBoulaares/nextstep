@@ -9,7 +9,7 @@ import { Button }     from "@/components/ui/button"
 import { Loader2, AlertTriangle, Zap, Calendar, Server } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { abonnementApi } from "@/app/features/abonnements/services/abonnementApi"
-import type { AbonnementResponse, AbonnementStatus, BillingCycle } from "@/lib/types"
+import type { AbonnementResponse, BillingCycle, AbonnementStatus } from "@/lib/types"
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -33,7 +33,6 @@ const CYCLE_LABEL: Record<BillingCycle, string> = {
   HORAIRE: "/ h",
   MENSUEL: "/ mois",
   ANNUEL:  "/ an",
-  USAGE:   "(à l'usage)",
 }
 
 function fmt(iso: string | null): string {
@@ -63,7 +62,6 @@ function AbonnementCard({
   }
 
   // Un abonnement PAYG sans déploiement peut être "déployé"
-  const canDeploy = abo.isPayAsYouGo && abo.status === "ACTIF" && !abo.deploymentId
 
   return (
     <div className="border border-border rounded-2xl overflow-hidden bg-card">
@@ -71,11 +69,7 @@ function AbonnementCard({
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/20">
         <div className="flex items-center gap-2.5">
-          {abo.isPayAsYouGo && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 rounded-full px-2 py-0.5 uppercase tracking-wide">
-              <Zap className="w-2.5 h-2.5" />PAYG
-            </span>
-          )}
+
           <div>
             <p className="text-[14px] font-semibold text-foreground leading-tight">{abo.planName}</p>
             {abo.serviceName && (
@@ -94,13 +88,7 @@ function AbonnementCard({
       {/* Body */}
       <div className="px-5 py-4 space-y-2">
         {[
-          {
-            icon: <Zap className="w-3.5 h-3.5 text-muted-foreground" />,
-            label: "Prix",
-            value: abo.isPayAsYouGo
-              ? <span className="text-amber-600 font-medium">À l'usage</span>
-              : `${abo.prixSnapshot.toFixed(2)} € ${CYCLE_LABEL[abo.billingCycle]}`,
-          },
+          
           {
             icon: <Calendar className="w-3.5 h-3.5 text-muted-foreground" />,
             label: "Début",
@@ -136,20 +124,7 @@ function AbonnementCard({
       {abo.status === "ACTIF" && (
         <div className="px-5 pb-4 flex flex-col gap-2">
 
-          {/* Bouton Déployer — uniquement PAYG sans déploiement lié */}
-          {canDeploy && (
-            <Button
-              size="sm"
-              className="w-full h-8 text-[12px]"
-              onClick={() => {
-                // Pré-rempli le draft avec planId pour repartir du tunnel
-                sessionStorage.setItem("deploy_draft", JSON.stringify({ planId: abo.planId, abonnementId: abo.id }))
-                router.push("/dashboard/services")
-              }}
-            >
-              🚀 Déployer ce plan
-            </Button>
-          )}
+  
 
           {/* Bouton Résilier */}
           {!confirming ? (

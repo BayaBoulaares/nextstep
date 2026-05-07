@@ -1,7 +1,6 @@
 package com.nextstep.repository;
 
 import com.nextstep.entity.CloudService;
-import com.nextstep.entity.CloudType;
 import com.nextstep.entity.ServiceCategory;
 import com.nextstep.entity.ServiceStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -23,6 +22,5 @@ public interface CloudServiceRepository extends JpaRepository<CloudService, Long
 
     // Trouver par nom
     Optional<CloudService> findByNameIgnoreCase(String name);
-    List<CloudService> findByCloudType(CloudType cloudType);
 
 }

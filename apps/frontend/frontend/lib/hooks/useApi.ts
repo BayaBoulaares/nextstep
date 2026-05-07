@@ -3,8 +3,7 @@
 import * as React from "react"
 import { useSession } from "next-auth/react"
 import { getDeploymentsByUser }    from "@/lib/services/deployments.api"
-import { getServicesByCloudType, getAllServices } from "@/lib/services/cloud-services.api"
-import type { CloudType } from "@/lib/types"
+import {  getAllServices } from "@/lib/services/cloud-services.api"
 
 // ── Hook générique ────────────────────────────────────────────────────────────
 
@@ -50,12 +49,7 @@ export function useUserDeployments() {
 
 // ── Hook : services d'un type de cloud (page détail) ─────────────────────────
 
-export function useServicesByCloud(cloudType: CloudType) {
-  return useApi(
-    () => getServicesByCloudType(cloudType),
-    [cloudType]
-  )
-}
+
 
 // ── Hook : tous les services (catalogue) ─────────────────────────────────────
 

@@ -10,15 +10,11 @@ import { Button }   from "@/components/ui/button"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import type { CloudServiceRequest, CloudType, ServiceCategory, ServiceStatus } from "@/lib/types"
+import type { CloudServiceRequest, ServiceCategory, ServiceStatus } from "@/lib/types"
 
 // ── Constantes alignées sur les enums Java ────────────────────────────────────
 
-const CLOUD_TYPE_OPTIONS: { value: CloudType; label: string }[] = [
-  { value: "PRIVÉ",   label: "Cloud Privé"   },
-  { value: "PUBLIC",  label: "Cloud Public"  },
-  { value: "HYBRIDE", label: "Cloud Hybride" },
-]
+
 
 const CATEGORY_OPTIONS: { value: ServiceCategory; label: string }[] = [
   { value: "CALCUL",       label: "Calcul"                    },
@@ -44,7 +40,6 @@ export interface ServiceFormValues {
   name:        string
   description: string
   icon:        string
-  cloudType:   CloudType | ""
   category:    ServiceCategory | ""
   status:      ServiceStatus | ""
 }
@@ -56,7 +51,6 @@ type FormErrors = Partial<Record<keyof ServiceFormValues, string>>
 function validate(values: ServiceFormValues): FormErrors {
   const errors: FormErrors = {}
   if (!values.name.trim())   errors.name      = "Le nom est obligatoire"
-  if (!values.cloudType)     errors.cloudType = "Le type de cloud est obligatoire"
   if (!values.category)      errors.category  = "La catégorie est obligatoire"
   if (!values.status)        errors.status    = "Le statut est obligatoire"
   return errors
@@ -87,7 +81,6 @@ export function ServiceForm({
       name:        "",
       description: "",
       icon:        "🖥️",
-      cloudType:   "",
       category:    "",
       status:      "ACTIF",   // ✅ pré-sélectionné par défaut
       ...defaultValues,
@@ -109,7 +102,6 @@ export function ServiceForm({
       name:        values.name.trim(),
       description: values.description.trim() || undefined,
       icon:        values.icon.trim()         || undefined,
-      cloudType:   values.cloudType           as CloudType,
       category:    values.category            as ServiceCategory,
       status:      values.status              as ServiceStatus,
     }
@@ -199,38 +191,7 @@ export function ServiceForm({
         {/* Type cloud + Catégorie + Statut */}
         <div className="grid grid-cols-3 gap-3">
 
-          <FormField
-            control={form.control}
-            name="cloudType"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>
-                  Type cloud <span className="text-destructive">*</span>
-                </FormLabel>
-                {/*
-                  ✅ value= (pas defaultValue=) pour un Select contrôlé.
-                  defaultValue ne se met pas à jour si le formulaire est réinitialisé
-                  (cas edit → create dans le même Dialog).
-                */}
-                <Select
-                  value={field.value || ""}
-                  onValueChange={(v) => field.onChange(v as CloudType)}
-                >
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choisir…" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {CLOUD_TYPE_OPTIONS.map(o => (
-                      <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+
 
           <FormField
             control={form.control}

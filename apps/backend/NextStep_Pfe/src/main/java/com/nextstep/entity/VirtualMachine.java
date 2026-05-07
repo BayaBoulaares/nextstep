@@ -26,6 +26,8 @@ public class VirtualMachine {
     private String osImage;
     @Column(name = "vm_password")
     private String vmPassword;
+    @Column(name = "ip_adresse")
+    private String ipAdresse;
 
     @Enumerated(EnumType.STRING)
     private VmStatus status; // PENDING, RUNNING, STOPPED, ERROR
@@ -37,4 +39,6 @@ public class VirtualMachine {
         this.createdAt = LocalDateTime.now();
         this.status = VmStatus.PENDING;
     }
+    @OneToOne(mappedBy = "virtualMachine", fetch = FetchType.LAZY)
+    private Deployment deployment;
 }

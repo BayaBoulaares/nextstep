@@ -18,11 +18,8 @@ public class PlanRequest {
     @NotNull(message = "Le tier est obligatoire")
     private PlanTier tier;
 
-    /**
-     * MODIFICATION : nullable.
-     * null si isPayAsYouGo = true.
-     * Obligatoire si isPayAsYouGo = false.
-     */
+    @NotNull(message = "Le prix est obligatoire")
+
     private BigDecimal price;
 
     @NotNull(message = "Le billingCycle est obligatoire")
@@ -30,13 +27,8 @@ public class PlanRequest {
     private Integer vcores;
     private Integer ramGb;
     private Integer storageGb;
-    /** NOUVEAU — Badge affiché (ex: "POPULAIRE"). Optionnel. */
-    private String badge;
-    /** NOUVEAU — Plan mis en avant visuellement. Défaut false. */
-    private Boolean isPopular = false;
     @NotNull(message = "L'ID du service est obligatoire")
     private Long serviceId;
-    /** NOUVEAU — true = plan Pay-As-You-Go (price doit être null). */
-    private Boolean isPayAsYouGo = false;
+
 
 }

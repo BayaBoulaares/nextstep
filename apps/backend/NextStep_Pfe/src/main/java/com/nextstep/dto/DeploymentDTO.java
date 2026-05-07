@@ -25,8 +25,7 @@ public class DeploymentDTO {
     private Long serviceId;
     private String serviceName;
     private String serviceIcon;
-    private String cloudTypeName;   // "Cloud Privé", "Cloud Public", "Cloud Hybride"
-
+    private String categoryName;
     // Localisation
     private String regionName;      // "Paris"
     private String datacenterLabel; // "DC1"

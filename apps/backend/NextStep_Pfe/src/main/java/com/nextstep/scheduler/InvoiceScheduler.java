@@ -11,8 +11,8 @@ import org.springframework.stereotype.Component;
 import java.time.YearMonth;
 
 /**
- * Le 1er de chaque mois à 01:00 :
- * génère les factures PAYG pour le mois précédent.
+ * Génère automatiquement les factures mensuelles pour tous les abonnements actifs.
+ * S'exécute le 1er de chaque mois à 00:05.
  */
 @Slf4j
 @Component
@@ -22,20 +22,24 @@ public class InvoiceScheduler {
     private final UsageService         usageService;
     private final AbonnementRepository abonnementRepository;
 
-    @Scheduled(cron = "0 0 1 1 * *")
+    /** Le 1er de chaque mois à 00:05 */
+    @Scheduled(cron = "0 5 0 1 * *")
     public void genererFacturesMensuelles() {
         YearMonth moisPrecedent = YearMonth.now().minusMonths(1);
-        log.info("[INVOICE-SCHEDULER] Génération factures pour {}", moisPrecedent);
 
-        abonnementRepository
-                .findByStatusAndPlan_IsPayAsYouGoTrue(AbonnementStatus.ACTIF)
-                .forEach(abo -> {
-                    try {
-                        usageService.genererFactureMois(abo.getId(), moisPrecedent);
-                    } catch (Exception e) {
-                        log.error("[INVOICE-SCHEDULER] Erreur abo={} : {}",
-                                abo.getId(), e.getMessage());
-                    }
-                });
+        var abonnements = abonnementRepository
+                .findByStatus(AbonnementStatus.ACTIF);
+
+        log.info("[SCHEDULER] Génération factures {} — {} abonnements actifs",
+                moisPrecedent, abonnements.size());
+
+        for (var abo : abonnements) {
+            try {
+                usageService.genererFactureMois(abo.getId(), moisPrecedent);
+            } catch (Exception e) {
+                log.error("[SCHEDULER] Erreur facturation abo={} : {}",
+                        abo.getId(), e.getMessage());
+            }
+        }
     }
 }
