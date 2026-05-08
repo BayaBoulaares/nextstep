@@ -6,11 +6,11 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import { Button }    from "@/components/ui/button"
-import { Input }     from "@/components/ui/input"
-import { Label }     from "@/components/ui/label"
-import { Switch }    from "@/components/ui/switch"
-import { Loader2 }   from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
+import { Loader2 } from "lucide-react"
 import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
@@ -28,21 +28,21 @@ import { cn } from "@/lib/utils"
 
 const STEPS = [
   { id: 1, label: "Sélection du plan" },
-  { id: 2, label: "Configuration"     },
-  { id: 3, label: "Récapitulatif"     },
-  { id: 4, label: "Déploiement"       },
+  { id: 2, label: "Configuration" },
+  { id: 3, label: "Récapitulatif" },
+  { id: 4, label: "Déploiement" },
 ]
 
 const ZONES: { id: AvailabilityZone; label: string; sub: string }[] = [
-  { id: "EO",       label: "EO",       sub: "Capacité élevée — placement prioritaire" },
-  { id: "DATAXION", label: "DATAXION", sub: "Capacité normale"                        },
-  { id: "TT",       label: "TT",       sub: "Haute disponibilité automatique (A + B)" },
+  { id: "EO", label: "EO", sub: "Capacité élevée — placement prioritaire" },
+  { id: "DATAXION", label: "DATAXION", sub: "Capacité normale" },
+  { id: "TT", label: "TT", sub: "Haute disponibilité automatique (A + B)" },
 ]
 
 const CYCLE_LABEL: Record<string, string> = {
   HORAIRE: "/h",
   MENSUEL: "/mois",
-  ANNUEL:  "/an",
+  ANNUEL: "/an",
 }
 
 // C1 — Regex Kubernetes : kebab-case strict, 1 à 63 caractères
@@ -72,8 +72,8 @@ function getOsOptions(category?: ServiceCategory): OperatingSystem[] {
 
 function planSpecs(p: PlanDTO): string {
   return [
-    p.vcores    ? `${p.vcores} vCPU`      : "",
-    p.ramGb     ? `${p.ramGb} Go RAM`     : "",
+    p.vcores ? `${p.vcores} vCPU` : "",
+    p.ramGb ? `${p.ramGb} Go RAM` : "",
     p.storageGb ? `${p.storageGb} Go SSD` : "",
   ].filter(Boolean).join(" · ")
 }
@@ -101,31 +101,37 @@ function SectionCard({ icon, title, sub, children }: {
 
 export default function ConfigurationPage() {
   const router = useRouter()
-
+  const [availabilitySet, setAvailabilitySet] = React.useState("")
   // États — chargement
-  const [service,   setService]   = React.useState<CloudServiceDTO | null>(null)
-  const [plan,      setPlan]      = React.useState<PlanDTO | null>(null)
-  const [fetching,  setFetching]  = React.useState(true)
+  const [service, setService] = React.useState<CloudServiceDTO | null>(null)
+  const [plan, setPlan] = React.useState<PlanDTO | null>(null)
+  const [fetching, setFetching] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [serviceId, setServiceId] = React.useState<number | null>(null)
-  const [planId,    setPlanId]    = React.useState<number | null>(null)
+  const [planId, setPlanId] = React.useState<number | null>(null)
 
   // États — formulaire
-  const [resourceName,    setResourceName]    = React.useState("")
-  const [description,     setDescription]     = React.useState("")
-  const [zone,            setZone]            = React.useState<AvailabilityZone>("EO")
-  const [backupEnabled,   setBackupEnabled]   = React.useState(true)
+  const [resourceName, setResourceName] = React.useState("")
+  const [description, setDescription] = React.useState("")
+  const [zone, setZone] = React.useState<AvailabilityZone>("EO")
+  const [backupEnabled, setBackupEnabled] = React.useState(true)
   const [operatingSystem, setOperatingSystem] = React.useState<OperatingSystem>("UBUNTU_24_04_LTS")
 
   // C1 — Validation resourceName
   const resourceNameError = React.useMemo(() => {
     if (!resourceName) return null
-    if (resourceName.length < 2)  return "Minimum 2 caractères"
+    if (resourceName.length < 2) return "Minimum 2 caractères"
     if (resourceName.length > 63) return "Maximum 63 caractères"
     if (!RESOURCE_NAME_REGEX.test(resourceName))
       return "Minuscules, chiffres et tirets uniquement — ne peut pas commencer ou finir par un tiret"
     return null
   }, [resourceName])
+  const availabilitySetError = React.useMemo(() => {
+    if (!availabilitySet) return null  // optionnel → pas d'erreur si vide
+    if (!/^[a-z][a-z0-9-]{0,61}[a-z0-9]$/.test(availabilitySet))
+      return "Même format que le nom de ressource : minuscules, chiffres, tirets"
+    return null
+  }, [availabilitySet])
 
   // Chargement initial depuis sessionStorage
   React.useEffect(() => {
@@ -173,7 +179,7 @@ export default function ConfigurationPage() {
 
   // Calcul prix
   const basePrice = plan?.price ?? 0
-  const cycleStr  = plan ? (CYCLE_LABEL[plan.billingCycle] ?? "") : ""
+  const cycleStr = plan ? (CYCLE_LABEL[plan.billingCycle] ?? "") : ""
 
   // Sauvegarde du draft et navigation vers le récapitulatif
   const handleContinue = () => {
@@ -193,6 +199,8 @@ export default function ConfigurationPage() {
       availabilityZone: zone,
       backupEnabled,
       operatingSystem,
+      availabilitySet: availabilitySet || undefined,   // ← ajouter
+
     }))
     router.push("/dashboard/services/deploy/recapitulatif")
   }
@@ -273,8 +281,8 @@ export default function ConfigurationPage() {
               {resourceNameError
                 ? <p className="text-[11px] text-destructive">{resourceNameError}</p>
                 : <p className="text-[11px] text-muted-foreground">
-                    Minuscules, chiffres et tirets — 2 à 63 caractères
-                  </p>
+                  Minuscules, chiffres et tirets — 2 à 63 caractères
+                </p>
               }
             </div>
             <div className="space-y-1.5">
@@ -348,6 +356,51 @@ export default function ConfigurationPage() {
               <Switch checked={backupEnabled} onCheckedChange={setBackupEnabled} />
             </div>
           </SectionCard>
+          {/* Haute disponibilité */}
+          <SectionCard
+            icon="🔗"
+            title="Haute disponibilité"
+            sub="Availability Set — répartition sur plusieurs nodes"
+          >
+            <div className="space-y-1.5">
+              <Label className="text-[12px]">
+                Nom du groupe{" "}
+                <span className="text-muted-foreground">(optionnel)</span>
+              </Label>
+              <Input
+                value={availabilitySet}
+                onChange={e =>
+                  setAvailabilitySet(
+                    e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-")
+                  )
+                }
+                placeholder="ex: as-prod-web"
+                className={cn(
+                  "h-8 text-[13px]",
+                  availabilitySetError && "border-destructive"
+                )}
+              />
+              {availabilitySetError ? (
+                <p className="text-[11px] text-destructive">{availabilitySetError}</p>
+              ) : (
+                <p className="text-[11px] text-muted-foreground">
+                  Les VMs du même groupe seront placées sur des nodes physiques différents.
+                  Laissez vide si vous n'avez qu'une seule VM.
+                </p>
+              )}
+            </div>
+
+            {/* Explication visuelle simple */}
+            {availabilitySet && (
+              <div className="rounded-xl bg-muted/40 border border-border px-4 py-3 text-[11px] text-muted-foreground space-y-1">
+                <p className="font-medium text-foreground text-[12px]">
+                  Groupe : <span className="font-mono">{availabilitySet}</span>
+                </p>
+                <p>Cette VM sera schedulée sur un node différent des autres VMs du même groupe.</p>
+                <p className="text-emerald-600">✓ node1 · node2 · node3 disponibles dans votre cluster</p>
+              </div>
+            )}
+          </SectionCard>
         </div>
 
         {/* Résumé sticky — cloudType retiré (supprimé du DTO) */}
@@ -359,12 +412,12 @@ export default function ConfigurationPage() {
             </div>
             <div className="px-5 py-4 space-y-2.5 bg-card border-b border-border">
               {[
-                { label: "Plan",      value: plan?.name ?? "—"            },
-                { label: "Tier",      value: plan?.tier ?? "—"            },
-                { label: "Specs",     value: plan ? planSpecs(plan) : "—" },
-                { label: "Zone",      value: zone                         },
-                { label: "OS",        value: OS_LABELS[operatingSystem]   },
-                { label: "Backup",    value: backupEnabled ? "Activé" : "Non" },
+                { label: "Plan", value: plan?.name ?? "—" },
+                { label: "Tier", value: plan?.tier ?? "—" },
+                { label: "Specs", value: plan ? planSpecs(plan) : "—" },
+                { label: "Zone", value: zone },
+                { label: "OS", value: OS_LABELS[operatingSystem] },
+                { label: "Backup", value: backupEnabled ? "Activé" : "Non" },
                 {
                   label: "Prix",
                   value: basePrice > 0
@@ -384,7 +437,7 @@ export default function ConfigurationPage() {
           <Button
             className="w-full h-9 text-[13px] font-medium"
             onClick={handleContinue}
-            disabled={!resourceName.trim() || !!resourceNameError}
+            disabled={!resourceName.trim() || !!resourceNameError || !!availabilitySetError}
           >
             Continuer vers le récapitulatif →
           </Button>

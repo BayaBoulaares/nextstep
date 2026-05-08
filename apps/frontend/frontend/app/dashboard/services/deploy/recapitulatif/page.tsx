@@ -6,9 +6,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
-import { Button }    from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Loader2, AlertTriangle } from "lucide-react"
-import { Stepper }   from "@/components/deploy/stepper"
+import { Stepper } from "@/components/deploy/stepper"
 import { useDeploymentTunnel, type DeploymentDraft } from "@/lib/hooks/useDeployments"
 import { getServiceById } from "@/lib/services/cloud-services.api"
 // ✅ DeploymentRequest mis à jour : resourceName, planId, projectId, regionId...
@@ -21,17 +21,17 @@ import { cn } from "@/lib/utils"
 
 const STEPS = [
   { id: 1, label: "Sélection du plan" },
-  { id: 2, label: "Configuration"     },
-  { id: 3, label: "Récapitulatif"     },
-  { id: 4, label: "Déploiement"       },
+  { id: 2, label: "Configuration" },
+  { id: 3, label: "Récapitulatif" },
+  { id: 4, label: "Déploiement" },
 ]
 
 // ─── Utilitaires ─────────────────────────────────────────────────────────────
 
 function planSpecs(plan: PlanDTO): string {
   return [
-    plan.vcores    ? `${plan.vcores} vCPU`      : "",
-    plan.ramGb     ? `${plan.ramGb} Go RAM`     : "",
+    plan.vcores ? `${plan.vcores} vCPU` : "",
+    plan.ramGb ? `${plan.ramGb} Go RAM` : "",
     plan.storageGb ? `${plan.storageGb} Go SSD` : "",
   ].filter(Boolean).join(" · ") || "—"
 }
@@ -41,7 +41,7 @@ function planSpecs(plan: PlanDTO): string {
 
 function RecapSection({ title, rows }: {
   title: string
-  rows:  { label: string; value: React.ReactNode }[]
+  rows: { label: string; value: React.ReactNode }[]
 }) {
   return (
     <div>
@@ -71,10 +71,10 @@ export default function RecapPage() {
   const isSubmitting = React.useRef(false)
 
   // États
-  const [service,   setService]   = React.useState<CloudServiceDTO | null>(null)
-  const [plan,      setPlan]      = React.useState<PlanDTO | null>(null)
-  const [draft,     setDraft]     = React.useState<DeploymentDraft | null>(null)
-  const [fetching,  setFetching]  = React.useState(true)
+  const [service, setService] = React.useState<CloudServiceDTO | null>(null)
+  const [plan, setPlan] = React.useState<PlanDTO | null>(null)
+  const [draft, setDraft] = React.useState<DeploymentDraft | null>(null)
+  const [fetching, setFetching] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [debugInfo, setDebugInfo] = React.useState<string>("")
 
@@ -130,29 +130,31 @@ export default function RecapPage() {
 
     // ✅ DeploymentRequest revu : resourceName (pas name), plus de serviceId ni vpcId
     const request: DeploymentRequest = {
-      resourceName:         draft.resourceName!,
-      planId:               draft.planId!,
-      projectId:            draft.projectId,
-      regionId:             draft.regionId,
-      availabilityZone:     draft.availabilityZone,
-      description:          draft.description,
-      backupEnabled:        draft.backupEnabled        ?? false,
-      monitoringEnabled:    draft.monitoringEnabled    ?? false,
-      antiDdosEnabled:      draft.antiDdosEnabled      ?? false,
-      additionalStorageGb:  draft.additionalStorageGb  ?? 0,
-      operatingSystem:      draft.operatingSystem,
+      resourceName: draft.resourceName!,
+      planId: draft.planId!,
+      projectId: draft.projectId,
+      regionId: draft.regionId,
+      availabilityZone: draft.availabilityZone,
+      description: draft.description,
+      backupEnabled: draft.backupEnabled ?? false,
+      monitoringEnabled: draft.monitoringEnabled ?? false,
+      antiDdosEnabled: draft.antiDdosEnabled ?? false,
+      additionalStorageGb: draft.additionalStorageGb ?? 0,
+      operatingSystem: draft.operatingSystem,
+      availabilitySet: draft.availabilitySet,     // ← ajouter
+
     }
 
-  console.log("[RECAP] request:", request)  // déjà présent
-  try {
-    const deployment = await confirm(request)
-    console.log("[RECAP] deployment reçu:", deployment)  // ← ajoute ça
-    console.log("[RECAP] deployment.id:", deployment?.id) // ← et ça
-    router.push(`/dashboard/services/deploy/deploiement?id=${deployment.id}`)
-  } catch (e) {
-    console.error("[RECAP] confirm error:", e)  // ← et ça
-    isSubmitting.current = false
-  }
+    console.log("[RECAP] request:", request)  // déjà présent
+    try {
+      const deployment = await confirm(request)
+      console.log("[RECAP] deployment reçu:", deployment)  // ← ajoute ça
+      console.log("[RECAP] deployment.id:", deployment?.id) // ← et ça
+      router.push(`/dashboard/services/deploy/deploiement?id=${deployment.id}`)
+    } catch (e) {
+      console.error("[RECAP] confirm error:", e)  // ← et ça
+      isSubmitting.current = false
+    }
   }
 
   // Label OS lisible
@@ -162,14 +164,14 @@ export default function RecapPage() {
 
   // ✅ Calcul tarifaire — BillingCycle : HORAIRE | MENSUEL | ANNUEL (USAGE supprimé)
   // On n'a plus de USAGE → isPayg toujours false, bloc PAYG retiré
-  const ht    = plan ? plan.price : null
-  const tva   = ht != null ? ht * 0.2 : null
+  const ht = plan ? plan.price : null
+  const tva = ht != null ? ht * 0.2 : null
   const total = ht != null && tva != null ? ht + tva : null
 
   const CYCLE_SUFFIX: Record<string, string> = {
     HORAIRE: "/h",
     MENSUEL: "/mois",
-    ANNUEL:  "/an",
+    ANNUEL: "/an",
   }
   const cycleSuffix = plan ? (CYCLE_SUFFIX[plan.billingCycle] ?? "") : ""
 
@@ -258,11 +260,11 @@ export default function RecapPage() {
           <RecapSection
             title="Service commandé"
             rows={[
-              { label: "Service",   value: `${service?.icon ?? ""} ${service?.name ?? "—"}`.trim() },
-              { label: "Catégorie", value: service?.category ?? "—"                                 },
-              { label: "Plan",      value: plan?.name ?? "—"                                        },
-              { label: "Tier",      value: plan?.tier ?? "—"                                        },
-              { label: "Specs",     value: plan ? planSpecs(plan) : "—"                             },
+              { label: "Service", value: `${service?.icon ?? ""} ${service?.name ?? "—"}`.trim() },
+              { label: "Catégorie", value: service?.category ?? "—" },
+              { label: "Plan", value: plan?.name ?? "—" },
+              { label: "Tier", value: plan?.tier ?? "—" },
+              { label: "Specs", value: plan ? planSpecs(plan) : "—" },
               { label: "Ressource", value: <span className="font-mono text-[12px]">{draft.resourceName ?? "—"}</span> },
               ...(osLabel ? [{ label: "OS", value: osLabel }] : []),
             ]}
@@ -272,10 +274,19 @@ export default function RecapPage() {
           <RecapSection
             title="Configuration"
             rows={[
-              { label: "Zone",        value: draft.availabilityZone  ?? "—"            },
-              { label: "Backup",      value: draft.backupEnabled      ? "✓ Activé" : "Non" },
-              { label: "Monitoring",  value: draft.monitoringEnabled  ? "✓ Activé" : "Non" },
-              { label: "Anti-DDoS",   value: draft.antiDdosEnabled    ? "✓ Activé" : "Non" },
+              { label: "Zone", value: draft.availabilityZone ?? "—" },
+              { label: "Backup", value: draft.backupEnabled ? "✓ Activé" : "Non" },
+              { label: "Monitoring", value: draft.monitoringEnabled ? "✓ Activé" : "Non" },
+              { label: "Anti-DDoS", value: draft.antiDdosEnabled ? "✓ Activé" : "Non" },
+              // ← ajouter :
+              ...(draft.availabilitySet ? [{
+                label: "Availability Set",
+                value: (
+                  <span className="font-mono text-[12px] bg-muted px-2 py-0.5 rounded">
+                    🔗 {draft.availabilitySet}
+                  </span>
+                )
+              }] : []),
             ]}
           />
 
@@ -286,10 +297,10 @@ export default function RecapPage() {
             </p>
             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
               {[
-                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht    != null ? `${ht.toFixed(2)} €`    : "—", bold: false },
-                { label: "Sous-total HT",                                price: ht    != null ? `${ht.toFixed(2)} €`    : "—", bold: false },
-                { label: "TVA (20%)",                                    price: tva   != null ? `+${tva.toFixed(2)} €`  : "—", bold: false },
-                { label: `Total TTC${cycleSuffix}`,                      price: total != null ? `${total.toFixed(2)} €` : "—", bold: true  },
+                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht != null ? `${ht.toFixed(2)} €` : "—", bold: false },
+                { label: "Sous-total HT", price: ht != null ? `${ht.toFixed(2)} €` : "—", bold: false },
+                { label: "TVA (20%)", price: tva != null ? `+${tva.toFixed(2)} €` : "—", bold: false },
+                { label: `Total TTC${cycleSuffix}`, price: total != null ? `${total.toFixed(2)} €` : "—", bold: true },
               ].map((line, i) => (
                 <div key={i} className={cn(
                   "flex items-center justify-between px-5 py-3 bg-card",

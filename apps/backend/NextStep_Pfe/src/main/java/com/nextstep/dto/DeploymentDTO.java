@@ -58,4 +58,8 @@ public class DeploymentDTO {
     // Dates
     private LocalDateTime createdAt;
     private LocalDateTime deployedAt;
+
+    public void setAvailabilitySet(String availabilitySet) {
+
+    }
 }

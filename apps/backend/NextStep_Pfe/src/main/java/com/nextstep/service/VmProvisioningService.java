@@ -270,13 +270,24 @@ public class VmProvisioningService {
                 ? d.getOperatingSystem().getTerraformImage()   // ← utilise directement l'enum
                 : OperatingSystem.UBUNTU_24_04_LTS.getTerraformImage();
 
+        /* vesrion kbal availabilty set
         VmRequest vmRequest = VmRequest.builder()
+
                 .vmName      (sanitize(d.getResourceName()))
                 .instanceType(category.defaultInstanceType)
                 .cpuCores    (d.getPlan().getVcores()    != null ? d.getPlan().getVcores()    : 2)
                 .ramGb       (d.getPlan().getRamGb()     != null ? d.getPlan().getRamGb()     : 4)
                 .diskGb      (d.getPlan().getStorageGb() != null ? d.getPlan().getStorageGb() : 20)
                 .osImage     (osImage)
+                .build();*/
+        VmRequest vmRequest = VmRequest.builder()
+                .vmName          (sanitize(d.getResourceName()))
+                .instanceType    (category.defaultInstanceType)
+                .cpuCores        (d.getPlan().getVcores()    != null ? d.getPlan().getVcores()    : 2)
+                .ramGb           (d.getPlan().getRamGb()     != null ? d.getPlan().getRamGb()     : 4)
+                .diskGb          (d.getPlan().getStorageGb() != null ? d.getPlan().getStorageGb() : 20)
+                .osImage         (osImage)
+                .availabilitySet (d.getAvailabilitySet())   // ← champ à ajouter dans Deployment
                 .build();
 
         log.info("[PROVISION {}] VM={} NS={} OS={}",
@@ -337,6 +348,7 @@ public class VmProvisioningService {
                 log.warn("[PROVISION] Exposition SSH échouée (non bloquant): {}", ex.getMessage());
             }
 
+            /* version kbal availabilty set
             VmRequest vmRequest = VmRequest.builder()
                     .vmName      (vmName)
                     .instanceType(plan.getService().getCategory().defaultInstanceType)
@@ -344,6 +356,16 @@ public class VmProvisioningService {
                     .ramGb       (plan.getRamGb()     != null ? plan.getRamGb()     : 4)
                     .diskGb      (plan.getStorageGb() != null ? plan.getStorageGb() : 20)
                     .osImage     (osImage)
+                    .build();*/
+            VmRequest vmRequest = VmRequest.builder()
+                    .vmName          (vmName)
+                    .instanceType    (plan.getService().getCategory().defaultInstanceType)
+                    .cpuCores        (plan.getVcores()    != null ? plan.getVcores()    : 2)
+                    .ramGb           (plan.getRamGb()     != null ? plan.getRamGb()     : 4)
+                    .diskGb          (plan.getStorageGb() != null ? plan.getStorageGb() : 20)
+                    .osImage         (osImage)
+                    .availabilitySet (deployment.getAvailabilitySet())  // ←
+                    .useDataVolume(true)
                     .build();
 
             TerraformResult result = terraformService.createVm(vmRequest, namespace);

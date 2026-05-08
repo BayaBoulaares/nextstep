@@ -96,6 +96,7 @@ public class DeploymentService {
                 .securityGroup(request.getSecurityGroup())
                 .monthlyPriceHt(calculateMonthlyPrice(plan, request))  // ← cette ligne manquait
                 .status(DeploymentStatus.EN_ATTENTE)
+                .availabilitySet(request.getAvailabilitySet())
                 .build();
 
         return toDTO(deploymentRepository.save(deployment));
@@ -212,6 +213,7 @@ public class DeploymentService {
         dto.setVpcId(d.getVpcId());
         dto.setSubnetId(d.getSubnetId());
         dto.setMonthlyPriceHt(d.getMonthlyPriceHt());
+        dto.setAvailabilitySet(d.getAvailabilitySet());
 
         if (d.getProject() != null) {
             dto.setProjectId(d.getProject().getId());

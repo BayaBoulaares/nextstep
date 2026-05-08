@@ -144,4 +144,6 @@ public class Deployment {
     @OneToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL, orphanRemoval = true)
     @JoinColumn(name = "virtual_machine_id")
     private VirtualMachine virtualMachine;
+    @Column(name = "availability_set", length = 100)
+    private String availabilitySet;
 }

@@ -2,11 +2,10 @@
 "use client"
 
 import * as React from "react"
-import { useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
-import { Separator }  from "@/components/ui/separator"
-import { Button }     from "@/components/ui/button"
-import { Loader2, AlertTriangle, Zap, Calendar, Server } from "lucide-react"
+import { Separator } from "@/components/ui/separator"
+import { Button } from "@/components/ui/button"
+import { Loader2, AlertTriangle, Calendar, Server } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { abonnementApi } from "@/app/features/abonnements/services/abonnementApi"
 import type { AbonnementResponse, BillingCycle, AbonnementStatus } from "@/lib/types"
@@ -22,17 +21,11 @@ const STATUS_LABEL: Record<AbonnementStatus, string> = {
 }
 
 const STATUS_CLASS: Record<AbonnementStatus, string> = {
-  EN_ATTENTE: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  ACTIF:      "bg-emerald-100 text-emerald-800 border-emerald-200",
-  SUSPENDU:   "bg-orange-100 text-orange-800 border-orange-200",
-  RESILIE:    "bg-red-100    text-red-800    border-red-200",
-  EXPIRE:     "bg-gray-100   text-gray-600   border-gray-200",
-}
-
-const CYCLE_LABEL: Record<BillingCycle, string> = {
-  HORAIRE: "/ h",
-  MENSUEL: "/ mois",
-  ANNUEL:  "/ an",
+  EN_ATTENTE: "bg-yellow-50  text-yellow-700  border-yellow-200",
+  ACTIF:      "bg-emerald-50 text-emerald-700 border-emerald-200",
+  SUSPENDU:   "bg-orange-50  text-orange-700  border-orange-200",
+  RESILIE:    "bg-red-50     text-red-700     border-red-200",
+  EXPIRE:     "bg-gray-50    text-gray-500    border-gray-200",
 }
 
 function fmt(iso: string | null): string {
@@ -42,7 +35,7 @@ function fmt(iso: string | null): string {
   })
 }
 
-// ── Carte abonnement ──────────────────────────────────────────────────────────
+// ── AbonnementCard ────────────────────────────────────────────────────────────
 
 function AbonnementCard({
   abo,
@@ -51,7 +44,6 @@ function AbonnementCard({
   abo: AbonnementResponse
   onResilier: (id: number) => Promise<void>
 }) {
-  const router = useRouter()
   const [confirming, setConfirming] = React.useState(false)
   const [loading,    setLoading]    = React.useState(false)
 
@@ -61,21 +53,15 @@ function AbonnementCard({
     finally { setLoading(false); setConfirming(false) }
   }
 
-  // Un abonnement PAYG sans déploiement peut être "déployé"
-
   return (
-    <div className="border border-border rounded-2xl overflow-hidden bg-card">
-
+    <div className="border border-border rounded-2xl overflow-hidden bg-card shrink-0 w-72 snap-start">
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-border bg-muted/20">
-        <div className="flex items-center gap-2.5">
-
-          <div>
-            <p className="text-[14px] font-semibold text-foreground leading-tight">{abo.planName}</p>
-            {abo.serviceName && (
-              <p className="text-[12px] text-muted-foreground">{abo.serviceName}</p>
-            )}
-          </div>
+        <div>
+          <p className="text-[14px] font-semibold text-foreground leading-tight">{abo.planName}</p>
+          {abo.serviceName && (
+            <p className="text-[12px] text-muted-foreground">{abo.serviceName}</p>
+          )}
         </div>
         <span className={cn(
           "text-[11px] font-medium px-2.5 py-0.5 rounded-full border",
@@ -88,7 +74,6 @@ function AbonnementCard({
       {/* Body */}
       <div className="px-5 py-4 space-y-2">
         {[
-          
           {
             icon: <Calendar className="w-3.5 h-3.5 text-muted-foreground" />,
             label: "Début",
@@ -120,13 +105,9 @@ function AbonnementCard({
         ))}
       </div>
 
-      {/* Footer actions — uniquement si actif */}
+      {/* Footer */}
       {abo.status === "ACTIF" && (
         <div className="px-5 pb-4 flex flex-col gap-2">
-
-  
-
-          {/* Bouton Résilier */}
           {!confirming ? (
             <Button
               variant="outline" size="sm"
@@ -161,7 +142,7 @@ function AbonnementCard({
   )
 }
 
-// ── Page principale ───────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MesAbonnementsPage() {
   const [abonnements, setAbonnements] = React.useState<AbonnementResponse[]>([])
@@ -208,15 +189,9 @@ export default function MesAbonnementsPage() {
           </div>
         )}
 
-        {error && (
+        {(error || actionError) && (
           <div className="flex items-center gap-2 text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <AlertTriangle className="w-4 h-4 shrink-0" />{error}
-          </div>
-        )}
-
-        {actionError && (
-          <div className="flex items-center gap-2 text-[13px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
-            <AlertTriangle className="w-4 h-4 shrink-0" />{actionError}
+            <AlertTriangle className="w-4 h-4 shrink-0" />{error ?? actionError}
           </div>
         )}
 
@@ -237,7 +212,12 @@ export default function MesAbonnementsPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Actifs ({actifs.length})
             </p>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="flex gap-4 overflow-x-auto pb-2 snap-x snap-mandatory scroll-smooth
+              [&::-webkit-scrollbar]:h-1.5
+              [&::-webkit-scrollbar-track]:bg-muted/30
+              [&::-webkit-scrollbar-track]:rounded-full
+              [&::-webkit-scrollbar-thumb]:bg-border
+              [&::-webkit-scrollbar-thumb]:rounded-full">
               {actifs.map(a => (
                 <AbonnementCard key={a.id} abo={a} onResilier={handleResilier} />
               ))}
@@ -250,7 +230,12 @@ export default function MesAbonnementsPage() {
             <p className="text-[10px] font-semibold uppercase tracking-[0.15em] text-muted-foreground">
               Historique ({inactifs.length})
             </p>
-            <div className="grid gap-4 sm:grid-cols-2 opacity-60">
+            <div className="flex gap-4 overflow-x-auto pb-2 opacity-60 snap-x snap-mandatory scroll-smooth
+              [&::-webkit-scrollbar]:h-1.5
+              [&::-webkit-scrollbar-track]:bg-muted/30
+              [&::-webkit-scrollbar-track]:rounded-full
+              [&::-webkit-scrollbar-thumb]:bg-border
+              [&::-webkit-scrollbar-thumb]:rounded-full">
               {inactifs.map(a => (
                 <AbonnementCard key={a.id} abo={a} onResilier={handleResilier} />
               ))}

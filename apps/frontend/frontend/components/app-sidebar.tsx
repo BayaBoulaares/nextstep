@@ -50,6 +50,8 @@ const NAV_ADMIN_ONLY = [
   { title: "Clients", url: "/dashboard/admin/clients", icon: IconUsers },
   { title: "Audit Logs", url: "/dashboard/audit-logs", icon: IconShield },
   { title: "Analytics", url: "/dashboard/analytics", icon: IconChartBar },
+  { title: "Abonnements", url: "/dashboard/admin/abonnements", icon: IconChartBar },
+
 ]
 
 const NAV_SECONDARY = [

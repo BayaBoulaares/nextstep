@@ -73,6 +73,7 @@ export const vmApi = {
   },
 };
 
+
 export const OS_IMAGES = [
   {
     value: "kubevirt/fedora-cloud-container-disk-demo:latest",

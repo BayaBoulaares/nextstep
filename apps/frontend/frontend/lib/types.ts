@@ -182,6 +182,7 @@ export interface DeploymentDTO {
   // Dates
   createdAt:            string | null      // LocalDateTime → ISO string
   deployedAt:           string | null
+  availabilitySet?: string | null  
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
@@ -265,6 +266,8 @@ export interface DeploymentRequest {
   antiDdosEnabled?:     boolean
   additionalStorageGb?: number
   operatingSystem?:     OperatingSystem
+  availabilitySet?:     string           // ← ajouter
+
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
