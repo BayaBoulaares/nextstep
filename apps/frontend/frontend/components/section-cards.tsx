@@ -35,7 +35,7 @@ export function SectionCards() {
 
   const lowestPriceStr =
     stats.lowestPrice !== null
-      ? `${stats.lowestPrice.toFixed(3).replace(".", ",")} €/h`
+      ? `${stats.lowestPrice.toFixed(3).replace(".", ",")} TND/h`
       : "—"
 
   const cards = [

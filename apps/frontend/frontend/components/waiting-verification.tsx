@@ -13,8 +13,8 @@ interface WaitingVerificationProps {
 
 export function WaitingVerification({ email, firstName, onBack }: WaitingVerificationProps) {
   const [resending, setResending] = useState(false)
-  const [resent, setResent]       = useState(false)
-  const [error, setError]         = useState("")
+  const [resent, setResent] = useState(false)
+  const [error, setError] = useState("")
 
   async function handleResend() {
     setResending(true)
@@ -69,7 +69,7 @@ export function WaitingVerification({ email, firstName, onBack }: WaitingVerific
                 "Revenez ici pour vous connecter",
               ].map((step, i) => (
                 <div key={i} className="flex items-start gap-3">
-                  <span className="w-5 h-5 rounded-full bg-foreground text-background text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <span className="w-5 h-5 rounded-full bg-[#0a7fcf] text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">
                     {i + 1}
                   </span>
                   <p className="text-sm">{step}</p>

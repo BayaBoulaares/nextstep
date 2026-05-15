@@ -324,7 +324,7 @@ export default function ConfigurationPage() {
           </SectionCard>
 
           {/* Zone de disponibilité */}
-          <SectionCard icon="🌍" title="Zone de disponibilité" sub="Emplacement de déploiement">
+          <SectionCard icon="📍" title="Zone de disponibilité" sub="Emplacement de déploiement">
             <div className="grid grid-cols-3 gap-2">
               {ZONES.map(z => (
                 <button
@@ -333,8 +333,8 @@ export default function ConfigurationPage() {
                   className={cn(
                     "text-left p-3 rounded-xl border text-[12px] transition-all",
                     zone === z.id
-                      ? "border-foreground bg-foreground/5 font-medium"
-                      : "border-border hover:border-foreground/30 hover:bg-muted/40"
+                      ? "border-[#0a7fcf] bg-[#0a7fcf]/5 font-medium"
+                      : "border-border hover:border-[#0a7fcf]/30 hover:bg-muted/40"
                   )}
                 >
                   <span className="block font-semibold text-foreground">{z.label}</span>
@@ -353,7 +353,11 @@ export default function ConfigurationPage() {
                   Snapshot quotidien, rétention 30 jours
                 </p>
               </div>
-              <Switch checked={backupEnabled} onCheckedChange={setBackupEnabled} />
+              <Switch
+                checked={backupEnabled}
+                onCheckedChange={setBackupEnabled}
+                className="data-[state=checked]:bg-[#0a7fcf]"  // ← AJOUTER CETTE LIGNE
+              />
             </div>
           </SectionCard>
           {/* Haute disponibilité */}
@@ -406,7 +410,7 @@ export default function ConfigurationPage() {
         {/* Résumé sticky — cloudType retiré (supprimé du DTO) */}
         <div className="w-72 shrink-0 sticky top-[88px] space-y-3">
           <div className="border border-border rounded-2xl overflow-hidden">
-            <div className="px-5 py-4 bg-foreground text-background">
+            <div className="px-5 py-4 bg-[#0a7fcf]  text-background">
               <p className="text-[10px] font-semibold uppercase tracking-widest opacity-60 mb-1">Résumé</p>
               <p className="text-base font-semibold">{service?.name ?? "—"}</p>
             </div>
@@ -421,7 +425,7 @@ export default function ConfigurationPage() {
                 {
                   label: "Prix",
                   value: basePrice > 0
-                    ? `${basePrice.toFixed(2)} €${cycleStr}`
+                    ? `${basePrice.toFixed(2)} TND${cycleStr}`
                     : "—"
                 },
               ].map(row => (
@@ -435,16 +439,13 @@ export default function ConfigurationPage() {
 
           {/* C1 — bouton désactivé si resourceName vide ou invalide */}
           <Button
-            className="w-full h-9 text-[13px] font-medium"
+            className="w-full h-9 text-[13px] font-medium bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
             onClick={handleContinue}
             disabled={!resourceName.trim() || !!resourceNameError || !!availabilitySetError}
           >
             Continuer vers le récapitulatif →
           </Button>
-          <div className="border border-border rounded-xl px-4 py-3 text-[12px] text-muted-foreground bg-muted/20 flex items-start gap-2">
-            <span className="text-emerald-500 shrink-0 mt-0.5">✓</span>
-            SLA 99.96% garanti contractuellement
-          </div>
+
         </div>
       </div>
     </SidebarInset>

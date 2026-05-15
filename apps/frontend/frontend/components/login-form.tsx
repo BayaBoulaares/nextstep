@@ -1,14 +1,14 @@
 "use client"
 
-import { cn }        from "@/lib/utils"
-import { useState }  from "react"
-import { signIn }    from "next-auth/react"
+import { cn } from "@/lib/utils"
+import { useState } from "react"
+import { signIn } from "next-auth/react"
 import { useRouter } from "next/navigation"
-import { Button }          from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input }           from "@/components/ui/input"
-import { Label }           from "@/components/ui/label"
-import { Checkbox }        from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   IconLoader2,
   IconAlertCircle,
@@ -26,13 +26,13 @@ type View = "login" | "forgot" | "forgot-sent"
 export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
   const router = useRouter()
 
-  const [view,          setView]          = useState<View>("login")
-  const [email,         setEmail]         = useState("")
-  const [password,      setPassword]      = useState("")
-  const [rememberMe,    setRememberMe]    = useState(false)
-  const [forgotEmail,   setForgotEmail]   = useState("")
-  const [error,         setError]         = useState("")
-  const [loading,       setLoading]       = useState(false)
+  const [view, setView] = useState<View>("login")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(false)
+  const [forgotEmail, setForgotEmail] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
 
   // ── Login email/password ───────────────────────────────────────────────────
@@ -42,7 +42,7 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
     setLoading(true)
     try {
       const result = await signIn("credentials", {
-        redirect:   false,
+        redirect: false,
         email,
         password,
         // ✅ "on" si coché, absent sinon — lu dans authorize() puis propagé au JWT
@@ -83,9 +83,9 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
     setLoading(true)
     try {
       const res = await fetch("/api/auth/forgot-password", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ email: forgotEmail }),
+        body: JSON.stringify({ email: forgotEmail }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
@@ -111,7 +111,8 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
             {view === "login" && (
               <div className="flex flex-col gap-5">
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <h1 className="text-2xl font-bold">Connexion</h1>
+
+                  <h1 className="text-2xl font-bold !text-[#0a7fcf]">Connexion</h1>
                   <p className="text-muted-foreground text-balance text-sm">
                     Entrez vos identifiants pour accéder à votre espace
                   </p>
@@ -169,6 +170,7 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                       id="remember-me"
                       checked={rememberMe}
                       onCheckedChange={v => setRememberMe(v === true)}
+                      className="data-[state=checked]:bg-[#0a7fcf] data-[state=checked]:border-[#0a7fcf] border-gray-300"
                     />
                     <Label
                       htmlFor="remember-me"
@@ -176,12 +178,13 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                     >
                       Se souvenir de moi{" "}
                       <span className="text-muted-foreground text-xs">
-                        (session de 30 jours)
+
                       </span>
                     </Label>
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full">
+                  <Button type="submit" disabled={loading} className="w-full" style={{ backgroundColor: "#0a7fcf", borderColor: "#0a7fcf" }}
+                  >
                     {loading
                       ? <><IconLoader2 className="size-4 animate-spin mr-2" />Connexion…</>
                       : "Se connecter"
@@ -194,6 +197,7 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                   <button
                     type="button"
                     onClick={onSwitchToRegister}
+                    style={{ color: "#0a7fcf" }}
                     className="underline underline-offset-4 hover:text-primary transition-colors"
                   >
                     Créer un compte

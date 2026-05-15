@@ -163,7 +163,7 @@ export function PlanFormModal({ serviceId, plan, onClose, onSaved }: Props) {
                 onChange={e => set("price")(Number(e.target.value))}
                 className="h-9 text-[13px] pr-10"
               />
-              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">€</span>
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[12px] text-muted-foreground">TND</span>
             </div>
           </div>
 

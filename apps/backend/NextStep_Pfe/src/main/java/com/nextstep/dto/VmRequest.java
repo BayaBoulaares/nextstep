@@ -17,7 +17,7 @@ public class VmRequest {
     private int cpuCores;   // ex: 2
     private String instanceType;   // ex: "u1.small"
     private int ramGb;      // ex: 4
-    private int diskGb;     // ex: 20
+    private Integer  diskGb;     // ex: 20
     private String osImage; // ex: "kubevirt/fedora-cloud-container-disk-demo:latest"
     private String vmPassword;
     /**

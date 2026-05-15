@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import { X, Plus, Loader2, AlertCircle, Pencil, Trash2, Power, PowerOff } from "lucide-react"
-import { Button }   from "@/components/ui/button"
-import { cn }       from "@/lib/utils"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import { apiFetch } from "@/lib/apiClient"
 import type { CloudServiceDTO, PlanDTO } from "@/lib/types"
 import { PlanFormModal } from "@/components/admin/PlanFormModal"
@@ -12,23 +12,23 @@ import { ConfirmDialog } from "@/components/admin/ConfirmDialog"
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
 const TIER_LABEL: Record<string, string> = {
-  STARTER:    "Starter",
-  BUSINESS:   "Business",
+  STARTER: "Starter",
+  BUSINESS: "Business",
   ENTERPRISE: "Enterprise",
 }
 
 const CYCLE_LABEL: Record<string, string> = {
   HORAIRE: "/h",
   MENSUEL: "/mois",
-  ANNUEL:  "/an",
+  ANNUEL: "/an",
 }
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
 interface ServicePlansDialogProps {
-  service:  CloudServiceDTO
+  service: CloudServiceDTO
   isAdmin?: boolean
-  onClose:  () => void
+  onClose: () => void
   onSaved?: () => void
 }
 
@@ -38,14 +38,14 @@ export function ServicePlansDialog({
   service, isAdmin = false, onClose, onSaved,
 }: ServicePlansDialogProps) {
 
-  const [plans,        setPlans]        = React.useState<PlanDTO[]>([])
-  const [loading,      setLoading]      = React.useState(true)
-  const [error,        setError]        = React.useState<string | null>(null)
+  const [plans, setPlans] = React.useState<PlanDTO[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
   const [showPlanForm, setShowPlanForm] = React.useState(false)
-  const [editingPlan,  setEditingPlan]  = React.useState<PlanDTO | undefined>(undefined)
+  const [editingPlan, setEditingPlan] = React.useState<PlanDTO | undefined>(undefined)
   const [deletingPlan, setDeletingPlan] = React.useState<PlanDTO | null>(null)
-  const [deleteLoad,   setDeleteLoad]   = React.useState(false)
-  const [toggleLoad,   setToggleLoad]   = React.useState<number | null>(null)
+  const [deleteLoad, setDeleteLoad] = React.useState(false)
+  const [toggleLoad, setToggleLoad] = React.useState<number | null>(null)
 
   // ── Charger les plans ──────────────────────────────────────────────────────
   const loadPlans = React.useCallback(async () => {
@@ -112,7 +112,7 @@ export function ServicePlansDialog({
     }
   }
 
-  const activePlans   = plans.filter(p => p.isActive)
+  const activePlans = plans.filter(p => p.isActive)
   const inactivePlans = plans.filter(p => !p.isActive)
 
   return (
@@ -219,7 +219,8 @@ export function ServicePlansDialog({
             )}
             {isAdmin && (
               <Button
-                size="sm" className="h-8 text-[12px] gap-1.5 ml-auto"
+                size="sm"
+                className="h-8 text-[12px] gap-1.5 ml-auto bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
                 onClick={() => { setEditingPlan(undefined); setShowPlanForm(true) }}
               >
                 <Plus className="size-3.5" /> Ajouter un plan
@@ -256,19 +257,19 @@ export function ServicePlansDialog({
 // ══════════════════════════════════════════════════════════════════════════════
 
 function PlanCard({ plan, isAdmin, toggling, onEdit, onDelete, onToggle }: {
-  plan:     PlanDTO
-  isAdmin:  boolean
+  plan: PlanDTO
+  isAdmin: boolean
   toggling: boolean
-  onEdit:   () => void
+  onEdit: () => void
   onDelete: () => void
   onToggle: () => void
 }) {
   const cycle = CYCLE_LABEL[plan.billingCycle] ?? ""
-  const tier  = TIER_LABEL[plan.tier] ?? plan.tier
+  const tier = TIER_LABEL[plan.tier] ?? plan.tier
 
   const specs = [
-    plan.vcores    ? `${plan.vcores} vCPU`  : "",
-    plan.ramGb     ? `${plan.ramGb} Go RAM` : "",
+    plan.vcores ? `${plan.vcores} vCPU` : "",
+    plan.ramGb ? `${plan.ramGb} Go RAM` : "",
     plan.storageGb ? `${plan.storageGb} Go` : "",
   ].filter(Boolean)
 
@@ -317,7 +318,7 @@ function PlanCard({ plan, isAdmin, toggling, onEdit, onDelete, onToggle }: {
           <span className="text-[13px] font-semibold text-emerald-500">Gratuit</span>
         ) : (
           <span className={cn("text-[13px] font-semibold tabular-nums", !plan.isActive && "text-muted-foreground")}>
-            {plan.price.toFixed(2)}€
+            {plan.price.toFixed(2)}TND
             <span className="text-[11px] font-normal text-muted-foreground">{cycle}</span>
           </span>
         )}

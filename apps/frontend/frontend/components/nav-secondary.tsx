@@ -2,7 +2,6 @@
 
 import * as React from "react"
 import { type Icon } from "@tabler/icons-react"
-
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -11,15 +10,13 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 
+const ICON_COLOR = "#0a7fcf"
+
 export function NavSecondary({
   items,
   ...props
 }: {
-  items: {
-    title: string
-    url: string
-    icon: Icon
-  }[]
+  items: { title: string; url: string; icon: Icon }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
   return (
     <SidebarGroup {...props}>
@@ -29,7 +26,7 @@ export function NavSecondary({
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton asChild>
                 <a href={item.url}>
-                  <item.icon />
+                  <item.icon style={{ color: ICON_COLOR }} />
                   <span>{item.title}</span>
                 </a>
               </SidebarMenuButton>

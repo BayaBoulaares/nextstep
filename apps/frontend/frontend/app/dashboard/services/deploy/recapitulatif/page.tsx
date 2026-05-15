@@ -7,7 +7,7 @@ import { useRouter } from "next/navigation"
 import { SidebarInset, SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
 import { Button } from "@/components/ui/button"
-import { Loader2, AlertTriangle } from "lucide-react"
+import { Loader2, AlertTriangle, ShieldAlert } from "lucide-react"
 import { Stepper } from "@/components/deploy/stepper"
 import { useDeploymentTunnel, type DeploymentDraft } from "@/lib/hooks/useDeployments"
 import { getServiceById } from "@/lib/services/cloud-services.api"
@@ -81,10 +81,10 @@ export default function RecapPage() {
   // Chargement du draft + service
   React.useEffect(() => {
     const raw = sessionStorage.getItem("deploy_draft")
-    console.log("[RECAP] raw sessionStorage:", raw)
+    //console.log("[RECAP] raw sessionStorage:", raw)
 
     if (!raw) {
-      setDebugInfo("❌ Aucun draft en sessionStorage")
+      //setDebugInfo("❌ Aucun draft en sessionStorage")
       setFetching(false)
       return
     }
@@ -93,17 +93,17 @@ export default function RecapPage() {
     try {
       d = JSON.parse(raw)
     } catch {
-      setDebugInfo("❌ Draft JSON invalide: " + raw)
+      //setDebugInfo("❌ Draft JSON invalide: " + raw)
       setFetching(false)
       return
     }
 
-    console.log("[RECAP] draft parsé:", d)
-    setDebugInfo(`✓ serviceId=${d.serviceId} planId=${d.planId} resourceName=${d.resourceName}`)
+    //console.log("[RECAP] draft parsé:", d)
+    //setDebugInfo(`✓ serviceId=${d.serviceId} planId=${d.planId} resourceName=${d.resourceName}`)
     setDraft(d)
 
     if (!d.serviceId || !d.planId) {
-      setDebugInfo(`❌ serviceId ou planId manquant`)
+      //setDebugInfo(`❌ serviceId ou planId manquant`)
       setFetching(false)
       return
     }
@@ -248,11 +248,11 @@ export default function RecapPage() {
         </div>
 
         {/* Banner debug (dev uniquement) */}
-        {process.env.NODE_ENV === "development" && (
+        {/*{process.env.NODE_ENV === "development" && (
           <pre className="mb-4 text-[10px] bg-muted px-3 py-2 rounded-lg text-muted-foreground break-all">
             {debugInfo || `serviceId=${draft.serviceId} planId=${draft.planId} plan=${plan?.name ?? "null"}`}
           </pre>
-        )}
+        )}*/}
 
         <div className="space-y-6">
 
@@ -297,10 +297,10 @@ export default function RecapPage() {
             </p>
             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
               {[
-                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht != null ? `${ht.toFixed(2)} €` : "—", bold: false },
-                { label: "Sous-total HT", price: ht != null ? `${ht.toFixed(2)} €` : "—", bold: false },
-                { label: "TVA (20%)", price: tva != null ? `+${tva.toFixed(2)} €` : "—", bold: false },
-                { label: `Total TTC${cycleSuffix}`, price: total != null ? `${total.toFixed(2)} €` : "—", bold: true },
+                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht != null ? `${ht.toFixed(2)} TND` : "—", bold: false },
+                { label: "Sous-total HT", price: ht != null ? `${ht.toFixed(2)} TND` : "—", bold: false },
+                { label: "TVA (20%)", price: tva != null ? `+${tva.toFixed(2)} TND` : "—", bold: false },
+                { label: `Total TTC${cycleSuffix}`, price: total != null ? `${total.toFixed(2)} TND` : "—", bold: true },
               ].map((line, i) => (
                 <div key={i} className={cn(
                   "flex items-center justify-between px-5 py-3 bg-card",
@@ -319,8 +319,9 @@ export default function RecapPage() {
 
           {/* Bandeau CGS */}
           <div className="flex items-start gap-2.5 border border-amber-200 bg-amber-50 rounded-xl px-4 py-3">
-            <span className="shrink-0 mt-0.5">⚠️</span>
-            <p className="text-[12px] text-amber-800 leading-relaxed">
+
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
+              <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
               En confirmant, vous acceptez les Conditions Générales de Service.{" "}
               La première facture sera émise à la date de déploiement.
             </p>
@@ -335,22 +336,23 @@ export default function RecapPage() {
           )}
 
           {/* Actions */}
+          {/* Actions - MODIFIÉ : gap-3 et pas de conteneur supplémentaire */}
           <div className="flex items-center gap-3 pt-2">
             <Button
               variant="outline"
-              className="h-9 text-[13px]"
+              className="h-9 text-[13px] flex-1"  // ← flex-1 pour largeur égale
               onClick={() => router.back()}
             >
               ← Modifier la configuration
             </Button>
             <Button
-              className="flex-1 h-9 text-[13px] font-medium"
+              className="h-9 text-[13px] font-medium bg-[#0a7fcf] hover:bg-[#0869b0] text-white flex-1"  // ← flex-1
               onClick={handleConfirm}
               disabled={loading || !plan || !draft.resourceName}
             >
               {loading
                 ? <><Loader2 className="w-3.5 h-3.5 mr-2 animate-spin" />Création…</>
-                : "✓ Confirmer et déployer"
+                : "Confirmer et déployer"
               }
             </Button>
           </div>

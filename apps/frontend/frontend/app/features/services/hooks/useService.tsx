@@ -11,7 +11,7 @@ import type {
   UpdateServicePayload,
   CreatePlanPayload,
   UpdatePlanPayload,
-} from "../types"
+} from "@/lib/types"
 
 // ══════════════════════════════════════════════════════════════════════════════
 // useServices — liste + CRUD service

@@ -8,6 +8,7 @@ import {
 } from "@tabler/icons-react"
 import {
   Dialog, DialogContent, DialogTitle, DialogDescription,
+  DialogClose,
 } from "@/components/ui/dialog"
 import {
   AlertDialog, AlertDialogAction, AlertDialogCancel,
@@ -212,12 +213,12 @@ export function ServiceDialog({
     setPlanError(null)
   }
 
-async function submitPlan() {
-  console.log("submitPlan called", { planForm, serviceId: service?.id })
-  if (!planForm || !service?.id) {
-    console.warn("GUARD EXIT — planForm:", planForm, "service.id:", service?.id)
-    return
-  }
+  async function submitPlan() {
+    console.log("submitPlan called", { planForm, serviceId: service?.id })
+    if (!planForm || !service?.id) {
+      console.warn("GUARD EXIT — planForm:", planForm, "service.id:", service?.id)
+      return
+    }
     try {
       const requestBody: PlanRequest = {
         serviceId: service.id,
@@ -230,7 +231,7 @@ async function submitPlan() {
         ramGb: planForm.ramGb ? parseInt(planForm.ramGb, 10) : undefined,
         storageGb: planForm.storageGb ? parseInt(planForm.storageGb, 10) : undefined,
       }
-         console.log("requestBody", requestBody)  // ← ajoute ça
+      console.log("requestBody", requestBody)  // ← ajoute ça
 
       if (editingPlan) {
         const updated = await apiUpdatePlan(editingPlan.id, requestBody)
@@ -322,8 +323,8 @@ async function submitPlan() {
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
 
-          <div className="flex items-start gap-4 p-6 pb-4 border-b border-border/60">
-            <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-4 p-6 pb-4 border-b border-border/60 relative">
+            <div className="flex-1 min-w-0 pr-16">  {/* ← pr-16 pour laisser de la place à la croix */}
               <DialogTitle className="text-base font-semibold leading-tight">
                 {dialogTitle}
               </DialogTitle>
@@ -333,13 +334,18 @@ async function submitPlan() {
                 </DialogDescription>
               )}
             </div>
+
             {service && mode === "view" && (
-              <Badge variant="outline" className="text-[10px] h-5 px-1.5 flex-shrink-0 mt-0.5">
+              <Badge variant="outline" className="text-[10px] h-5 px-1.5 flex-shrink-0 mt-0.5 mr-8">  {/* ← mr-8 pour éviter la croix */}
                 {CATEGORY_OPTIONS.find(c => c.value === service.category)?.label ?? service.category}
               </Badge>
             )}
-          </div>
 
+            {/* Bouton de fermeture */}
+            <DialogClose className="absolute right-4 top-4 opacity-70 hover:opacity-100 transition-opacity">
+              <IconX className="size-4" />
+            </DialogClose>
+          </div>
           {/* ── Formulaire create / edit ── */}
           {(mode === "create" || mode === "edit") && (
             <div className="p-6 space-y-5">
@@ -355,7 +361,7 @@ async function submitPlan() {
                   onClick={onClose} disabled={serviceSaving}>
                   Annuler
                 </Button>
-                <Button size="sm" className="h-8 text-xs gap-1.5"
+                <Button size="sm" className="h-8 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
                   onClick={submitService}
                   disabled={serviceSaving || !serviceForm.name.trim()}>
                   {serviceSaving
@@ -552,7 +558,11 @@ function AdminPlansView({
             <p className="text-xs font-medium text-muted-foreground">
               {loading ? "Chargement…" : `${plans.length} plan(s) configuré(s)`}
             </p>
-            <Button size="sm" className="h-7 text-xs gap-1.5" onClick={onAddPlan}>
+            <Button
+              size="sm"
+              className="h-7 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
+              onClick={onAddPlan}
+            >
               <IconPlus className="size-3.5" /> Ajouter un plan
             </Button>
           </div>
@@ -594,7 +604,7 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
 }) {
   const tierLabel = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
   const cycle = cycleLabel[plan.billingCycle] ?? ""
-  const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
+  const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} TND${cycle}`
   const specs = [
     plan.vcores ? `${plan.vcores} vCPU` : "",
     plan.ramGb ? `${plan.ramGb} Go RAM` : "",
@@ -615,7 +625,11 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
       <span className="text-sm font-mono font-semibold tabular-nums text-right flex-shrink-0">
         {priceStr}
       </span>
-      <Switch checked={plan.isActive ?? false} onCheckedChange={onToggle} className="flex-shrink-0" />
+      <Switch
+        checked={plan.isActive ?? false}
+        onCheckedChange={onToggle}
+        className="flex-shrink-0 data-[state=checked]:bg-[#0a7fcf] data-[state=checked]:border-[#0a7fcf]"
+      />
       <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button size="icon" variant="ghost"
           className="size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted"
@@ -627,6 +641,7 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
           onClick={onDelete}>
           <IconTrash className="size-3.5" />
         </Button>
+
       </div>
     </div>
   )
@@ -679,7 +694,7 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-xs">Prix (€) <span className="text-destructive">*</span></Label>
+          <Label className="text-xs">Prix (TND) <span className="text-destructive">*</span></Label>
           <Input type="number" step="0.01" min="0" value={form.price}
             onChange={e => onChange("price", e.target.value)}
             placeholder="49.99" className="h-8 text-sm font-mono" />
@@ -701,9 +716,9 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
         <p className="text-xs font-medium text-muted-foreground mb-2">Spécifications</p>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { field: "vcores",    label: "vCPU",     icon: <IconCpu      className="size-3" />, ph: "4"   },
-            { field: "ramGb",     label: "RAM (Go)",  icon: <IconServer   className="size-3" />, ph: "8"   },
-            { field: "storageGb", label: "SSD (Go)",  icon: <IconDatabase className="size-3" />, ph: "100" },
+            { field: "vcores", label: "vCPU", icon: <IconCpu className="size-3" />, ph: "4" },
+            { field: "ramGb", label: "RAM (Go)", icon: <IconServer className="size-3" />, ph: "8" },
+            { field: "storageGb", label: "SSD (Go)", icon: <IconDatabase className="size-3" />, ph: "100" },
           ].map(({ field, label, icon, ph }) => (
             <div key={field} className="space-y-1.5">
               <Label className="text-xs flex items-center gap-1 text-muted-foreground">
@@ -728,12 +743,13 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
       <div className="flex justify-end gap-2 pt-1">
         <Button variant="outline" size="sm" className="h-8 text-xs"
           onClick={onCancel} disabled={saving}>Annuler</Button>
-        <Button size="sm" className="h-8 text-xs gap-1.5"
+        <Button
+          size="sm"
+          className="h-8 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
           onClick={onSubmit}
-          disabled={saving || !form.name.trim() || !form.price.trim()}>
-          {saving
-            ? <IconLoader2 className="size-3.5 animate-spin" />
-            : <IconCheck className="size-3.5" />}
+          disabled={saving || !form.name.trim() || !form.price.trim()}
+        >
+          {saving && <IconLoader2 className="size-3.5 animate-spin" />}
           {isEditing ? "Enregistrer" : "Créer le plan"}
         </Button>
       </div>
@@ -785,7 +801,7 @@ function ClientView({ service, plans, loading }: {
           {activePlans.map(plan => {
             const isSelected = selected === plan.id
             const cycle = cycleLabel[plan.billingCycle] ?? ""
-            const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
+            const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} TND${cycle}`
             const tierLabel = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
             const specs = [
               plan.vcores ? `${plan.vcores} vCPU` : "",
@@ -798,15 +814,17 @@ function ClientView({ service, plans, loading }: {
               <div key={plan.id}
                 className={cn(
                   "rounded-lg border px-4 py-3 cursor-pointer transition-all select-none",
-                  isSelected ? "border-primary/40 bg-primary/5" : "border-border/60 hover:bg-muted/10"
-                )}
+                  isSelected
+                    ? "border-[#0a7fcf]/40 bg-[#0a7fcf]/5"
+                    : "border-border/60 hover:bg-muted/10")}
                 onClick={() => setSelected(plan.id)}
               >
                 <div className="flex items-center gap-3">
                   <div className={cn(
                     "size-4 rounded-full border-2 flex items-center justify-center flex-shrink-0 transition-all",
-                    isSelected ? "border-primary bg-primary" : "border-border"
-                  )}>
+                    isSelected
+                      ? "border-[#0a7fcf] bg-[#0a7fcf]"
+                      : "border-border")}>
                     {isSelected && <div className="size-1.5 rounded-full bg-white" />}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -835,14 +853,14 @@ function ClientView({ service, plans, loading }: {
         </div>
       )}
 
-      <div className="flex justify-end pt-1">
+      <div className="flex justify-end pt-1 ">
         <Button
           size="sm"
-          className="h-8 text-xs gap-1.5"
+          className="h-8 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
           disabled={!selected}
           onClick={handleDeploy}
         >
-          Déployer{selected ? ` — ${activePlans.find(p => p.id === selected)?.name}` : " un plan"} →
+          Déployer{selected ? ` ${activePlans.find(p => p.id === selected)?.name}` : " un plan"}
         </Button>
       </div>
     </div>

@@ -145,7 +145,7 @@ export function OffreForm({
 
       {/* Prix */}
       <div className="space-y-1.5">
-        <Label htmlFor="prix">Prix (€) <span className="text-red-500">*</span></Label>
+        <Label htmlFor="prix">Prix (TND) <span className="text-red-500">*</span></Label>
         <Input
           id="prix"
           type="number"

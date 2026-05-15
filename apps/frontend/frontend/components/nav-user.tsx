@@ -8,7 +8,7 @@ import {
   IconUserCircle,
 } from "@tabler/icons-react"
 import { signOut, useSession } from "next-auth/react"
-import { useRouter }           from "next/navigation"
+import { useRouter } from "next/navigation"
 import {
   Avatar,
   AvatarFallback,
@@ -34,14 +34,14 @@ export function NavUser({
   user,
 }: {
   user: {
-    name:   string
-    email:  string
+    name: string
+    email: string
     avatar: string
   }
 }) {
-  const { isMobile }   = useSidebar()
+  const { isMobile } = useSidebar()
   const { data: session } = useSession()
-  const router         = useRouter()
+  const router = useRouter()
 
   // ── Logout ──────────────────────────────────────────────────────────────────
   // 1. Invalide la session Keycloak (end_session_endpoint)
@@ -57,7 +57,7 @@ export function NavUser({
 
     // ✅ Déconnecter Keycloak (invalide la session SSO)
     // Sans ça, l'utilisateur peut se reconnecter sans saisir son mot de passe
-    const keycloakUrl   = process.env.NEXT_PUBLIC_KEYCLOAK_URL
+    const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL
     const keycloakRealm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM
 
     if (keycloakUrl && keycloakRealm) {
@@ -103,8 +103,7 @@ export function NavUser({
                   {user.email}
                 </span>
               </div>
-              <IconDotsVertical className="ml-auto size-4" />
-            </SidebarMenuButton>
+              <IconDotsVertical className="ml-auto size-4" style={{ color: "#0a7fcf" }} />            </SidebarMenuButton>
           </DropdownMenuTrigger>
 
           <DropdownMenuContent
@@ -135,28 +134,27 @@ export function NavUser({
             <DropdownMenuGroup>
               <DropdownMenuItem asChild>
                 <a href="/dashboard/profile" className="flex items-center gap-2 cursor-pointer">
-                  <IconUserCircle className="size-4" />
+                  <IconUserCircle className="size-4" style={{ color: "#0a7fcf" }} />
                   Mon compte
                 </a>
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <IconCreditCard className="size-4" />
+                <IconCreditCard className="size-4" style={{ color: "#0a7fcf" }} />
                 Facturation
               </DropdownMenuItem>
               <DropdownMenuItem>
-                <IconNotification className="size-4" />
+                <IconNotification className="size-4" style={{ color: "#0a7fcf" }} />
                 Notifications
               </DropdownMenuItem>
             </DropdownMenuGroup>
 
             <DropdownMenuSeparator />
 
-            {/* ── Bouton Logout ── */}
             <DropdownMenuItem
               onClick={handleLogout}
               className="text-red-600 focus:text-red-700 focus:bg-red-50 cursor-pointer"
             >
-              <IconLogout className="size-4" />
+              <IconLogout className="size-4" style={{ color: "#0a7fcf" }} />
               Se déconnecter
             </DropdownMenuItem>
 

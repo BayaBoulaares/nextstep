@@ -27,44 +27,44 @@ import { ServiceDialog, type DialogMode } from "./service-dialog"
 // ─── Labels ───────────────────────────────────────────────────────────────────
 
 const CATEGORY_LABELS: Record<ServiceCategory, string> = {
-  CALCUL:       "Calcul",
-  HEBERGEMENT:  "Hébergement",
-  STOCKAGE:     "Stockage",
+  CALCUL: "Calcul",
+  HEBERGEMENT: "Hébergement",
+  STOCKAGE: "Stockage",
   BASE_DONNEES: "Base de données",
-  RESEAU:       "Réseau",
-  EMAIL:        "Email",
-  IA:           "IA",
-  SECURITE:     "Sécurité",
-  IAM:          "Accès",
+  RESEAU: "Réseau",
+  EMAIL: "Email",
+  IA: "IA",
+  SECURITE: "Sécurité",
+  IAM: "Accès",
 }
 
 const ALL_CATEGORIES: { value: ServiceCategory | "TOUS"; label: string }[] = [
-  { value: "TOUS",        label: "Tous"             },
-  { value: "CALCUL",      label: "Calcul"           },
-  { value: "HEBERGEMENT", label: "Hébergement"      },
-  { value: "STOCKAGE",    label: "Stockage"         },
-  { value: "BASE_DONNEES",label: "Base de données"  },
-  { value: "RESEAU",      label: "Réseau"           },
-  { value: "EMAIL",       label: "Email"            },
-  { value: "IA",          label: "IA"               },
-  { value: "SECURITE",    label: "Sécurité"         },
-  { value: "IAM",         label: "Accès"            },
+  { value: "TOUS", label: "Tous" },
+  { value: "CALCUL", label: "Calcul" },
+  { value: "HEBERGEMENT", label: "Hébergement" },
+  { value: "STOCKAGE", label: "Stockage" },
+  { value: "BASE_DONNEES", label: "Base de données" },
+  { value: "RESEAU", label: "Réseau" },
+  { value: "EMAIL", label: "Email" },
+  { value: "IA", label: "IA" },
+  { value: "SECURITE", label: "Sécurité" },
+  { value: "IAM", label: "Accès" },
 ]
 
 const STATUS_CONFIG: Record<ServiceStatus, { label: string; dot: string; badge: string }> = {
   ACTIF: {
     label: "Actif",
-    dot:   "bg-emerald-500",
+    dot: "bg-emerald-500",
     badge: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:ring-emerald-800",
   },
   MAINTENANCE: {
     label: "Maintenance",
-    dot:   "bg-amber-400",
+    dot: "bg-amber-400",
     badge: "bg-amber-50 text-amber-700 ring-1 ring-amber-200 dark:bg-amber-950/40 dark:text-amber-400 dark:ring-amber-800",
   },
   INACTIF: {
     label: "Inactif",
-    dot:   "bg-zinc-400",
+    dot: "bg-zinc-400",
     badge: "bg-zinc-100 text-zinc-500 ring-1 ring-zinc-200 dark:bg-zinc-800 dark:text-zinc-400 dark:ring-zinc-700",
   },
 }
@@ -72,15 +72,15 @@ const STATUS_CONFIG: Record<ServiceStatus, { label: string; dot: string; badge: 
 const BILLING_SUFFIX: Record<string, string> = {
   HORAIRE: "/h",
   MENSUEL: "/mois",
-  ANNUEL:  "/an",
+  ANNUEL: "/an",
 }
 
 // ─── Hook fetch ───────────────────────────────────────────────────────────────
 
 function useServices() {
   const [services, setServices] = React.useState<CloudServiceDTO[]>([])
-  const [loading,  setLoading]  = React.useState(true)
-  const [error,    setError]    = React.useState<string | null>(null)
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
 
   // ✅ apiFetch lit le token depuis la session NextAuth (cookie HTTP)
   // — plus de localStorage, plus de vérification manuelle du format JWT
@@ -115,10 +115,10 @@ function useServices() {
 function getMinPrice(service: CloudServiceDTO): string {
   const active = (service.plans ?? []).filter(p => p.isActive)
   if (!active.length) return "—"
-  const min    = Math.min(...active.map(p => p.price))
-  const found  = active.find(p => p.price === min)
+  const min = Math.min(...active.map(p => p.price))
+  const found = active.find(p => p.price === min)
   const suffix = found ? (BILLING_SUFFIX[found.billingCycle] ?? "") : ""
-  return min === 0 ? "Gratuit" : `dès ${min.toFixed(2)} €${suffix}`
+  return min === 0 ? "Gratuit" : `dès ${min.toFixed(2)} TND${suffix}`
 }
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -141,16 +141,16 @@ function StatusPill({ status }: { status: ServiceStatus }) {
 function ServiceCard({
   service, isAdmin, onView, onEdit, onDelete,
 }: {
-  service:  CloudServiceDTO
-  isAdmin:  boolean
-  onView:   () => void
-  onEdit:   () => void
+  service: CloudServiceDTO
+  isAdmin: boolean
+  onView: () => void
+  onEdit: () => void
   onDelete: () => void
 }) {
-  const planCount   = service.plans?.length ?? 0
+  const planCount = service.plans?.length ?? 0
   const activeCount = service.plans?.filter(p => p.isActive).length ?? 0
-  const minPrice    = getMinPrice(service)
-  const catLabel    = CATEGORY_LABELS[service.category] ?? service.category
+  const minPrice = getMinPrice(service)
+  const catLabel = CATEGORY_LABELS[service.category] ?? service.category
 
   return (
     <div
@@ -226,15 +226,15 @@ function ServiceCard({
 function ServiceRow({
   service, isAdmin, onView, onEdit, onDelete,
 }: {
-  service:  CloudServiceDTO
-  isAdmin:  boolean
-  onView:   () => void
-  onEdit:   () => void
+  service: CloudServiceDTO
+  isAdmin: boolean
+  onView: () => void
+  onEdit: () => void
   onDelete: () => void
 }) {
-  const planCount   = service.plans?.length ?? 0
+  const planCount = service.plans?.length ?? 0
   const activeCount = service.plans?.filter(p => p.isActive).length ?? 0
-  const minPrice    = getMinPrice(service)
+  const minPrice = getMinPrice(service)
 
   return (
     <TableRow
@@ -331,15 +331,15 @@ interface ServicesTableProps {
 export function ServicesTable({ isAdmin = false }: ServicesTableProps) {
   const { services, loading, error, refetch, deleteService } = useServices()
 
-  const [query,      setQuery]      = React.useState("")
-  const [activeTab,  setActiveTab]  = React.useState<ServiceCategory | "TOUS">("TOUS")
-  const [viewMode,   setViewMode]   = React.useState<"grid" | "list">("grid")
+  const [query, setQuery] = React.useState("")
+  const [activeTab, setActiveTab] = React.useState<ServiceCategory | "TOUS">("TOUS")
+  const [viewMode, setViewMode] = React.useState<"grid" | "list">("grid")
 
   const [selectedService, setSelectedService] = React.useState<CloudServiceDTO | null>(null)
-  const [dialogMode,      setDialogMode]      = React.useState<DialogMode>("view")
-  const [dialogOpen,      setDialogOpen]      = React.useState(false)
-  const [deleteTarget,    setDeleteTarget]    = React.useState<CloudServiceDTO | null>(null)
-  const [deleteLoading,   setDeleteLoading]   = React.useState(false)
+  const [dialogMode, setDialogMode] = React.useState<DialogMode>("view")
+  const [dialogOpen, setDialogOpen] = React.useState(false)
+  const [deleteTarget, setDeleteTarget] = React.useState<CloudServiceDTO | null>(null)
+  const [deleteLoading, setDeleteLoading] = React.useState(false)
 
   function openDialog(service: CloudServiceDTO, mode: DialogMode = "view") {
     setSelectedService(service); setDialogMode(mode); setDialogOpen(true)
@@ -359,7 +359,7 @@ export function ServicesTable({ isAdmin = false }: ServicesTableProps) {
     const q = query.toLowerCase()
     return services.filter(s => {
       const catOk = activeTab === "TOUS" || s.category === activeTab
-      const qOk   = !q || s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q)
+      const qOk = !q || s.name.toLowerCase().includes(q) || (s.description ?? "").toLowerCase().includes(q)
       return catOk && qOk
     })
   }, [services, query, activeTab])
@@ -421,7 +421,7 @@ export function ServicesTable({ isAdmin = false }: ServicesTableProps) {
               </Button>
 
               {isAdmin && (
-                <Button size="sm" className="h-8 text-xs gap-1.5" onClick={openCreate}>
+                <Button size="sm" className="h-8 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white" onClick={openCreate}>
                   <IconPlus className="size-3.5" /> Nouveau service
                 </Button>
               )}
@@ -431,16 +431,13 @@ export function ServicesTable({ isAdmin = false }: ServicesTableProps) {
           {!loading && usedCategories.length > 1 && (
             <div className="flex items-center gap-1.5 flex-wrap">
               {usedCategories.map(cat => (
-                <button
-                  key={cat.value}
-                  onClick={() => setActiveTab(cat.value)}
+                <button key={cat.value} onClick={() => setActiveTab(cat.value)}
                   className={cn(
                     "px-3 py-1 text-xs rounded-full border transition-all font-medium",
                     activeTab === cat.value
-                      ? "bg-foreground text-background border-foreground"
-                      : "bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground"
-                  )}
-                >
+                      ? "bg-[#0a7fcf] text-white border-[#0a7fcf]"
+                      : "bg-transparent text-muted-foreground border-border/60 hover:border-[#0a7fcf] hover:text-[#0a7fcf]"
+                  )}>
                   {cat.label}
                 </button>
               ))}

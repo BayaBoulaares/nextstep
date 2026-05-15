@@ -11,10 +11,10 @@ import { Slider } from "@/components/ui/slider";
 import { CheckCircle2, ChevronRight, ChevronLeft, Loader2, Server, Cpu, HardDrive, Network } from "lucide-react";
 
 const STEPS = [
-  { id: 1, label: "Nom & OS",     icon: Server },
-  { id: 2, label: "Ressources",   icon: Cpu },
-  { id: 3, label: "Réseau",       icon: Network },
-  { id: 4, label: "Récapitulatif",icon: CheckCircle2 },
+  { id: 1, label: "Nom & OS", icon: Server },
+  { id: 2, label: "Ressources", icon: Cpu },
+  { id: 3, label: "Réseau", icon: Network },
+  { id: 4, label: "Récapitulatif", icon: CheckCircle2 },
 ];
 
 const DEFAULT_FORM: VmRequest = {
@@ -133,12 +133,12 @@ export function VmWizard() {
           <Button
             onClick={handleSubmit}
             disabled={loading}
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
+            className="gap-2 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
           >
             {loading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Déploiement…</>
             ) : (
-              <><Server className="w-4 h-4" /> Déployer la VM</>
+              <><Server className="w-4 h-4" /> Déployer</>
             )}
           </Button>
         )}
@@ -266,7 +266,7 @@ function ResourceSlider({
       <Slider
         min={min} max={max} step={step}
         value={[value]}
-        onValueChange={(vals: number[]) => onChange(vals[0])} 
+        onValueChange={(vals: number[]) => onChange(vals[0])}
         className="w-full"
       />
       <div className="flex justify-between text-xs text-slate-400">

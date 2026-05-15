@@ -41,4 +41,6 @@ public class VirtualMachine {
     }
     @OneToOne(mappedBy = "virtualMachine", fetch = FetchType.LAZY)
     private Deployment deployment;
+    @Column(name = "instance_type")
+    private String instanceType; //
 }

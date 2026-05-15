@@ -20,12 +20,12 @@ interface UserProfile {
 }
 
 interface KeycloakSession {
-  id:         string;
-  ipAddress:  string;
-  start:      number;
+  id: string;
+  ipAddress: string;
+  start: number;
   lastAccess: number;
-  browser?:   string;
-  os?:        string;
+  browser?: string;
+  os?: string;
   userAgent?: string;   // ✅ enrichi par les events LOGIN Keycloak
 }
 
@@ -34,29 +34,29 @@ interface KeycloakSession {
 
 function parseOS(ua: string): string {
   if (!ua) return "Unknown";
-  if (/windows nt 10/i.test(ua))      return "Windows 10";
-  if (/windows nt 11/i.test(ua))      return "Windows 11";
-  if (/windows/i.test(ua))            return "Windows";
+  if (/windows nt 10/i.test(ua)) return "Windows 10";
+  if (/windows nt 11/i.test(ua)) return "Windows 11";
+  if (/windows/i.test(ua)) return "Windows";
   if (/macintosh|mac os x/i.test(ua)) return "macOS";
-  if (/android/i.test(ua))            return "Android";
-  if (/iphone/i.test(ua))             return "iPhone";
-  if (/ipad/i.test(ua))               return "iPad";
-  if (/linux/i.test(ua))              return "Linux";
-  if (/chromeos/i.test(ua))           return "ChromeOS";
+  if (/android/i.test(ua)) return "Android";
+  if (/iphone/i.test(ua)) return "iPhone";
+  if (/ipad/i.test(ua)) return "iPad";
+  if (/linux/i.test(ua)) return "Linux";
+  if (/chromeos/i.test(ua)) return "ChromeOS";
   return "Unknown";
 }
 
 function parseBrowser(ua: string): string {
   if (!ua) return "Browser";
   // Ordre important : tester les plus spécifiques d'abord
-  if (/opr\/[\d.]+/i.test(ua))        return "Opera";
-  if (/edg\/[\d.]+/i.test(ua))        return "Edge";
-  if (/yabrowser/i.test(ua))          return "Yandex";
-  if (/samsungbrowser/i.test(ua))     return "Samsung Browser";
-  if (/chrome\/[\d.]+/i.test(ua))     return "Chrome";
-  if (/firefox\/[\d.]+/i.test(ua))    return "Firefox";
-  if (/safari\/[\d.]+/i.test(ua))     return "Safari";
-  if (/msie|trident/i.test(ua))       return "Internet Explorer";
+  if (/opr\/[\d.]+/i.test(ua)) return "Opera";
+  if (/edg\/[\d.]+/i.test(ua)) return "Edge";
+  if (/yabrowser/i.test(ua)) return "Yandex";
+  if (/samsungbrowser/i.test(ua)) return "Samsung Browser";
+  if (/chrome\/[\d.]+/i.test(ua)) return "Chrome";
+  if (/firefox\/[\d.]+/i.test(ua)) return "Firefox";
+  if (/safari\/[\d.]+/i.test(ua)) return "Safari";
+  if (/msie|trident/i.test(ua)) return "Internet Explorer";
   return "Browser";
 }
 
@@ -65,13 +65,13 @@ function isMobileUA(ua: string): boolean {
 }
 
 function formatDate(ms: number): string {
-  const d     = new Date(ms);
-  const now   = new Date();
+  const d = new Date(ms);
+  const now = new Date();
   const diffH = Math.floor((now.getTime() - d.getTime()) / 3600000);
   const diffD = Math.floor((now.getTime() - d.getTime()) / 86400000);
-  const time  = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
-  if (diffH < 1)   return "À l'instant";
-  if (diffH < 24)  return `Il y a ${diffH}h`;
+  const time = d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  if (diffH < 1) return "À l'instant";
+  if (diffH < 24) return `Il y a ${diffH}h`;
   if (diffD === 1) return `Hier à ${time}`;
   return d.toLocaleDateString("fr-FR", { month: "short", day: "numeric" }) + ` à ${time}`;
 }
@@ -80,7 +80,7 @@ function formatDate(ms: number): string {
 function useProfile() {
   const { data: session } = useSession();
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [loading, setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!session?.accessToken) return;
@@ -113,7 +113,7 @@ function useSaveProfile() {
       await update({ user: { firstName: updated.firstName, lastName: updated.lastName, name: `${updated.firstName} ${updated.lastName}`.trim(), image: updated.avatarUrl ?? undefined } });
       onSuccess(updated);
     } catch (err) { alert(err instanceof Error ? err.message : "Erreur inconnue"); }
-    finally       { setSaving(false); }
+    finally { setSaving(false); }
   };
 
   return { save, saving };
@@ -122,7 +122,7 @@ function useSaveProfile() {
 function useSessions() {
   const { data: session } = useSession();
   const [sessions, setSessions] = useState<KeycloakSession[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [loading, setLoading] = useState(true);
   const [revoking, setRevoking] = useState<string | null>(null);
 
   useEffect(() => {
@@ -143,9 +143,9 @@ function useSessions() {
         headers: { Authorization: `Bearer ${session.accessToken}` },
       });
       if (isCurrent) { await signOut({ callbackUrl: "/login" }); }
-      else           { setSessions(prev => prev.filter(s => s.id !== sessionId)); }
+      else { setSessions(prev => prev.filter(s => s.id !== sessionId)); }
     } catch (err) { console.error(err); }
-    finally       { setRevoking(null); }
+    finally { setRevoking(null); }
   };
 
   return { sessions, loading, revoking, revokeSession };
@@ -154,7 +154,7 @@ function useSessions() {
 function useChangePassword() {
   const { data: session } = useSession();
   const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
 
   const changePassword = async (newPassword: string) => {
@@ -167,9 +167,9 @@ function useChangePassword() {
         body: JSON.stringify({ newPassword }),
       });
       if (!res.ok) setError((await res.json()).message ?? "Erreur");
-      else         setSuccess(true);
+      else setSuccess(true);
     } catch { setError("Erreur réseau"); }
-    finally  { setLoading(false); }
+    finally { setLoading(false); }
   };
 
   return { changePassword, loading, error, success, setError };
@@ -180,7 +180,7 @@ function Divider() { return <div className="border-t border-zinc-100 my-6" />; }
 
 function AvatarCircle({ src, size = "sm" }: { src?: string | null; size?: "sm" | "lg" }) {
   const cls = size === "lg" ? "w-14 h-14" : "w-11 h-11";
-  const sz  = size === "lg" ? 22 : 20;
+  const sz = size === "lg" ? 22 : 20;
   return (
     <div className={`${cls} rounded-full overflow-hidden bg-zinc-100 border border-zinc-200 shrink-0`}>
       {src
@@ -193,10 +193,10 @@ function AvatarCircle({ src, size = "sm" }: { src?: string | null; size?: "sm" |
 function GoogleIcon() {
   return (
     <svg viewBox="0 0 24 24" className="w-4 h-4 shrink-0" fill="none">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
+      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
+      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
+      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
+      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
     </svg>
   );
 }
@@ -204,14 +204,14 @@ function GoogleIcon() {
 // ─── Password Form ────────────────────────────────────────────────────────────
 function PasswordForm({ onClose }: { onClose: () => void }) {
   const { changePassword, loading, error, success, setError } = useChangePassword();
-  const [newPwd,   setNewPwd]   = useState("");
-  const [confPwd,  setConfPwd]  = useState("");
-  const [showNew,  setShowNew]  = useState(false);
+  const [newPwd, setNewPwd] = useState("");
+  const [confPwd, setConfPwd] = useState("");
+  const [showNew, setShowNew] = useState(false);
   const [showConf, setShowConf] = useState(false);
 
   const submit = async () => {
     setError("");
-    if (newPwd.length < 8)  { setError("Minimum 8 caractères"); return; }
+    if (newPwd.length < 8) { setError("Minimum 8 caractères"); return; }
     if (newPwd !== confPwd) { setError("Les mots de passe ne correspondent pas"); return; }
     await changePassword(newPwd);
   };
@@ -242,7 +242,7 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
       )}
       <div className="space-y-3 mb-4">
         {[
-          { label: "Nouveau mot de passe",    val: newPwd,  set: setNewPwd,  show: showNew,  toggle: () => setShowNew(v  => !v) },
+          { label: "Nouveau mot de passe", val: newPwd, set: setNewPwd, show: showNew, toggle: () => setShowNew(v => !v) },
           { label: "Confirmer le mot de passe", val: confPwd, set: setConfPwd, show: showConf, toggle: () => setShowConf(v => !v) },
         ].map(({ label, val, set, show, toggle }) => (
           <div key={label}>
@@ -291,10 +291,10 @@ function PasswordForm({ onClose }: { onClose: () => void }) {
 // ─── Delete Modal ─────────────────────────────────────────────────────────────
 function DeleteModal({ onClose }: { onClose: () => void }) {
   const { data: session } = useSession()
-  const roles: string[]   = (session as any)?.roles ?? []
-  const isAdmin           = roles.includes("admin")
+  const roles: string[] = (session as any)?.roles ?? []
+  const isAdmin = roles.includes("admin")
   const [loading, setLoading] = useState(false)
-  const [error,   setError]   = useState("")
+  const [error, setError] = useState("")
 
   const handleDelete = async () => {
     if (!session?.accessToken) return
@@ -394,13 +394,13 @@ function DeleteModal({ onClose }: { onClose: () => void }) {
 function ProfileTab() {
   const { profile, setProfile, loading } = useProfile();
   const { save, saving } = useSaveProfile();
-  const [editing,     setEditing]     = useState(false);
-  const [tempFirst,   setTempFirst]   = useState("");
-  const [tempLast,    setTempLast]    = useState("");
-  const [tempAvatar,  setTempAvatar]  = useState<string | null>(null);
-  const [emails,      setEmails]      = useState<{ address: string; primary: boolean }[]>([]);
+  const [editing, setEditing] = useState(false);
+  const [tempFirst, setTempFirst] = useState("");
+  const [tempLast, setTempLast] = useState("");
+  const [tempAvatar, setTempAvatar] = useState<string | null>(null);
+  const [emails, setEmails] = useState<{ address: string; primary: boolean }[]>([]);
   const [addingEmail, setAddingEmail] = useState(false);
-  const [newEmail,    setNewEmail]    = useState("");
+  const [newEmail, setNewEmail] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -417,17 +417,17 @@ function ProfileTab() {
         : null
     );
     setEditing(true);
-  };  const handleSave = () => save(
+  }; const handleSave = () => save(
     {
       firstName: tempFirst,
-      lastName:  tempLast,
+      lastName: tempLast,
       ...(tempAvatar && !tempAvatar.startsWith("blob:")
         ? { avatarUrl: tempAvatar }
         : { avatarUrl: null }
       ),
     },
     updated => { setProfile(updated); setEditing(false); }
-  );  const addEmail = () => { if (!newEmail.trim()) return; setEmails(prev => [...prev, { address: newEmail.trim(), primary: false }]); setNewEmail(""); setAddingEmail(false); };
+  ); const addEmail = () => { if (!newEmail.trim()) return; setEmails(prev => [...prev, { address: newEmail.trim(), primary: false }]); setNewEmail(""); setAddingEmail(false); };
 
   if (loading) return (
     <div className="space-y-6 animate-pulse">
@@ -436,7 +436,7 @@ function ProfileTab() {
     </div>
   );
 
- return (
+  return (
     <>
       <h3 className="text-base font-semibold text-zinc-900 mb-1">Informations du profil</h3>
       <div className="border-t border-zinc-100 mt-3 mb-6" />
@@ -467,7 +467,7 @@ function ProfileTab() {
                     >
                       Supprimer
                     </button>
-<input
+                    <input
                       ref={inputRef}
                       type="file"
                       accept="image/*"
@@ -485,15 +485,13 @@ function ProfileTab() {
                       }}
                     />
                   </div>
-                  <p className="text-xs text-zinc-400">
-                    Format recommandé 1:1, max 10 Mo.
-                  </p>
+
                 </div>
               </div>
               <div className="grid grid-cols-2 gap-3 mb-5">
                 {[
                   { label: "Prénom", val: tempFirst, set: setTempFirst },
-                  { label: "Nom",    val: tempLast,  set: setTempLast  },
+                  { label: "Nom", val: tempLast, set: setTempLast },
                 ].map(({ label, val, set }) => (
                   <div key={label}>
                     <label className="block text-xs font-medium text-zinc-600 mb-1.5">
@@ -518,7 +516,7 @@ function ProfileTab() {
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="text-sm px-4 py-2 rounded-lg bg-zinc-700 hover:bg-zinc-800 text-white font-medium flex items-center gap-1.5 disabled:opacity-60"
+                  className="text-sm px-4 py-2 rounded-lg bg-[#0a7fcf] hover:bg-[#0869b0] text-white font-medium flex items-center gap-1.5 disabled:opacity-60"
                 >
                   {saving && <Loader2 size={13} className="animate-spin" />}
                   Enregistrer
@@ -635,7 +633,7 @@ function ProfileTab() {
 
 
 function SecurityTab() {
-  const [showDeleteModal,  setShowDeleteModal]  = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const { sessions, loading, revoking, revokeSession } = useSessions();
 
@@ -645,7 +643,7 @@ function SecurityTab() {
 
   const sorted = [...sessions].sort((a, b) => {
     if (a.id === currentSessionId) return -1;
-    if (b.id === currentSessionId) return  1;
+    if (b.id === currentSessionId) return 1;
     return b.lastAccess - a.lastAccess;
   });
 
@@ -701,10 +699,10 @@ function SecurityTab() {
 
           {!loading && sorted.map(s => {
             const isCurrent = s.id === currentSessionId;
-            const ua      = s.userAgent ?? "";
-            const os      = parseOS(ua);
+            const ua = s.userAgent ?? "";
+            const os = parseOS(ua);
             const browser = parseBrowser(ua);
-            const mobile  = isMobileUA(ua);
+            const mobile = isMobileUA(ua);
 
             return (
               <div key={s.id} className="flex items-start justify-between group">
@@ -712,7 +710,7 @@ function SecurityTab() {
                   <div className="w-10 h-8 rounded-md bg-zinc-900 flex items-center justify-center shrink-0 mt-0.5">
                     {mobile
                       ? <Smartphone size={15} className="text-white" />
-                      : <Monitor    size={15} className="text-white" />
+                      : <Monitor size={15} className="text-white" />
                     }
                   </div>
                   <div>
@@ -787,14 +785,13 @@ export default function AccountPage() {
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${
-                  activeTab === tab
+                className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm transition-colors ${activeTab === tab
                     ? "bg-zinc-200/80 text-zinc-900 font-medium"
                     : "text-zinc-500 hover:bg-zinc-100 hover:text-zinc-800"
-                }`}
+                  }`}
               >
                 {tab === "profile"
-                  ? <User   size={14} className="shrink-0" />
+                  ? <User size={14} className="shrink-0" />
                   : <Shield size={14} className="shrink-0" />
                 }
                 {tab === "profile" ? "Profil" : "Sécurité"}

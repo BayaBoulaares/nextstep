@@ -108,6 +108,8 @@ export default function VerifyEmailPage() {
                 </div>
                 <Button
                   className="w-full mt-2"
+                  style={{ backgroundColor: "#0a7fcf", borderColor: "#0a7fcf" }}
+
                   onClick={() => {
                     sessionStorage.setItem("email_verified", "true")   // ✅ stocké en mémoire
                     router.push("/login")                              // ✅ URL propre

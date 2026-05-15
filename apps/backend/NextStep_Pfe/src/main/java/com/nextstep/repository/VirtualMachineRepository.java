@@ -23,4 +23,6 @@ public interface VirtualMachineRepository
     List<VirtualMachine> findByNamespace(String namespace);
     Optional<VirtualMachine> findByNameAndUsername(String name, String username);
     Optional<VirtualMachine> findByNameAndKeycloakUserId(String name, String keycloakUserId); // ✅
+    Optional<VirtualMachine> findByNameAndNamespace(String name, String namespace);
+    boolean existsByNameAndNamespace(String name, String namespace);
 }

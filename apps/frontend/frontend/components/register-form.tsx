@@ -2,10 +2,10 @@
 
 import { cn } from "@/lib/utils"
 import { useState } from "react"
-import { Button }      from "@/components/ui/button"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
-import { Input }       from "@/components/ui/input"
-import { Label }       from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
 interface RegisterFormProps {
   className?: string
@@ -15,12 +15,12 @@ interface RegisterFormProps {
 
 export function RegisterForm({ className, onSwitchToLogin, onRegistered }: RegisterFormProps) {
   const [firstName, setFirstName] = useState("")
-  const [lastName, setLastName]   = useState("")
-  const [email, setEmail]         = useState("")
-  const [password, setPassword]   = useState("")
-  const [confirm, setConfirm]     = useState("")
-  const [error, setError]         = useState("")
-  const [loading, setLoading]     = useState(false)
+  const [lastName, setLastName] = useState("")
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [error, setError] = useState("")
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -68,7 +68,7 @@ export function RegisterForm({ className, onSwitchToLogin, onRegistered }: Regis
             <div className="flex flex-col gap-5">
 
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Créer un compte</h1>
+                <h1 className="text-2xl font-bold !text-[#0a7fcf]">Créer un compte</h1>
                 <p className="text-muted-foreground text-balance text-sm">
                   Remplissez les informations ci-dessous
                 </p>
@@ -138,7 +138,8 @@ export function RegisterForm({ className, onSwitchToLogin, onRegistered }: Regis
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button type="submit" disabled={loading} className="w-full" style={{ backgroundColor: "#0a7fcf", borderColor: "#0a7fcf" }}
+              >
                 {loading ? "Création…" : "Créer le compte"}
               </Button>
 
@@ -147,6 +148,7 @@ export function RegisterForm({ className, onSwitchToLogin, onRegistered }: Regis
                 <button
                   type="button"
                   onClick={onSwitchToLogin}
+                  style={{ color: "#0a7fcf" }}
                   className="underline underline-offset-4 hover:text-primary"
                 >
                   Se connecter
@@ -158,7 +160,7 @@ export function RegisterForm({ className, onSwitchToLogin, onRegistered }: Regis
 
           <div className="bg-muted relative hidden md:block">
             <img
-               src="/cloudServiceS.png"
+              src="/cloudServiceS.png"
               alt="Image"
               className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />

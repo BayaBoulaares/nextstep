@@ -67,7 +67,7 @@ export default function MesPlansPage() {
       <header className="flex h-14 items-center gap-3 border-b border-border/60 px-5 bg-background/95 backdrop-blur sticky top-0 z-10">
         <SidebarTrigger className="-ml-1 size-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors" />
         <Separator orientation="vertical" className="h-4 opacity-40" />
-        <h1 className="text-[14px] font-semibold">Mes Plans</h1>
+        <h1 className="text-[14px] font-semibold">Mes Abonnements</h1>
         <span className="ml-auto text-[12px] text-muted-foreground">
           {abonnements.length} abonnement{abonnements.length !== 1 ? "s" : ""}
         </span>
@@ -131,7 +131,7 @@ export default function MesPlansPage() {
                     ) : (
                       <>
                         <span className="text-[18px] font-bold">
-                          {abo.prixSnapshot} €
+                          {abo.prixSnapshot} TND
                         </span>
                         <span className="text-[12px] text-muted-foreground">
                           {cycleLabel[abo.billingCycle] ?? abo.billingCycle}
@@ -154,7 +154,7 @@ export default function MesPlansPage() {
                     )}
                     <div className="flex justify-between">
                       <span>Renouvellement auto</span>
-                      <span>{abo.autoRenouvellement ? "✅ Oui" : "❌ Non"}</span>
+                      <span>{abo.autoRenouvellement ? "Oui" : "❌ Non"}</span>
                     </div>
                   </div>
 

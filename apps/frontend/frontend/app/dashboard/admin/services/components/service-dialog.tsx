@@ -33,7 +33,7 @@ import type {
 } from "@/lib/types"
 import { useRouter } from "next/navigation"
 import { CATEGORY_OPTIONS, TIER_OPTIONS, BILLING_OPTIONS, STATUS_OPTIONS, CYCLE_SUFFIX } from "@/lib/constants"
-
+import { DialogClose } from "@/components/ui/dialog"
 const cycleLabel = CYCLE_SUFFIX
 
 // ─── Types locaux ─────────────────────────────────────────────────────────────
@@ -209,15 +209,15 @@ export function ServiceDialog({
     setPlanError(null)
     try {
       const requestBody: PlanRequest = {
-        serviceId:    service.id,
-        name:         planForm.name,
-        description:  planForm.description || undefined,
-        tier:         planForm.tier,
-        price:        parseFloat(planForm.price) || 0,
+        serviceId: service.id,
+        name: planForm.name,
+        description: planForm.description || undefined,
+        tier: planForm.tier,
+        price: parseFloat(planForm.price) || 0,
         billingCycle: planForm.billingCycle,
-        vcores:       planForm.vcores    ? parseInt(planForm.vcores, 10)    : undefined,
-        ramGb:        planForm.ramGb     ? parseInt(planForm.ramGb, 10)     : undefined,
-        storageGb:    planForm.storageGb ? parseInt(planForm.storageGb, 10) : undefined,
+        vcores: planForm.vcores ? parseInt(planForm.vcores, 10) : undefined,
+        ramGb: planForm.ramGb ? parseInt(planForm.ramGb, 10) : undefined,
+        storageGb: planForm.storageGb ? parseInt(planForm.storageGb, 10) : undefined,
       }
 
       if (editingPlan) {
@@ -270,11 +270,11 @@ export function ServiceDialog({
     setServiceError(null)
     try {
       const payload: CloudServiceRequest = {
-        name:        serviceForm.name.trim(),
+        name: serviceForm.name.trim(),
         description: serviceForm.description || undefined,
-        icon:        serviceForm.icon || "🖥️",
-        category:    serviceForm.category,
-        status:      serviceForm.status,
+        icon: serviceForm.icon || "🖥️",
+        category: serviceForm.category,
+        status: serviceForm.status,
       }
       if (mode === "create") {
         await apiCreateService(payload)
@@ -309,22 +309,29 @@ export function ServiceDialog({
       <Dialog open={open} onOpenChange={onClose}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto p-0 gap-0">
 
-          <div className="flex items-start gap-4 p-6 pb-4 border-b border-border/60">
-            <div className="flex-1 min-w-0">
+          <div className="flex items-start gap-4 p-6 pb-4 border-b border-border/60 relative">
+            <div className="flex-1 min-w-0 pr-14">
               <DialogTitle className="text-base font-semibold leading-tight">
                 {dialogTitle}
               </DialogTitle>
+
               {dialogDesc && (
                 <DialogDescription className="text-xs mt-0.5 line-clamp-2">
                   {dialogDesc}
                 </DialogDescription>
               )}
             </div>
+
             {service && mode === "view" && (
               <Badge variant="outline" className="text-[10px] h-5 px-1.5 flex-shrink-0 mt-0.5">
                 {CATEGORY_OPTIONS.find(c => c.value === service.category)?.label ?? service.category}
               </Badge>
             )}
+
+            {/* ✅ TON bouton close contrôlé */}
+            <DialogClose className="absolute right-4 top-4 opacity-70 hover:opacity-100">
+              <IconX className="size-4" />
+            </DialogClose>
           </div>
 
           {/* ── Formulaire create / edit ── */}
@@ -342,12 +349,10 @@ export function ServiceDialog({
                   onClick={onClose} disabled={serviceSaving}>
                   Annuler
                 </Button>
-                <Button size="sm" className="h-8 text-xs gap-1.5"
+                <Button size="sm" className="h-8 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
                   onClick={submitService}
                   disabled={serviceSaving || !serviceForm.name.trim()}>
-                  {serviceSaving
-                    ? <IconLoader2 className="size-3.5 animate-spin" />
-                    : <IconCheck className="size-3.5" />}
+                  {serviceSaving && <IconLoader2 className="size-3.5 animate-spin" />}
                   {mode === "create" ? "Créer le service" : "Enregistrer"}
                 </Button>
               </div>
@@ -534,9 +539,14 @@ function AdminPlansView({
             <p className="text-xs font-medium text-muted-foreground">
               {loading ? "Chargement…" : `${plans.length} plan(s) configuré(s)`}
             </p>
-            <Button size="sm" className="h-7 text-xs gap-1.5" onClick={onAddPlan}>
+            <Button
+              size="sm"
+              className="h-7 text-xs gap-1.5 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
+              onClick={onAddPlan}
+            >
               <IconPlus className="size-3.5" /> Ajouter un plan
             </Button>
+
           </div>
 
           {loading ? (
@@ -576,10 +586,10 @@ function PlanRow({ plan, onEdit, onDelete, onToggle }: {
 }) {
   const tierLabel = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
   const cycle = cycleLabel[plan.billingCycle] ?? ""
-  const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
+  const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} TND${cycle}`
   const specs = [
-    plan.vcores    ? `${plan.vcores} vCPU`  : "",
-    plan.ramGb     ? `${plan.ramGb} Go RAM` : "",
+    plan.vcores ? `${plan.vcores} vCPU` : "",
+    plan.ramGb ? `${plan.ramGb} Go RAM` : "",
     plan.storageGb ? `${plan.storageGb} Go` : "",
   ].filter(Boolean)
   const specsDisplay = specs.length > 0 ? specs.join(" · ") : ""
@@ -661,7 +671,7 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <Label className="text-xs">Prix (€) <span className="text-destructive">*</span></Label>
+          <Label className="text-xs">Prix (TND) <span className="text-destructive">*</span></Label>
           <Input type="number" step="0.01" min="0" value={form.price}
             onChange={e => onChange("price", e.target.value)}
             placeholder="49.99" className="h-8 text-sm font-mono" />
@@ -683,8 +693,8 @@ function PlanForm({ form, isEditing, saving, error, onChange, onSubmit, onCancel
         <p className="text-xs font-medium text-muted-foreground mb-2">Spécifications</p>
         <div className="grid grid-cols-3 gap-3">
           {[
-            { field: "vcores",    label: "vCPU",    icon: <IconCpu      className="size-3" />, ph: "4"   },
-            { field: "ramGb",     label: "RAM (Go)", icon: <IconServer   className="size-3" />, ph: "8"   },
+            { field: "vcores", label: "vCPU", icon: <IconCpu className="size-3" />, ph: "4" },
+            { field: "ramGb", label: "RAM (Go)", icon: <IconServer className="size-3" />, ph: "8" },
             { field: "storageGb", label: "SSD (Go)", icon: <IconDatabase className="size-3" />, ph: "100" },
           ].map(({ field, label, icon, ph }) => (
             <div key={field} className="space-y-1.5">
@@ -767,11 +777,11 @@ function ClientView({ service, plans, loading }: {
           {activePlans.map(plan => {
             const isSelected = selected === plan.id
             const cycle = cycleLabel[plan.billingCycle] ?? ""
-            const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} €${cycle}`
+            const priceStr = plan.price === 0 ? "Gratuit" : `${plan.price.toFixed(2)} TND${cycle}`
             const tierLabel = TIER_OPTIONS.find(t => t.value === plan.tier)?.label ?? plan.tier
             const specs = [
-              plan.vcores    ? `${plan.vcores} vCPU`  : "",
-              plan.ramGb     ? `${plan.ramGb} Go RAM` : "",
+              plan.vcores ? `${plan.vcores} vCPU` : "",
+              plan.ramGb ? `${plan.ramGb} Go RAM` : "",
               plan.storageGb ? `${plan.storageGb} Go` : "",
             ].filter(Boolean)
             const specsDisplay = specs.length > 0 ? specs.join(" · ") : ""
@@ -818,11 +828,10 @@ function ClientView({ service, plans, loading }: {
       )}
 
       <div className="flex justify-end pt-1">
-        <Button size="sm" className="h-8 text-xs gap-1.5"
-          disabled={!selected} onClick={handleDeploy}>
-          Déployer{selected ? ` — ${activePlans.find(p => p.id === selected)?.name}` : " un plan"} →
+        <Button className="w-full h-8 text-[12px] font-medium bg-[#0a7fcf] hover:bg-[#0869b0] text-white" disabled={!selected} onClick={handleDeploy}>
+          Déployer{selected ? ` — ${activePlans.find(p => p.id === selected)?.name}` : " un plan"}
         </Button>
       </div>
     </div>
   )
-}
+} 

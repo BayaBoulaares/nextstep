@@ -1,3 +1,4 @@
+// components/deploy/stepper.tsx
 import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -23,8 +24,10 @@ export function Stepper({
               <div
                 className={cn(
                   "w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-semibold border transition-colors shrink-0",
-                  done   && "bg-foreground border-foreground text-background",
-                  active && "bg-foreground border-foreground text-background",
+                  // Centrage parfait avec leading-none et p-0
+                  "leading-none p-0",
+                  done   && "bg-[#0a7fcf] border-[#0a7fcf] text-white",
+                  active && "bg-[#0a7fcf] border-[#0a7fcf] text-white",
                   !done && !active && "bg-background border-border text-muted-foreground"
                 )}
               >
@@ -33,7 +36,7 @@ export function Stepper({
               <span
                 className={cn(
                   "text-[12px] font-medium whitespace-nowrap",
-                  active && "text-foreground",
+                  active && "text-[#0a7fcf]",
                   done   && "text-foreground",
                   !done && !active && "text-muted-foreground"
                 )}
@@ -46,7 +49,7 @@ export function Stepper({
             {i < steps.length - 1 && (
               <div className={cn(
                 "w-8 h-px mx-3",
-                step.id < current ? "bg-foreground" : "bg-border"
+                step.id < current ? "bg-[#0a7fcf]" : "bg-border"
               )} />
             )}
           </div>

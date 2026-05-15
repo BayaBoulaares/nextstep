@@ -23,19 +23,27 @@ public enum ServiceCategory {
     ),
 
     // ── Services managés — pas de VM ──────────────────────────────────────
-    STOCKAGE    (false, "💾", null, List.of()),
-    BASE_DONNEES(false, "🗄️", null, List.of()),
-    RESEAU      (false, "🔀", null, List.of()),
-    EMAIL       (false, "📧", null, List.of()),
-    SECURITE    (false, "🔒", null, List.of()),
-    IAM         (false, "👤", null, List.of());
+    STOCKAGE        (false, "💾", null, List.of()),
+    BASE_DONNEES    (false, "🗄️", null, List.of()),
+    RESEAU          (false, "🔀", null, List.of()),
+    EMAIL           (false, "📧", null, List.of()),
+    SECURITE        (false, "🔒", null, List.of()),
+    IAM             (false, "👤", null, List.of()),
+
+    // ── Sous-types de stockage (provisioning OpenShift) ───────────────────
+    OBJECT_STORAGE  (false, "🪣", null, List.of()),
+    BLOCK_STORAGE   (false, "💿", null, List.of()),
+    FILE_STORAGE    (false, "📁", null, List.of());
+
+    // ─────────────────────────────────────────────────────────────────────
 
     public final boolean      requiresVm;
     public final String       defaultIcon;
-    public final String       defaultInstanceType;   // null si pas de VM
+    public final String       defaultInstanceType;
     public final List<String> availableInstanceTypes;
 
-    ServiceCategory(boolean requiresVm, String defaultIcon,
+    ServiceCategory(boolean requiresVm,
+                    String defaultIcon,
                     String defaultInstanceType,
                     List<String> availableInstanceTypes) {
         this.requiresVm             = requiresVm;

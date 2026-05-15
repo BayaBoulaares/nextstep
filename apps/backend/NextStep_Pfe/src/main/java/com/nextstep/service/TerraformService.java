@@ -225,19 +225,21 @@ public class TerraformService {
                     StandardCopyOption.REPLACE_EXISTING);
         }
     }*/
+
+    private String generatePassword() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+        StringBuilder sb = new StringBuilder();
+        java.util.Random rnd = new java.util.Random();
+        for (int i = 0; i < 12; i++)
+            sb.append(chars.charAt(rnd.nextInt(chars.length())));
+        return sb.toString();
+    }
     private void copyTemplateFiles(Path workspaceDir, VmRequest req) throws IOException {
         boolean hasAs = req.getAvailabilitySet() != null
                 && !req.getAvailabilitySet().isBlank();
-        boolean useDataVolume = Boolean.TRUE.equals(req.getUseDataVolume());
 
-        String mainTfName;
-        if (useDataVolume) {
-            mainTfName = "main-with-datavolume.tf";   // ← snapshot-ready
-        } else if (hasAs) {
-            mainTfName = "main-with-affinity.tf";
-        } else {
-            mainTfName = "main.tf";
-        }
+        // containerDisk uniquement — plus de DataVolume
+        String mainTfName = hasAs ? "main-with-affinity.tf" : "main.tf";
 
         InputStream mainIs = getClass().getClassLoader()
                 .getResourceAsStream(TEMPLATE_PATH + "/" + mainTfName);
@@ -252,14 +254,6 @@ public class TerraformService {
             Files.copy(is, workspaceDir.resolve(file),
                     StandardCopyOption.REPLACE_EXISTING);
         }
-    }
-    private String generatePassword() {
-        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
-        StringBuilder sb = new StringBuilder();
-        java.util.Random rnd = new java.util.Random();
-        for (int i = 0; i < 12; i++)
-            sb.append(chars.charAt(rnd.nextInt(chars.length())));
-        return sb.toString();
     }
     /*private void generateTfVars(Path dir, VmRequest req,
      hedhi versio kbal Availability set
@@ -286,34 +280,136 @@ public class TerraformService {
     }*/
     private void generateTfVars(Path dir, VmRequest req,
                                 String namespace, String password) throws IOException {
-        // availability_set : chaîne vide si null
         String availSet = (req.getAvailabilitySet() != null
                 && !req.getAvailabilitySet().isBlank())
-                ? req.getAvailabilitySet()
-                : "";
+                ? req.getAvailabilitySet() : "";
+
+        int diskGb = Math.max(req.getDiskGb() != null ? req.getDiskGb() : 20, 20);
 
         String content = """
-        vm_name           = "%s"
-        namespace         = "%s"
-        instance_type     = "%s"
-        disk_gb           = %d
-        os_image          = "%s"
-        vm_password       = "%s"
-        availability_set  = "%s"
-        kube_host         = "%s"
-        kube_token        = "%s"
-        kube_ca           = "%s"
-        """.formatted(
+    vm_name           = "%s"
+    namespace         = "%s"
+    instance_type     = "%s"
+    disk_gb           = %d
+    os_image          = "%s"
+    vm_password       = "%s"
+    availability_set  = "%s"
+    kube_host         = "%s"
+    kube_token        = "%s"
+    kube_ca           = "%s"
+    """.formatted(
                 req.getVmName(), namespace,
                 req.getInstanceType() != null ? req.getInstanceType() : "u1.small",
-                req.getDiskGb(),
-                req.getOsImage(),
+                diskGb,
+                req.getOsImage() != null ? req.getOsImage()
+                        : "quay.io/containerdisks/ubuntu:24.04",
                 password,
                 availSet,
                 kubeHost, kubeToken, kubeCa
         );
         Files.writeString(dir.resolve("terraform.tfvars"), content);
     }
+    /**
+     * Clone une VM existante via son PVC rootdisk (DataVolume source: pvc).
+     * Le workspace Terraform est isolé par clone pour éviter les conflits.
+     */
+    public TerraformResult cloneVm(VmRequest cloneReq,
+                                   String namespace,
+                                   String sourcePvcName) throws Exception {
+        String workspaceId = namespace + "-" + cloneReq.getVmName();
+        Object lock = workspaceLocks.computeIfAbsent(workspaceId, k -> new Object());
 
+        synchronized (lock) {
+            try {
+                Path workspaceDir = Paths.get(workspacesDir, workspaceId);
+
+                // ✅ Nettoyer le workspace existant pour éviter les états corrompus
+                if (Files.exists(workspaceDir)) {
+                    try (var walk = Files.walk(workspaceDir)) {
+                        walk.sorted(java.util.Comparator.reverseOrder())
+                                .map(Path::toFile)
+                                .forEach(java.io.File::delete);
+                    }
+                    log.info("[CLONE] Workspace existant nettoyé : {}", workspaceDir);
+                }
+                Files.createDirectories(workspaceDir);
+
+                String password = (cloneReq.getVmPassword() != null
+                        && !cloneReq.getVmPassword().isBlank())
+                        ? cloneReq.getVmPassword()
+                        : generatePassword();
+                cloneReq.setVmPassword(password);
+
+                copyCloneTemplateFiles(workspaceDir);
+                generateCloneTfVars(workspaceDir, cloneReq, namespace, password, sourcePvcName);
+
+                runTerraform(workspaceDir, "init", "-input=false",
+                        "-plugin-dir=" + pluginDir, "-upgrade");
+                String output = runTerraform(workspaceDir,
+                        "apply", "-auto-approve", "-input=false");
+
+                return new TerraformResult("SUCCESS", cloneReq.getVmName(), output, password);
+            } finally {
+                workspaceLocks.remove(workspaceId);
+            }
+        }
+    }
+    private void copyCloneTemplateFiles(Path workspaceDir) throws IOException {
+        // main-clone.tf → main.tf
+        InputStream mainIs = getClass().getClassLoader()
+                .getResourceAsStream(TEMPLATE_PATH + "/main-clone.tf");
+        if (mainIs == null) throw new IOException("Template non trouvé : main-clone.tf");
+        Files.copy(mainIs, workspaceDir.resolve("main.tf"),
+                StandardCopyOption.REPLACE_EXISTING);
+
+        // variables-clone.tf → variables.tf  (fichier dédié, pas de doublon)
+        InputStream varIs = getClass().getClassLoader()
+                .getResourceAsStream(TEMPLATE_PATH + "/variables-clone.tf");
+        if (varIs == null) throw new IOException("Template non trouvé : variables-clone.tf");
+        Files.copy(varIs, workspaceDir.resolve("variables.tf"),
+                StandardCopyOption.REPLACE_EXISTING);
+
+        // outputs.tf standard
+        InputStream outIs = getClass().getClassLoader()
+                .getResourceAsStream(TEMPLATE_PATH + "/outputs.tf");
+        if (outIs == null) throw new IOException("Template non trouvé : outputs.tf");
+        Files.copy(outIs, workspaceDir.resolve("outputs.tf"),
+                StandardCopyOption.REPLACE_EXISTING);
+    }
+    private void generateCloneTfVars(Path dir,
+                                     VmRequest req,
+                                     String namespace,
+                                     String password,
+                                     String sourcePvcName) throws IOException {
+        // Récupérer le nom de la VM source depuis le nom du PVC
+        // Convention : <sourceVmName>-rootdisk
+        String sourceVmName = sourcePvcName.endsWith("-rootdisk")
+                ? sourcePvcName.substring(0, sourcePvcName.length() - 9)
+                : sourcePvcName;
+
+        int diskGb = Math.max(req.getDiskGb() != null ? req.getDiskGb() : 20, 20);
+
+        String content = """
+        vm_name          = "%s"
+        namespace        = "%s"
+        instance_type    = "%s"
+        disk_gb          = %d
+        vm_password      = "%s"
+        source_vm_name   = "%s"
+        source_pvc_name  = "%s"
+        kube_host        = "%s"
+        kube_token       = "%s"
+        kube_ca          = "%s"
+        """.formatted(
+                req.getVmName(), namespace,
+                req.getInstanceType() != null ? req.getInstanceType() : "u1.small",
+                diskGb,
+                password,
+                sourceVmName,
+                sourcePvcName,
+                kubeHost, kubeToken, kubeCa
+        );
+        Files.writeString(dir.resolve("terraform.tfvars"), content);
+    }
 
 }
