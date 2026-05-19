@@ -3,19 +3,16 @@ package com.nextstep.controller;
 import com.nextstep.dto.AbonnementRequest;
 import com.nextstep.dto.DeploymentDTO;
 import com.nextstep.dto.DeploymentRequest;
-import com.nextstep.entity.DeploymentStatus;
-import com.nextstep.entity.User;
-import com.nextstep.entity.VirtualMachine;
+import com.nextstep.entity.*;
+import com.nextstep.repository.StorageResourceRepository;
 import com.nextstep.repository.VirtualMachineRepository;
-import com.nextstep.service.AbonnementService;
-import com.nextstep.service.DeploymentService;
-import com.nextstep.service.UserService;
-import com.nextstep.service.VmProvisioningService;
+import com.nextstep.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -31,6 +28,7 @@ import java.util.UUID;
 @RestController
 @RequestMapping("/api/deployments")
 @RequiredArgsConstructor
+@Slf4j
 @Tag(name = "Déploiements", description = "Tunnel de déploiement et gestion des ressources actives")
 @SecurityRequirement(name = "bearerAuth")
 public class DeploymentController {
@@ -39,6 +37,9 @@ public class DeploymentController {
     private final UserService              userService;
     private final VirtualMachineRepository vmRepository; // ✅ nouveau
     private final AbonnementService abonnementService;
+    private final StorageResourceRepository storageResourceRepository; // ← ajouter
+    private final StorageProvisioningService storageProvisioningService;
+
     @Autowired
     private VmProvisioningService vmProvisioningService;
 
@@ -119,13 +120,13 @@ public class DeploymentController {
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
-    @PatchMapping("/{id}/provision")
+    /*@PatchMapping("/{id}/provision")
     public ResponseEntity<DeploymentDTO> startProvisioning(@PathVariable Long id) {
         DeploymentDTO dto = deploymentService.startProvisioning(id);
         vmProvisioningService.provisionAsync(id);
         return ResponseEntity.ok(dto);
     }
-
+*/
     @PatchMapping("/{id}/running")
     @Operation(summary = "Marquer le déploiement comme opérationnel")
     public DeploymentDTO markRunning(@PathVariable Long id) {
@@ -153,11 +154,84 @@ public class DeploymentController {
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
     }
-    @PostMapping("/{id}/provision")
+    /*@PostMapping("/{id}/provision")
     public ResponseEntity<DeploymentDTO> provision(@PathVariable Long id) {
         deploymentService.startProvisioning(id);
         // Lance le provisionAsync en background
         vmProvisioningService.provisionAsync(id);
         return ResponseEntity.ok(deploymentService.getById(id));
+    }*/
+
+    @PatchMapping("/{id}/provision")
+    public ResponseEntity<DeploymentDTO> startProvisioning(@PathVariable Long id) {
+
+        ServiceCategory category = deploymentService
+                .findEntityById(id)
+                .getPlan()
+                .getService()
+                .getCategory();
+
+        if (category.requiresVm()) {
+            // Pour les VMs : changer le statut ici puis lancer async
+            DeploymentDTO dto = deploymentService.startProvisioning(id);
+            vmProvisioningService.provisionAsync(id);
+            return ResponseEntity.ok(dto);
+        } else {
+            // Pour le stockage : provisionAsync gère lui-même startProvisioning
+            // On change juste le statut pour la réponse immédiate
+            DeploymentDTO dto = deploymentService.startProvisioning(id);
+            storageProvisioningService.provisionAsync(id);
+            return ResponseEntity.ok(dto);
+        }
+    }
+
+    // Endpoint DELETE branché sur la suppression de la ressource de stockage
+    @DeleteMapping("/{id}/storage")
+    public ResponseEntity<Void> deleteStorageResource(@PathVariable Long id) {
+        storageProvisioningService.deleteStorageResource(id);
+        return ResponseEntity.noContent().build();
+    }
+    @GetMapping("/user/me")
+    public List<DeploymentDTO> getMyDeployments(@AuthenticationPrincipal Jwt jwt) {
+        String keycloakId = jwt.getSubject();
+        User caller = userService.findByKeycloakId(keycloakId);
+        return deploymentService.getByUser(caller.getId());
+    }// Dans DeploymentController.java — ajouter l'endpoint storage GET
+    // DeploymentController.java — remplacer getStorageResource
+    @GetMapping("/{id}/storage-resource")
+    public ResponseEntity<?> getStorageResource(@PathVariable Long id) {
+        return storageResourceRepository.findByDeploymentId(id)
+                .map(sr -> {
+                    Map<String, Object> dto = new HashMap<>();
+                    dto.put("id",               sr.getId());
+                    dto.put("resourceName",     sr.getResourceName());
+                    dto.put("namespace",        sr.getNamespace());
+                    dto.put("storageType",      sr.getStorageType());
+                    dto.put("capacity",         sr.getCapacity());
+                    dto.put("storageClassName", sr.getStorageClassName());
+                    dto.put("s3Endpoint",       sr.getS3Endpoint());
+                    dto.put("bucketName",       sr.getBucketName());
+                    dto.put("accessKeyId",      sr.getAccessKeyId());
+                    dto.put("status",           sr.getStatus());
+                    dto.put("readyAt",          sr.getReadyAt());
+                    return ResponseEntity.ok(dto);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+    @GetMapping("/{id}/storage-credentials")
+    @Operation(summary = "Récupérer les credentials S3 pour un déploiement de stockage")
+    public ResponseEntity<?> getStorageCredentials(@PathVariable Long id) {
+        return storageResourceRepository.findByDeploymentId(id)
+                .filter(sr -> sr.getStorageType() == ServiceCategory.OBJECT_STORAGE
+                        || sr.getStorageType() == ServiceCategory.STOCKAGE)
+                .map(sr -> {
+                    Map<String, Object> creds = new HashMap<>();
+                    creds.put("bucketName", sr.getBucketName());
+                    creds.put("s3Endpoint", sr.getS3Endpoint());
+                    creds.put("accessKeyId", sr.getAccessKeyId());
+                    creds.put("secretAccessKey", sr.getSecretAccessKey());
+                    return ResponseEntity.ok(creds);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }

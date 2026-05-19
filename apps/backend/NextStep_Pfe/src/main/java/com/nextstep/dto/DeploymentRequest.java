@@ -55,4 +55,5 @@ public class DeploymentRequest {
     private String subnetId;
     private String securityGroup;
     private String availabilitySet;   // optionnel
+
 }

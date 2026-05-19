@@ -37,7 +37,7 @@ export const getAllDeployments = () =>
 // ── Cycle de vie ──────────────────────────────────────────────────────────────
 
 export const startProvisioning = (id: number) =>
-  apiFetch<DeploymentDTO>(`/api/deployments/${id}/provision`, { method: "POST" })
+  apiFetch<DeploymentDTO>(`/api/deployments/${id}/provision`, { method: "PATCH" })
 
 export const markRunning = (id: number) =>
   apiFetch<DeploymentDTO>(`/api/deployments/${id}/running`, { method: "PATCH" })

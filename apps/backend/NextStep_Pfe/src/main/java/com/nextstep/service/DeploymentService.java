@@ -110,16 +110,36 @@ public class DeploymentService {
         d.setStatus(DeploymentStatus.PROVISIONNEMENT);
         return toDTO(deploymentRepository.save(d));
     }*/
-    public DeploymentDTO startProvisioning(Long id) {
+    /*public DeploymentDTO startProvisioning(Long id) {
         Deployment d = findOrThrow(id);
 
         // Déjà provisionné → retourner sans erreur
         if (d.getStatus() == DeploymentStatus.ACTIF
-                || d.getStatus() == DeploymentStatus.PROVISIONNEMENT) {
+                || d.getStatus() == DeploymentStatus.PROVISIONNEMENT   || d.getStatus() == DeploymentStatus.EN_LIGNE) {
             return toDTO(d);
         }
 
         if (d.getStatus() != DeploymentStatus.EN_ATTENTE) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Statut incompatible : " + d.getStatus());
+        }
+
+        d.setStatus(DeploymentStatus.PROVISIONNEMENT);
+        return toDTO(deploymentRepository.save(d));
+    }*/
+    public DeploymentDTO startProvisioning(Long id) {
+        Deployment d = findOrThrow(id);
+
+        // Déjà en cours ou terminé avec succès → retourner sans erreur
+        if (d.getStatus() == DeploymentStatus.ACTIF
+                || d.getStatus() == DeploymentStatus.EN_LIGNE) {
+            return toDTO(d);
+        }
+
+        // Statuts autorisés pour lancer/relancer le provisionnement
+        if (d.getStatus() != DeploymentStatus.EN_ATTENTE
+                && d.getStatus() != DeploymentStatus.ECHEC
+                && d.getStatus() != DeploymentStatus.PROVISIONNEMENT) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Statut incompatible : " + d.getStatus());
         }

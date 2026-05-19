@@ -5,6 +5,7 @@ import com.nextstep.dto.PlanRequest;
 import com.nextstep.entity.BillingCycle;
 import com.nextstep.entity.CloudService;
 import com.nextstep.entity.Plan;
+import com.nextstep.repository.AbonnementRepository;
 import com.nextstep.repository.CloudServiceRepository;
 import com.nextstep.repository.PlanRepository;
 import jakarta.persistence.EntityNotFoundException;
@@ -21,6 +22,7 @@ public class PlanService {
 
     private final PlanRepository planRepository;
     private final CloudServiceRepository serviceRepository;
+    private final AbonnementRepository abonnementRepository;
 
     // ── Lister tous les plans ──────────────────────────────
     @Transactional(readOnly = true)
@@ -93,10 +95,10 @@ public class PlanService {
     }
 
     // ── Supprimer un plan ──────────────────────────────────
-    public void delete(Long id) {
+    /*public void delete(Long id) {
         planRepository.delete(findOrThrow(id));
     }
-
+*/
     private Plan findOrThrow(Long id) {
         return planRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException(
@@ -119,5 +121,11 @@ public class PlanService {
         dto.setServiceId(p.getService().getId());
         dto.setServiceName(p.getService().getName());
         return dto;
+    }
+    public void delete(Long id) {
+        Plan plan = findOrThrow(id);
+        // Supprimer les abonnements liés avant (contrainte FK)
+        abonnementRepository.deleteByPlanId(id);
+        planRepository.delete(plan);
     }
 }

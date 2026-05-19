@@ -9,6 +9,7 @@ import com.nextstep.factory.DeploymentFactory;
 import com.nextstep.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +47,7 @@ public class AbonnementService {
             throw new ConflictException(
                     "Un abonnement actif existe déjà pour le plan : " + plan.getName());
         }*/
+
         if (req.getDeploymentId() != null &&
                 abonnementRepository.existsByDeploymentId(req.getDeploymentId())) {
             throw new ConflictException("Un abonnement existe déjà pour ce déploiement");

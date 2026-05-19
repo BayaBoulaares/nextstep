@@ -18,6 +18,9 @@ export type ServiceCategory =
   | "IA"
   | "SECURITE"
   | "IAM"
+  | "OBJECT_STORAGE"
+  | "BLOCK_STORAGE"
+  | "FILE_STORAGE"
 
 export type InstanceTypeFamily = "u1" | "cx1" | "m1" | "d1" | "n1" | "o1" | "rt1"
 
@@ -71,6 +74,9 @@ export const CATEGORY_INSTANCE_TYPE: Record<ServiceCategory, string | null> = {
   EMAIL:        null,
   SECURITE:     null,
   IAM:          null,
+  OBJECT_STORAGE: null,
+  BLOCK_STORAGE:  null,
+  FILE_STORAGE:   null,
 }
 export const CATEGORY_ICONS: Record<ServiceCategory, string> = {
   CALCUL:       "🖥️",
@@ -82,6 +88,9 @@ export const CATEGORY_ICONS: Record<ServiceCategory, string> = {
   EMAIL:        "📧",
   SECURITE:     "🔒",
   IAM:          "👤",
+  OBJECT_STORAGE: "🪣",
+  BLOCK_STORAGE:  "💿",
+  FILE_STORAGE:   "📁",
 }
 export const CATEGORY_LABELS: Record<ServiceCategory, string> = {
   CALCUL:       "Calcul",
@@ -93,6 +102,9 @@ export const CATEGORY_LABELS: Record<ServiceCategory, string> = {
   IA:           "Intelligence Artificielle",
   SECURITE:     "Sécurité",
   IAM:          "Gestion d'accès",
+  OBJECT_STORAGE: "Object Storage",
+  BLOCK_STORAGE:  "Block Storage",
+  FILE_STORAGE:   "File Storage",
 }
 
 export type AbonnementStatus = "EN_ATTENTE" | "ACTIF" | "SUSPENDU" | "RESILIE" | "EXPIRE"
@@ -280,144 +292,7 @@ export type CreateServicePayload = CloudServiceRequest
 export type UpdateServicePayload = Partial<CloudServiceRequest>
 export type CreatePlanPayload    = PlanRequest
 export type UpdatePlanPayload    = Partial<PlanRequest>
-// types/storage.ts
 
-export type StorageType = "OBJECT_STORAGE" | "BLOCK_STORAGE" | "FILE_STORAGE";
-export type StorageStatut = "EN_COURS" | "ACTIF" | "ERREUR" | "SUPPRIME";
-
-export interface StorageProvisionRequest {
-  type: StorageType;
-  capaciteGo: number;
-  planId: number;
-  nomPersonnalise?: string;
-}
-
-export interface StorageResponse {
-  id: number;
-  abonnementId: number;
-  type: StorageType;
-  capaciteGo: number;
-  namespace: string;
-  ressourceNom: string;
-  statut: StorageStatut;
-  createdAt: string;
-  // Object Storage
-  endpointS3?: string;
-  accessKey?: string;
-  secretKey?: string;
-  bucketName?: string;
-  // Block / File
-  storageClassName?: string;
-  accessMode?: string;
-}
-
-export const STORAGE_LABELS: Record<StorageType, string> = {
-  OBJECT_STORAGE: "Object Storage",
-  BLOCK_STORAGE: "Block Storage",
-  FILE_STORAGE: "File Storage",
-};
-
-export const STORAGE_DESCRIPTIONS: Record<StorageType, string> = {
-  OBJECT_STORAGE: "Stockage S3-compatible pour fichiers, backups et médias",
-  BLOCK_STORAGE: "Volumes persistants hautes performances pour bases de données",
-  FILE_STORAGE: "Partage NFS multi-pods pour fichiers partagés",
-};
-
-export const STORAGE_ICONS: Record<StorageType, string> = {
-  OBJECT_STORAGE: "🪣",
-  BLOCK_STORAGE: "💾",
-  FILE_STORAGE: "📁",
-};
-
-export const STATUT_COLORS: Record<StorageStatut, string> = {
-  EN_COURS: "text-yellow-600 bg-yellow-50",
-  ACTIF: "text-green-600 bg-green-50",
-  ERREUR: "text-red-600 bg-red-50",
-  SUPPRIME: "text-gray-500 bg-gray-50",
-};
-
-
-
-export interface StorageProvisionRequest {
-  type: StorageType
-  capaciteGo: number
-  planId: number
-  nomPersonnalise?: string
-}
-
-export interface StorageResponse {
-  id: number
-  abonnementId: number
-  type: StorageType
-  capaciteGo: number
-  namespace: string
-  ressourceNom: string
-  statut: StorageStatut
-  createdAt: string
-  // Object Storage uniquement
-  endpointS3?: string
-  accessKey?: string
-  secretKey?: string
-  bucketName?: string
-  // Block / File Storage
-  storageClassName?: string
-  accessMode?: string
-}
-
-export const STORAGE_META: Record<StorageType, {
-  label: string
-  icon: string
-  tech: string
-  accessMode: string
-  useCases: string[]
-  prixParGo: number
-  planId: number
-  storageClass: string
-  color: "blue" | "amber" | "teal"
-}> = {
-  OBJECT_STORAGE: {
-    label: "Object Storage",
-    icon: "ti-bucket",
-    tech: "NooBaa · S3-compatible",
-    accessMode: "API S3 · multi-tenant",
-    useCases: ["Backups", "Médias", "Artefacts CI"],
-    prixParGo: 0.02,
-    planId: 10,
-    storageClass: "openshift-storage.noobaa.io",
-    color: "blue",
-  },
-  BLOCK_STORAGE: {
-    label: "Block Storage",
-    icon: "ti-device-floppy",
-    tech: "Ceph RBD · ReadWriteOnce",
-    accessMode: "Volume persistant · 1 pod",
-    useCases: ["Bases de données", "Redis", "Kafka"],
-    prixParGo: 0.05,
-    planId: 11,
-    storageClass: "ocs-storagecluster-ceph-rbd",
-    color: "amber",
-  },
-  FILE_STORAGE: {
-    label: "File Storage",
-    icon: "ti-folder",
-    tech: "CephFS · ReadWriteMany",
-    accessMode: "Partage NFS · multi-pods",
-    useCases: ["Logs partagés", "CMS", "Assets"],
-    prixParGo: 0.04,
-    planId: 12,
-    storageClass: "ocs-storagecluster-cephfs",
-    color: "teal",
-  },
-}
-
-export const STORAGE_SIZES = [10, 50, 100, 250, 500, 1000]
-
-export const STATUT_META: Record<StorageStatut, { label: string; color: string }> = {
-  EN_COURS: { label: "En cours",  color: "text-amber-600  bg-amber-50  border-amber-200"  },
-  ACTIF:    { label: "Actif",     color: "text-green-700  bg-green-50  border-green-200"  },
-  ERREUR:   { label: "Erreur",    color: "text-red-600    bg-red-50    border-red-200"    },
-  SUPPRIME: { label: "Supprimé",  color: "text-gray-500   bg-gray-50   border-gray-200"   },
-}
 // ══════════════════════════════════════════════════════════════════════════════
 // IMAGE REGISTRY — Internal Registry OpenShift uniquement
 // ══════════════════════════════════════════════════════════════════════════════
@@ -531,3 +406,85 @@ export const EVENT_SOURCE_META: Record<EventSourceType, {
   KAFKA:        { label: "Kafka",       icon: "📨", description: "Traitement de messages async"  },
   SINK_BINDING: { label: "SinkBinding", icon: "🔗", description: "Connecte un pod existant"      },
 }
+// ══════════════════════════════════════════════════════════════════════════════
+// STORAGE
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type StorageResourceStatus =
+  | "PENDING"
+  | "PROVISIONING"
+  | "READY"
+  | "FAILED"
+  | "DELETED"
+
+export type StorageType =
+  | "OBJECT_STORAGE"
+  | "BLOCK_STORAGE"
+  | "FILE_STORAGE"
+
+export interface StorageResourceResponse {
+  id:               number
+  deploymentId:     number
+  resourceName:     string
+  namespace:        string
+  storageType:      StorageType
+  capacity:         string | null
+  storageClassName: string | null
+  s3Endpoint:       string | null
+  bucketName:       string | null
+  accessKeyId:      string | null
+  secretAccessKey:  string | null
+  status:           StorageResourceStatus
+  createdAt:        string
+  readyAt:          string | null
+}
+
+export interface StorageCredentials {
+  bucketName:      string
+  s3Endpoint:      string
+  accessKeyId:     string
+  secretAccessKey: string
+}
+
+// ── Helpers catégorie ─────────────────────────────────────────────────────────
+
+export const STORAGE_CATEGORIES: ServiceCategory[] = [
+  "STOCKAGE",
+  "OBJECT_STORAGE",
+  "BLOCK_STORAGE",
+  "FILE_STORAGE",
+]
+
+export const CATEGORIES_WITHOUT_OS: ServiceCategory[] = [
+  "STOCKAGE",
+  "RESEAU",
+  "EMAIL",
+  "SECURITE",
+  "IAM",
+  "BASE_DONNEES",
+  "OBJECT_STORAGE",
+  "BLOCK_STORAGE",
+  "FILE_STORAGE",
+]
+
+export const CATEGORIES_WITHOUT_AS: ServiceCategory[] = [
+  "STOCKAGE",
+  "RESEAU",
+  "EMAIL",
+  "SECURITE",
+  "IAM",
+  "BASE_DONNEES",
+  "OBJECT_STORAGE",
+  "BLOCK_STORAGE",
+  "FILE_STORAGE",
+]
+
+export function isStorageCategory(category?: ServiceCategory | null): boolean {
+  return !!category && STORAGE_CATEGORIES.includes(category)
+}
+
+export function requiresVm(category?: ServiceCategory | null): boolean {
+  return category === "CALCUL" || category === "HEBERGEMENT" || category === "IA"
+}
+
+// ═════════

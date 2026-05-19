@@ -1,27 +1,62 @@
-// lib/services/storage.api.ts
+// @/lib/services/storage.api.ts
+// Appels API pour les ressources de stockage (Object / Block / File).
 
 import { apiFetch } from "@/lib/apiClient"
-import type { StorageProvisionRequest, StorageResponse } from "@/lib/types"
+import type { StorageResourceResponse, StorageCredentials } from "@/lib/types"
 
-const BASE = "/api/storage"
+// ── Récupérer la StorageResource liée à un déploiement ────────────────────────
 
-export async function provisionStorage(
-  req: StorageProvisionRequest
-): Promise<StorageResponse> {
-  return apiFetch(`${BASE}/provision`, {
-    method: "POST",
-    body: JSON.stringify(req),
-  })
+export async function getStorageResource(
+  deploymentId: number
+): Promise<StorageResourceResponse> {
+  return apiFetch<StorageResourceResponse>(
+    `/api/deployments/${deploymentId}/storage-resource`  // ← corrigé
+  )
 }
 
-export async function getStorage(id: number): Promise<StorageResponse> {
-  return apiFetch(`${BASE}/${id}`)
+// ── Récupérer les credentials S3 (Object Storage uniquement) ─────────────────
+
+export async function getStorageCredentials(
+  deploymentId: number
+): Promise<StorageCredentials> {
+  return apiFetch<StorageCredentials>(
+    `/api/deployments/${deploymentId}/storage-credentials`
+  )
 }
 
-export async function getMesStorages(): Promise<StorageResponse[]> {
-  return apiFetch(`${BASE}/me`)
+// ── Supprimer une ressource de stockage ───────────────────────────────────────
+
+export async function deleteStorageResource(
+  deploymentId: number
+): Promise<void> {
+  return apiFetch<void>(
+    `/api/deployments/${deploymentId}/storage`,  // DELETE reste sur /storage
+    { method: "DELETE" }
+  )
 }
 
-export async function deleteStorage(id: number): Promise<void> {
-  return apiFetch(`${BASE}/${id}`, { method: "DELETE" })
+// ── Polling du statut jusqu'à READY ou FAILED ────────────────────────────────
+
+export async function pollStorageUntilReady(
+  deploymentId: number,
+  onUpdate: (status: StorageResourceResponse) => void,
+  options: { intervalMs?: number; timeoutMs?: number } = {}
+): Promise<StorageResourceResponse> {
+  const { intervalMs = 3000, timeoutMs = 300_000 } = options
+  const deadline = Date.now() + timeoutMs
+
+  while (Date.now() < deadline) {
+    const resource = await getStorageResource(deploymentId)
+    onUpdate(resource)
+
+    if (resource.status === "READY" || resource.status === "FAILED") {
+      return resource
+    }
+
+    await new Promise(resolve => setTimeout(resolve, intervalMs))
+  }
+
+  throw new Error(
+    "Le provisionnement du stockage dépasse le délai maximum (5 min). Contactez le support."
+  )
 }
