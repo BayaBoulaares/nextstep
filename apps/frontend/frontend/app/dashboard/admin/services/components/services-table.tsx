@@ -37,6 +37,9 @@ const CATEGORY_LABELS: Record<ServiceCategory, string> = {
   IA: "IA",
   SECURITE: "Sécurité",
   IAM: "Accès",
+  OBJECT_STORAGE: "",
+  BLOCK_STORAGE: "",
+  FILE_STORAGE: ""
 }
 
 const ALL_CATEGORIES: { value: ServiceCategory | "TOUS"; label: string }[] = [

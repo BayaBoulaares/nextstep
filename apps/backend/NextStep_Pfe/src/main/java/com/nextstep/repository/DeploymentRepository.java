@@ -44,4 +44,10 @@ public interface DeploymentRepository extends JpaRepository<Deployment, Long> {
     WHERE d.id = :id
 """)
     Optional<Deployment> findByIdWithPlanAndService(@Param("id") Long id);
+    @Query("SELECT d FROM Deployment d " +
+            "JOIN FETCH d.user " +
+            "JOIN FETCH d.plan p " +
+            "JOIN FETCH p.service " +
+            "WHERE d.id = :id")
+    Optional<Deployment> findByIdWithUserAndPlan(@Param("id") Long id);
 }

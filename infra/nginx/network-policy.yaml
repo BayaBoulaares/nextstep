@@ -1,0 +1,51 @@
+# ── L5 : NetworkPolicy — isole Spring Boot derrière nginx ────────────────────
+# Seuls nginx et Prometheus peuvent joindre Spring Boot sur :8081
+# Tout autre pod du cluster est bloqué
+
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nextstep-backend-isolation
+  namespace: tenant-baya
+spec:
+  podSelector:
+    matchLabels:
+      app: nextstep-backend
+  policyTypes:
+    - Ingress
+  ingress:
+    # nginx → Spring Boot :8081
+    - from:
+        - podSelector:
+            matchLabels:
+              app: nginx
+      ports:
+        - protocol: TCP
+          port: 8081
+
+    # Prometheus OpenShift → scrape /actuator/prometheus
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: openshift-user-workload-monitoring
+      ports:
+        - protocol: TCP
+          port: 8081
+---
+# nginx : accepte uniquement le trafic depuis la Route OpenShift
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: nginx-isolation
+  namespace: tenant-baya
+spec:
+  podSelector:
+    matchLabels:
+      app: nginx
+  policyTypes:
+    - Ingress
+  ingress:
+    # Trafic entrant depuis le router OpenShift (toutes IPs)
+    - ports:
+        - protocol: TCP
+          port: 8080

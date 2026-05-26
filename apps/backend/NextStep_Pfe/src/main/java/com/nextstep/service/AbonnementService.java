@@ -9,6 +9,7 @@ import com.nextstep.factory.DeploymentFactory;
 import com.nextstep.repository.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 @Transactional
+@Slf4j
 public class AbonnementService {
 
     private final AbonnementRepository  abonnementRepository;
@@ -30,6 +32,7 @@ public class AbonnementService {
     private final DeploymentRepository  deploymentRepository;
     @Autowired  // ajouter dans le constructeur @RequiredArgsConstructor
     private final DeploymentFactory deploymentFactory;
+    private final NginxProvisioningService nginxProvisioningService;
 
     public AbonnementResponse souscrire(UUID clientId, AbonnementRequest req) {
 
@@ -42,23 +45,13 @@ public class AbonnementService {
         Plan plan = planRepository.findById(req.getPlanId())
                 .orElseThrow(() -> new EntityNotFoundException("Plan introuvable : " + req.getPlanId()));
 
-        /*if (abonnementRepository.existsByClientIdAndPlanIdAndStatus(
-                clientId, req.getPlanId(), AbonnementStatus.ACTIF)) {
-            throw new ConflictException(
-                    "Un abonnement actif existe déjà pour le plan : " + plan.getName());
-        }*/
-
         if (req.getDeploymentId() != null &&
                 abonnementRepository.existsByDeploymentId(req.getDeploymentId())) {
             throw new ConflictException("Un abonnement existe déjà pour ce déploiement");
         }
 
-        // Prix fixe — toujours défini maintenant
         BigDecimal snapshot = plan.getPrice() != null ? plan.getPrice() : BigDecimal.ZERO;
-
-        BillingCycle cycle = plan.getBillingCycle() != null
-                ? plan.getBillingCycle()
-                : BillingCycle.MENSUEL;
+        BillingCycle cycle  = plan.getBillingCycle() != null ? plan.getBillingCycle() : BillingCycle.MENSUEL;
 
         Abonnement abo = new Abonnement();
         abo.setClient(client);
@@ -77,7 +70,25 @@ public class AbonnementService {
             abo.setDeployment(dep);
         }
 
-        return toResponse(abonnementRepository.save(abo));
+        // ✅ FIX 2 : sauvegarder d'abord, puis déclencher le provisioning
+        AbonnementResponse response = toResponse(abonnementRepository.save(abo));
+
+        // ✅ FIX 3 : provisioning nginx APRÈS le return, plus de code mort
+        if (plan.getService() != null &&
+                "nginx".equalsIgnoreCase(plan.getService().getName())) {
+            try {
+                log.info("[NGINX] Déclenchement provisioning pour client={} plan={}",
+                        client.getEmail(), plan.getTier());
+                nginxProvisioningService.provisionNginx(client.getEmail(), plan);
+            } catch (Exception e) {
+                // On ne fail pas la souscription si le provisioning échoue
+                // Le client peut relancer depuis son tableau de bord
+                log.error("[NGINX] Échec provisioning pour client={} : {}",
+                        client.getEmail(), e.getMessage());
+            }
+        }
+
+        return response;
     }
 
     @Transactional(readOnly = true)

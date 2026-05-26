@@ -15,9 +15,16 @@ import {
     X, Info, ShieldAlert, Activity, Settings,
     LayoutDashboard, ScrollText, Globe, Lock,
     CalendarClock, CheckCircle2, AlertCircle, Clock,
+    Upload, Download, FileText,
 } from "lucide-react"
 import { apiFetch } from "@/lib/apiClient"
-import { getStorageCredentials } from "@/lib/services/storage.api"
+import {
+    getStorageCredentials,
+    listObjects,
+    uploadObject,
+    deleteObject,
+    getDownloadUrl,
+} from "@/lib/services/storage.api"
 import type {
     StorageResourceResponse, StorageCredentials,
     StorageResourceStatus, StorageType,
@@ -79,11 +86,12 @@ const STORAGE_TYPE_CONFIG: Record<StorageType, {
     },
 }
 
-type TabId = "overview" | "acces" | "config" | "events"
+type TabId = "overview" | "acces" | "fichiers" | "config" | "events"
 
 const TABS: { id: TabId; label: string; icon: React.ReactNode }[] = [
     { id: "overview", label: "Vue d'ensemble", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
     { id: "acces", label: "Accès", icon: <Lock className="w-3.5 h-3.5" /> },
+    { id: "fichiers", label: "Fichiers", icon: <FileText className="w-3.5 h-3.5" /> },
     { id: "config", label: "Configuration", icon: <Settings className="w-3.5 h-3.5" /> },
     { id: "events", label: "Événements", icon: <ScrollText className="w-3.5 h-3.5" /> },
 ]
@@ -297,6 +305,41 @@ function StorageCredentialsPanel({ deploymentId, storageType }: {
     )
 }
 
+function EndpointDisplay({ deploymentId }: { deploymentId: number }) {
+    const [endpoint, setEndpoint] = React.useState<string | null>(null)
+    const [copied, setCopied] = React.useState(false)
+
+    React.useEffect(() => {
+        getStorageCredentials(deploymentId)
+            .then(c => setEndpoint(c.s3Endpoint ?? null))
+            .catch(() => {})
+    }, [deploymentId])
+
+    if (!endpoint) return null
+
+    return (
+        <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 flex items-center justify-between">
+            <div>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                    Endpoint S3
+                </p>
+                <code className="text-[12px] font-mono text-foreground">{endpoint}</code>
+            </div>
+            <button
+                onClick={() => {
+                    navigator.clipboard.writeText(endpoint)
+                    setCopied(true)
+                    setTimeout(() => setCopied(false), 2000)
+                }}
+                className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+            >
+                {copied
+                    ? <Check className="w-4 h-4 text-emerald-500" />
+                    : <Copy className="w-4 h-4" />}
+            </button>
+        </div>
+    )
+}
 // ══════════════════════════════════════════════════════════════════════════════
 // StorageDetailCard
 // ══════════════════════════════════════════════════════════════════════════════
@@ -315,10 +358,13 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
     const typeCfg = storageType ? STORAGE_TYPE_CONFIG[storageType] : null
 
     const copyText = (text: string, key: string) => {
-        navigator.clipboard.writeText(text); setCopied(key)
+        navigator.clipboard.writeText(text)
+        setCopied(key)
         setTimeout(() => setCopied(null), 2000)
     }
+    
 
+    // ── Panel Overview ────────────────────────────────────────────────────────
     const PanelOverview = () => (
         <div className="p-5 space-y-4">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -342,6 +388,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                     item.monthlyPriceHt != null ? `${item.monthlyPriceHt.toFixed(2)} TND/mois` : "—"
                 } mono={false} />
             </div>
+
             {!storage && (
                 <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-[12px] text-amber-700">
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
@@ -387,20 +434,9 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 </div>
             )}
 
-            {storageType === "OBJECT_STORAGE" && storage?.s3Endpoint && (
-                <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">Endpoint S3</p>
-                        <code className="text-[12px] font-mono text-foreground">{storage.s3Endpoint}</code>
-                    </div>
-                    <button
-                        onClick={() => copyText(storage.s3Endpoint!, "endpoint")}
-                        className="p-1.5 rounded-lg hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                        {copied === "endpoint" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                    </button>
-                </div>
-            )}
+{storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
+    <EndpointDisplay deploymentId={item.deploymentId} />
+)}
 
             {storage?.storageClassName && (
                 <div className="flex items-center justify-between py-2 px-3 bg-muted/30 border border-border/50 rounded-xl text-[12px]">
@@ -414,7 +450,10 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                     <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                     <div>
                         <p className="font-medium">Provisionnement échoué</p>
-                        <p className="mt-0.5 text-[11px]">Vérifiez que ODF est installé sur le cluster et que la StorageClass est disponible.</p>
+                        <p className="mt-0.5 text-[11px]">
+                            Vérifiez que la StorageClass <code className="font-mono">nfs-storage</code> est disponible
+                            sur le cluster et que le namespace est correctement provisionné.
+                        </p>
                     </div>
                 </div>
             )}
@@ -425,9 +464,163 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                     <p>Provisionnement en cours — la ressource sera prête dans quelques instants.</p>
                 </div>
             )}
+            {storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
+                <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                            Console MinIO
+                        </p>
+                        <p className="text-[12px] text-muted-foreground">
+                            Accessible via VPN uniquement
+                        </p>
+                    </div>
+                    <Button
+                        size="sm" variant="outline"
+                        className="h-7 text-[12px]"
+                        onClick={async () => {
+                            try {
+                                const creds = await getStorageCredentials(item.deploymentId)
+                                notify(
+                                    `Console MinIO : ${creds?.consoleEndpoint ?? 'Non disponible'} — minioadmin / minioadmin123`,
+                                    "info"
+                                )
+                            } catch {
+                                notify("Impossible de récupérer l'endpoint console", "warn")
+                            }
+                        }}
+                    >
+                        <Globe className="w-3 h-3 mr-1" /> Infos connexion
+                    </Button>
+                </div>
+            )}
         </div>
     )
 
+    // ── Panel Fichiers — DANS StorageDetailCard pour accéder à item/storageType/notify ──
+    const PanelFichiers = () => {
+        const [objects, setObjects] = React.useState<any[]>([])
+        const [loadingList, setLoadingList] = React.useState(true)
+        const [uploading, setUploading] = React.useState(false)
+        const fileInputRef = React.useRef<HTMLInputElement>(null)
+
+        const load = React.useCallback(async () => {
+            setLoadingList(true)
+            try {
+                const data = await listObjects(item.deploymentId)
+                setObjects(data)
+            } catch (e: any) {
+                notify(e.message ?? "Erreur chargement fichiers", "error")
+            } finally {
+                setLoadingList(false)
+            }
+        }, [])
+
+        React.useEffect(() => { load() }, [load])
+
+        const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+            const file = e.target.files?.[0]
+            if (!file) return
+            setUploading(true)
+            try {
+                await uploadObject(item.deploymentId, file)
+                notify(`"${file.name}" uploadé avec succès`, "info")
+                await load()
+            } catch (err: any) {
+                notify(err.message ?? "Erreur upload", "error")
+            } finally {
+                setUploading(false)
+                if (fileInputRef.current) fileInputRef.current.value = ""
+            }
+        }
+
+        const handleDelete = async (key: string) => {
+            try {
+                await deleteObject(item.deploymentId, key)
+                notify(`"${key}" supprimé`, "info")
+                await load()
+            } catch (err: any) {
+                notify(err.message ?? "Erreur suppression", "error")
+            }
+        }
+
+        if (storageType !== "OBJECT_STORAGE") {
+            return (
+                <div className="p-5 text-center text-[13px] text-muted-foreground">
+                    La gestion de fichiers n'est disponible que pour l'Object Storage.
+                </div>
+            )
+        }
+
+        return (
+            <div className="p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                    <p className="text-[13px] font-medium">Objets du bucket</p>
+                    <div className="flex gap-2">
+                        <Button size="sm" variant="outline" className="h-7 text-[12px]" onClick={load}>
+                            <RefreshCw className="w-3 h-3 mr-1" /> Actualiser
+                        </Button>
+                        <Button
+                            size="sm"
+                            className="h-7 text-[12px] bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={uploading}
+                        >
+                            {uploading
+                                ? <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                : <Upload className="w-3 h-3 mr-1" />}
+                            Uploader
+                        </Button>
+                        <input
+                            ref={fileInputRef}
+                            type="file"
+                            className="hidden"
+                            onChange={handleUpload}
+                        />
+                    </div>
+                </div>
+
+                {loadingList ? (
+                    <div className="flex justify-center py-8">
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    </div>
+                ) : objects.length === 0 ? (
+                    <div className="text-center py-8 text-[12px] text-muted-foreground">
+                        Aucun objet dans ce bucket. Uploadez votre premier fichier.
+                    </div>
+                ) : (
+                    <div className="border border-border/60 rounded-xl overflow-hidden divide-y divide-border/60">
+                        {objects.map(obj => (
+                            <div key={obj.key}
+                                className="flex items-center gap-3 px-4 py-3 bg-card hover:bg-muted/20 transition-colors">
+                                <FileText className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <span className="text-[12px] font-mono flex-1 truncate">{obj.key}</span>
+                                <span className="text-[11px] text-muted-foreground shrink-0">
+                                    {(obj.size / 1024).toFixed(1)} KB
+                                </span>
+                                <a
+                                    href={getDownloadUrl(item.deploymentId, obj.key)}
+                                    download={obj.key}
+                                    className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                                    title="Télécharger"
+                                >
+                                    <Download className="w-3.5 h-3.5" />
+                                </a>
+                                <button
+                                    onClick={() => handleDelete(obj.key)}
+                                    className="p-1 rounded hover:bg-muted text-red-400 hover:text-red-600 transition-colors"
+                                    title="Supprimer"
+                                >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+        )
+    }
+
+    // ── Panel Config ──────────────────────────────────────────────────────────
     const PanelConfig = () => (
         <div className="p-5 space-y-3">
             <p className="text-[13px] font-medium mb-3">Paramètres de la ressource</p>
@@ -455,6 +648,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
         </div>
     )
 
+    // ── Panel Events ──────────────────────────────────────────────────────────
     const PanelEvents = () => (
         <div className="p-5 space-y-3">
             <p className="text-[13px] font-medium">Historique</p>
@@ -474,11 +668,12 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 ...(storage?.status === "FAILED" ? [{
                     date: "—",
                     event: "Échec du provisionnement",
-                    desc: "Vérifiez les logs ODF sur le cluster",
+                    desc: "Vérifiez les logs du cluster et la StorageClass nfs-storage",
                     type: "error" as const,
                 }] : []),
             ].map((ev, i) => {
-                const dotColor = ev.type === "success" ? "bg-emerald-500" : ev.type === "error" ? "bg-red-500" : "bg-blue-500"
+                const dotColor = ev.type === "success" ? "bg-emerald-500"
+                    : ev.type === "error" ? "bg-red-500" : "bg-blue-500"
                 return (
                     <div key={i} className="flex gap-3 py-3 border-b border-border/40 last:border-0">
                         <div className={cn("w-2 h-2 rounded-full mt-1.5 flex-shrink-0", dotColor)} />
@@ -493,15 +688,18 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
         </div>
     )
 
+    // ── PANELS map ────────────────────────────────────────────────────────────
     const PANELS: Record<TabId, React.ReactNode> = {
         overview: <PanelOverview />,
         acces: <StorageCredentialsPanel deploymentId={item.deploymentId} storageType={storageType} />,
+        fichiers: <PanelFichiers />,
         config: <PanelConfig />,
         events: <PanelEvents />,
     }
 
     return (
         <div className="border border-border rounded-2xl overflow-hidden">
+            {/* Header */}
             <div className="px-5 py-3.5 bg-card border-b border-border/60">
                 <div className="flex items-center gap-3 flex-wrap mb-1.5">
                     {typeCfg && (
@@ -549,6 +747,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 </div>
             </div>
 
+            {/* Actions */}
             <div className="flex items-center gap-2 px-4 py-2 bg-muted/20 border-b border-border/40 flex-wrap">
                 <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[12px]" onClick={onRefresh}>
                     <RefreshCw className="w-3 h-3" /> Actualiser
@@ -563,6 +762,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 </Button>
             </div>
 
+            {/* Tabs */}
             <div className="flex border-b border-border/60 overflow-x-auto bg-background" style={{ scrollbarWidth: "none" }}>
                 {TABS.map(tab => (
                     <button
@@ -580,6 +780,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 ))}
             </div>
 
+            {/* Panel content */}
             <div className="bg-card">{PANELS[activeTab]}</div>
         </div>
     )

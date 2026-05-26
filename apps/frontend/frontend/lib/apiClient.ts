@@ -145,11 +145,14 @@ export async function apiFetch<T>(
   }
 
   const url = resolveUrl(endpoint)
+  const isFormData = rest.body instanceof FormData
 
   const res = await fetch(url, {
     ...rest,
     headers: {
-      "Content-Type": "application/json",
+      //"Content-Type": "application/json",
+          ...(!isFormData ? { "Content-Type": "application/json" } : {}),
+
       ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
       ...(rest.headers ?? {}),
     },

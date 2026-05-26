@@ -20,4 +20,5 @@ public interface AbonnementRepository extends JpaRepository<Abonnement, Long> {
     Optional<Abonnement> findByIdAndClientId(Long id, java.util.UUID clientId);
     boolean existsByDeploymentId(Long deploymentId);
     void deleteByPlanId(Long planId);
+
 }

@@ -1,27 +1,33 @@
-// @/lib/hooks/useStorageDeployments.ts
+// @/lib/hooks/useDatabaseDeployments.ts
 
 import * as React from "react"
 import { apiFetch } from "@/lib/apiClient"
-import { getStorageResource } from "@/lib/services/storage.api"
-import type { StorageResourceResponse, StorageType } from "@/lib/types"
-// ── Normalisation STOCKAGE → OBJECT_STORAGE ───────────────────────────────────
+import { getDatabaseResource } from "@/lib/services/database.api"
+import type { DatabaseResourceResponse, DatabaseStatus } from "@/lib/types"
 
-function normalizeStorageType(type: string): StorageType {
-  if (type === "STOCKAGE") return "OBJECT_STORAGE"
-  return type as StorageType
+// ── Normalisation BASE_DONNEES ────────────────────────────────────────────────
+
+function normalizeDatabaseStatus(status: string): DatabaseStatus {
+  const valid: DatabaseStatus[] = [
+    "PROVISIONING", "READY", "FAILED", "DELETING", "DELETED",
+  ]
+  return valid.includes(status as DatabaseStatus)
+    ? (status as DatabaseStatus)
+    : "PROVISIONING"
 }
 
-function normalizeStorageResource(
-  raw: StorageResourceResponse
-): StorageResourceResponse {
+function normalizeDatabaseResource(
+  raw: DatabaseResourceResponse
+): DatabaseResourceResponse {
   return {
     ...raw,
-    storageType: normalizeStorageType(raw.storageType as string),
+    status: normalizeDatabaseStatus(raw.status as string),
   }
 }
+
 // ── Type ──────────────────────────────────────────────────────────────────────
 
-export interface StorageDeployment {
+export interface DatabaseDeployment {
   deploymentId:     number
   resourceName:     string
   categoryName:     string
@@ -29,13 +35,13 @@ export interface StorageDeployment {
   monthlyPriceHt:   number | null
   createdAt:        string | null
   deploymentStatus: string
-  storage:          StorageResourceResponse | null
+  database:         DatabaseResourceResponse | null
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
-export function useStorageDeployments() {
-  const [items,   setItems]   = React.useState<StorageDeployment[]>([])
+export function useDatabaseDeployments() {
+  const [items,   setItems]   = React.useState<DatabaseDeployment[]>([])
   const [loading, setLoading] = React.useState(true)
   const [error,   setError]   = React.useState<string | null>(null)
 
@@ -47,32 +53,33 @@ export function useStorageDeployments() {
       // 1. Récupérer tous les déploiements de l'utilisateur
       const deployments = await apiFetch<any[]>("/api/deployments/user/me")
 
-      // 2. Filtrer les déploiements de type stockage non supprimés/arrêtés
-      const storageDeps = deployments.filter(d =>
-        ["STOCKAGE", "OBJECT_STORAGE", "BLOCK_STORAGE", "FILE_STORAGE"]
-          .includes(d.categoryName ?? "")
+      // 2. Filtrer les déploiements BASE_DONNEES non supprimés/arrêtés
+      const dbDeps = deployments.filter(d =>
+        d.categoryName === "BASE_DONNEES"
         && d.status !== "SUPPRIME"
         && d.status !== "ARRETE"
       )
 
-      // 3. Pour chaque déploiement, récupérer la StorageResource
+      // 3. Pour chaque déploiement, récupérer la DatabaseResource
       const results = await Promise.all(
-        storageDeps.map(async (d): Promise<StorageDeployment> => {
-          let storage: StorageResourceResponse | null = null
+        dbDeps.map(async (d): Promise<DatabaseDeployment> => {
+          let database: DatabaseResourceResponse | null = null
 
           try {
-            storage = await getStorageResource(d.id)
+            const raw = await getDatabaseResource(d.id)
+            const normalized = normalizeDatabaseResource(raw)
 
             // Ignorer les ressources supprimées
-            if (storage?.status === "DELETED") {
-              storage = null
+            if (normalized.status === "DELETED") {
+              database = null
+            } else {
+              database = normalized
             }
 
           } catch (e: any) {
-            // 404 = pas encore provisionné → storage reste null
-            // 405 ou autre = log et on continue
+            // 404 = pas encore provisionné → database reste null
             if (!e.message?.includes("404")) {
-              console.warn(`[STORAGE] deploymentId=${d.id}:`, e.message)
+              console.warn(`[DATABASE] deploymentId=${d.id}:`, e.message)
             }
           }
 
@@ -84,7 +91,7 @@ export function useStorageDeployments() {
             monthlyPriceHt:   d.monthlyPriceHt,
             createdAt:        d.createdAt,
             deploymentStatus: d.status,
-            storage,
+            database,
           }
         })
       )
@@ -92,7 +99,7 @@ export function useStorageDeployments() {
       setItems(results)
 
     } catch (e: any) {
-      setError(e.message ?? "Impossible de charger les ressources de stockage.")
+      setError(e.message ?? "Impossible de charger les bases de données.")
     } finally {
       setLoading(false)
     }

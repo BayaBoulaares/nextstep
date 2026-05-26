@@ -77,6 +77,7 @@ package com.nextstep.service;
 
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.networking.v1.*;
+import io.fabric8.kubernetes.api.model.rbac.RoleBindingBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -136,10 +137,13 @@ public class NamespaceService {
             );
         }
 
+
         if (namespaceExists(namespace)) {
             log.info("Namespace {} existe déjà", namespace);
+            applyCloudNativePGPermissions(namespace);
             return;
         }
+        applyCloudNativePGPermissions(namespace);
 
         log.info("Création du namespace client {}", namespace);
 
@@ -215,4 +219,71 @@ public class NamespaceService {
             log.warn("[NETWORK] NetworkPolicy échouée sur {}: {}", namespace, e.getMessage());
         }
     }
-}
+
+    /**
+     * CloudNativePG tourne avec UID/GID 26 (postgres).
+     * Sur OpenShift, le namespace doit autoriser cet UID via SCC nonroot-v2 ou anyuid.
+     */
+    private void applyCloudNativePGPermissions(String namespace) {
+        try {
+            // 1. RoleBinding — nonroot-v2 (suffisant pour CNPG sur OCP 4.11+)
+            var rb = new RoleBindingBuilder()
+                    .withNewMetadata()
+                    .withName("cnpg-scc-nonroot")
+                    .withNamespace(namespace)
+                    .addToLabels("portal/managed", "true")
+                    .endMetadata()
+                    .withNewRoleRef()
+                    .withApiGroup("rbac.authorization.k8s.io")
+                    .withKind("ClusterRole")
+                    .withName("system:openshift:scc:nonroot-v2")
+                    .endRoleRef()
+                    .addNewSubject()
+                    .withKind("ServiceAccount")
+                    .withName("default")
+                    .withNamespace(namespace)
+                    .endSubject()
+                    .build();
+
+            k8sClient.rbac().roleBindings()
+                    .inNamespace(namespace)
+                    .resource(rb)
+                    .createOrReplace();
+
+            log.info("[SCC] nonroot-v2 appliqué sur {}", namespace);
+
+        } catch (Exception e) {
+            log.warn("[SCC] Erreur nonroot-v2 sur {}: {} — tentative anyuid", namespace, e.getMessage());
+
+            // Fallback — anyuid si nonroot-v2 non disponible
+            try {
+                var rb2 = new RoleBindingBuilder()
+                        .withNewMetadata()
+                        .withName("cnpg-scc-anyuid")
+                        .withNamespace(namespace)
+                        .addToLabels("portal/managed", "true")
+                        .endMetadata()
+                        .withNewRoleRef()
+                        .withApiGroup("rbac.authorization.k8s.io")
+                        .withKind("ClusterRole")
+                        .withName("system:openshift:scc:anyuid")
+                        .endRoleRef()
+                        .addNewSubject()
+                        .withKind("ServiceAccount")
+                        .withName("default")
+                        .withNamespace(namespace)
+                        .endSubject()
+                        .build();
+
+                k8sClient.rbac().roleBindings()
+                        .inNamespace(namespace)
+                        .resource(rb2)
+                        .createOrReplace();
+
+                log.info("[SCC] anyuid (fallback) appliqué sur {}", namespace);
+
+            } catch (Exception e2) {
+                log.error("[SCC] Impossible d'appliquer SCC sur {}: {}", namespace, e2.getMessage());
+            }
+        }
+}}

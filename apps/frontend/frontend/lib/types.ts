@@ -444,6 +444,8 @@ export interface StorageCredentials {
   s3Endpoint:      string
   accessKeyId:     string
   secretAccessKey: string
+  consoleEndpoint?: string   // ← ajouter
+
 }
 
 // ── Helpers catégorie ─────────────────────────────────────────────────────────
@@ -487,4 +489,68 @@ export function requiresVm(category?: ServiceCategory | null): boolean {
   return category === "CALCUL" || category === "HEBERGEMENT" || category === "IA"
 }
 
-// ═════════
+// ══════════════════════════════════════════════════════════════════════════════
+// DATABASE
+// ══════════════════════════════════════════════════════════════════════════════
+
+export type DatabaseStatus =
+  | "PROVISIONING"
+  | "READY"
+  | "FAILED"
+  | "DELETING"
+  | "DELETED"
+
+export interface DatabaseResourceResponse {
+  id:               number
+  deploymentId:     number
+  clusterName:      string
+  namespace:        string
+  instances:        number
+  storageGb:        number
+  storageClassName: string
+  hostRw:           string | null
+  hostRo:           string | null
+  port:             number
+  dbName:           string
+  dbUser:           string
+  status:           DatabaseStatus
+  readyAt:          string | null
+  errorMessage:     string | null
+}
+
+export interface DatabaseCredentials {
+  host:     string
+  hostRo:   string
+  port:     number
+  dbName:   string
+  username: string
+  password: string
+  jdbcUrl:  string
+}
+
+export const DATABASE_CATEGORIES: ServiceCategory[] = ["BASE_DONNEES"]
+
+export function isDatabaseCategory(category?: ServiceCategory | null): boolean {
+  return category === "BASE_DONNEES"
+}
+
+export const DATABASE_STATUS_META: Record<DatabaseStatus, {
+  label: string
+  color: string
+  icon:  string
+}> = {
+  PROVISIONING: { label: "Provisionnement", color: "text-amber-600 bg-amber-50  border-amber-200", icon: "⏳" },
+  READY:        { label: "Prête",           color: "text-green-700 bg-green-50  border-green-200", icon: "✅" },
+  FAILED:       { label: "Erreur",          color: "text-red-600   bg-red-50    border-red-200",   icon: "❌" },
+  DELETING:     { label: "Suppression",     color: "text-gray-500  bg-gray-50   border-gray-200",  icon: "🗑️" },
+  DELETED:      { label: "Supprimée",       color: "text-gray-400  bg-gray-50   border-gray-200",  icon: "🗑️" },
+}
+
+// Étapes UI déploiement BDD
+export const DATABASE_DEPLOY_STEPS = [
+  { id: 1, label: "Commande validée",      description: "Ressources réservées dans le cluster" },
+  { id: 2, label: "Création du cluster",   description: "Déploiement CloudNativePG sur OpenShift" },
+  { id: 3, label: "Initialisation",        description: "Primary + Standbys en cours de démarrage" },
+  { id: 4, label: "Réplication active",    description: "Streaming replication entre les instances" },
+  { id: 5, label: "Base de données prête", description: "Credentials disponibles — connexion active" },
+]

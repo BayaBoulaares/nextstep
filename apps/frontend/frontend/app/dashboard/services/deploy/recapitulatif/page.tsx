@@ -424,6 +424,7 @@ function RecapSection({ title, rows }: {
   )
 }
 
+
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function RecapPage() {
@@ -534,6 +535,7 @@ export default function RecapPage() {
       </div>
     )
   }
+  
 
   // ── Rendu principal ───────────────────────────────────────────────────────
 

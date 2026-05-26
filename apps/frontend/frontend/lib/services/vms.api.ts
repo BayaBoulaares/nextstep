@@ -316,3 +316,15 @@ export const deleteVmInterface = (
   apiFetch(`/api/vms/${vmName}/interfaces/${ifaceName}`, {
     method: "DELETE",
   })
+  /** Ajouter une interface réseau à une VM arrêtée */
+export const addVmInterface = (
+  vmName:    string,
+  ifaceName: string,
+  model:     string,  // "virtio" | "e1000" | "e1000e" | "rtl8139"
+  type:      string   // "masquerade" | "bridge"
+): Promise<void> =>
+  apiFetch(`/api/vms/${vmName}/interfaces`, {
+    method:  "POST",
+    headers: { "Content-Type": "application/json" },
+    body:    JSON.stringify({ name: ifaceName, model, type }),
+  })

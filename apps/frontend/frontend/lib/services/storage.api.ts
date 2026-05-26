@@ -60,3 +60,40 @@ export async function pollStorageUntilReady(
     "Le provisionnement du stockage dépasse le délai maximum (5 min). Contactez le support."
   )
 }
+
+// ── Lister les objets du bucket ───────────────────────────────────────────────
+export async function listObjects(
+  deploymentId: number
+): Promise<{ key: string; size: number; lastModified: string }[]> {
+  return apiFetch(
+    `/api/storage/${deploymentId}/objects`
+  )
+}
+// ── Uploader un fichier ───────────────────────────────────────────────────────
+export async function uploadObject(
+  deploymentId: number,
+  file: File
+): Promise<{ key: string; bucket: string; size: number }> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  return apiFetch(`/api/storage/${deploymentId}/upload`, {
+    method: "POST",
+    body: formData,
+    // Ne pas mettre Content-Type → le navigateur le gère avec boundary
+  })
+}
+// ── Télécharger un fichier ────────────────────────────────────────────────────
+export function getDownloadUrl(deploymentId: number, key: string): string {
+  return `/api/storage/${deploymentId}/download/${encodeURIComponent(key)}`
+}
+
+// ── Supprimer un objet ────────────────────────────────────────────────────────
+export async function deleteObject(
+  deploymentId: number,
+  key: string
+): Promise<void> {
+  return apiFetch(`/api/storage/${deploymentId}/objects/${encodeURIComponent(key)}`, {
+    method: "DELETE",
+  })
+}

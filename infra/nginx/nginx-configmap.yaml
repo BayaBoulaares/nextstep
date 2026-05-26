@@ -1,0 +1,163 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nginx-config
+  namespace: tenant-baya
+data:
+  nginx.conf: |
+    worker_processes auto;
+
+    events {
+      worker_connections 1024;
+    }
+
+    http {
+
+      # Logs JSON structurés
+      log_format json_log escape=json
+        '{'
+          '"time":"$time_iso8601",'
+          '"method":"$request_method",'
+          '"uri":"$request_uri",'
+          '"status":$status,'
+          '"bytes":$body_bytes_sent,'
+          '"duration":$request_time,'
+          '"ip":"$remote_addr",'
+          '"user":"$http_x_user_id",'
+          '"upstream_time":"$upstream_response_time"'
+        '}';
+
+      access_log /dev/stdout json_log;
+      error_log  /dev/stderr warn;
+
+      # Rate limit par user ID (fallback IP si anonyme)
+      map $http_x_user_id $rate_key {
+        default  $binary_remote_addr;
+        "~."     $http_x_user_id;
+      }
+      limit_req_zone $rate_key zone=per_user:10m rate=20r/m;
+      limit_req_status 429;
+
+      # Spring Boot backend
+      upstream nextstep_backend {
+        least_conn;
+        server nextstep-backend:8081;
+        keepalive 16;
+      }
+
+      # Keycloak
+      upstream keycloak {
+        server keycloak:8080;
+        keepalive 8;
+      }
+
+      server {
+        listen 8080;
+
+        # Headers sécurité
+        add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+        add_header X-Frame-Options           "DENY"                                always;
+        add_header X-Content-Type-Options    "nosniff"                             always;
+        add_header Referrer-Policy           "strict-origin-when-cross-origin"     always;
+        add_header Permissions-Policy        "geolocation=(), microphone=(), camera=()" always;
+
+        # Health check nginx (liveness probe OpenShift)
+        location /nginx-health {
+          return 200 "OK\n";
+          add_header Content-Type text/plain;
+        }
+
+        # Déploiement VM / Terraform — timeout long (10 min)
+        location ~ ^/api/vms/[^/]+/deploy {
+          limit_req zone=per_user burst=2 nodelay;
+          proxy_pass            http://nextstep_backend;
+          proxy_http_version    1.1;
+          proxy_set_header      Connection        "";
+          proxy_set_header      Host              $host;
+          proxy_set_header      X-Real-IP         $remote_addr;
+          proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header      X-Forwarded-Proto $scheme;
+          proxy_read_timeout    600s;
+          proxy_send_timeout    600s;
+          proxy_connect_timeout 10s;
+        }
+
+        # Suppression VM — timeout moyen (5 min)
+        location ~ ^/api/vms/[^/]+/delete {
+          limit_req zone=per_user burst=2 nodelay;
+          proxy_pass            http://nextstep_backend;
+          proxy_http_version    1.1;
+          proxy_set_header      Connection        "";
+          proxy_set_header      Host              $host;
+          proxy_set_header      X-Real-IP         $remote_addr;
+          proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header      X-Forwarded-Proto $scheme;
+          proxy_read_timeout    300s;
+          proxy_send_timeout    300s;
+          proxy_connect_timeout 10s;
+        }
+
+        # WebSocket VNC
+        location ~ ^/api/vms/ {
+          proxy_pass         http://nextstep_backend;
+          proxy_http_version 1.1;
+          proxy_set_header   Upgrade    $http_upgrade;
+          proxy_set_header   Connection "upgrade";
+          proxy_set_header   Host       $host;
+          proxy_set_header   X-Real-IP  $remote_addr;
+          proxy_read_timeout 3600s;
+        }
+
+        # API générale — timeout court (30s)
+        location /api/ {
+          limit_req zone=per_user burst=10 nodelay;
+          proxy_pass            http://nextstep_backend/api/;
+          proxy_http_version    1.1;
+          proxy_set_header      Connection        "";
+          proxy_set_header      Host              $host;
+          proxy_set_header      X-Real-IP         $remote_addr;
+          proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header      X-Forwarded-Proto $scheme;
+          proxy_read_timeout    30s;
+          proxy_send_timeout    30s;
+          proxy_connect_timeout 10s;
+        }
+
+        # Swagger
+        location /swagger-ui/ {
+          proxy_pass       http://nextstep_backend/swagger-ui/;
+          proxy_set_header Host $host;
+        }
+        location /v3/api-docs {
+          proxy_pass       http://nextstep_backend/v3/api-docs;
+          proxy_set_header Host $host;
+        }
+
+        # Auth Keycloak
+        location /auth/ {
+          proxy_pass            http://keycloak/auth/;
+          proxy_http_version    1.1;
+          proxy_set_header      Host              $host;
+          proxy_set_header      X-Real-IP         $remote_addr;
+          proxy_set_header      X-Forwarded-For   $proxy_add_x_forwarded_for;
+          proxy_set_header      X-Forwarded-Proto $scheme;
+        }
+
+        # Actuator — réseau interne seulement
+        location /actuator/ {
+          allow 10.0.0.0/8;
+          deny  all;
+          proxy_pass http://nextstep_backend/actuator/;
+        }
+
+        # Bloquer fichiers cachés
+        location ~ /\. {
+          deny all;
+        }
+
+        # Tout le reste → 404
+        location / {
+          return 404;
+        }
+      }
+    }

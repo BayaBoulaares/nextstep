@@ -4,6 +4,7 @@ import com.nextstep.dto.AbonnementRequest;
 import com.nextstep.dto.DeploymentDTO;
 import com.nextstep.dto.DeploymentRequest;
 import com.nextstep.entity.*;
+import com.nextstep.repository.DatabaseResourceRepository;
 import com.nextstep.repository.StorageResourceRepository;
 import com.nextstep.repository.VirtualMachineRepository;
 import com.nextstep.service.*;
@@ -39,9 +40,11 @@ public class DeploymentController {
     private final AbonnementService abonnementService;
     private final StorageResourceRepository storageResourceRepository; // ← ajouter
     private final StorageProvisioningService storageProvisioningService;
-
+    private final DatabaseProvisioningService databaseProvisioningService;
+    private final DatabaseResourceRepository databaseResourceRepository;
     @Autowired
     private VmProvisioningService vmProvisioningService;
+    private final MinioEndpointResolver minioEndpointResolver;
 
     @GetMapping("/user/{userId}")
     public List<DeploymentDTO> getByUser(
@@ -76,13 +79,29 @@ public class DeploymentController {
 
         // ✅ Enrichir la réponse avec vmPassword
         Map<String, Object> response = new HashMap<>();
-        response.put("id",         dto.getId());
-        response.put("status",     dto.getStatus());
-        response.put("resourceName", dto.getResourceName());
-        response.put("vmPassword", vmPassword != null ? vmPassword : "");
-        // Ajouter les autres champs du DTO si nécessaire
-        response.put("planId",     dto.getPlanId());
-        response.put("createdAt",  dto.getCreatedAt());
+// CORRIGÉ — retourner tous les champs utiles
+        response.put("id",              dto.getId());
+        response.put("status",          dto.getStatus().name());
+        response.put("resourceName",    dto.getResourceName());
+        response.put("description",     dto.getDescription());
+        response.put("planId",          dto.getPlanId());
+        response.put("planName",        dto.getPlanName());
+        response.put("serviceId",       dto.getServiceId());
+        response.put("serviceName",     dto.getServiceName());
+        response.put("serviceIcon",     dto.getServiceIcon());
+        response.put("categoryName",    dto.getCategoryName());
+        response.put("vcores",          dto.getVcores());
+        response.put("ramGb",           dto.getRamGb());
+        response.put("storageGb",       dto.getStorageGb());
+        response.put("regionName",      dto.getRegionName());
+        response.put("monthlyPriceHt",  dto.getMonthlyPriceHt());
+        response.put("backupEnabled",   dto.getBackupEnabled());
+        response.put("monitoringEnabled", dto.getMonitoringEnabled());
+        response.put("projectId",       dto.getProjectId());
+        response.put("projectName",     dto.getProjectName());
+        response.put("createdAt",       dto.getCreatedAt());
+        response.put("deployedAt",      dto.getDeployedAt());
+        response.put("vmPassword",      vmPassword != null ? vmPassword : "");
 
         return ResponseEntity.ok(response);
     }
@@ -164,30 +183,48 @@ public class DeploymentController {
 
     @PatchMapping("/{id}/provision")
     public ResponseEntity<DeploymentDTO> startProvisioning(@PathVariable Long id) {
+        Deployment dep = deploymentService.findEntityById(id);
 
         ServiceCategory category = deploymentService
                 .findEntityById(id)
                 .getPlan()
                 .getService()
                 .getCategory();
+        // ✅ Si déjà en cours → retourner sans relancer
+        if (dep.getStatus() == DeploymentStatus.PROVISIONNEMENT) {
+            log.warn("[CTRL] Deployment {} déjà en PROVISIONNEMENT — ignoré", id);
+            return ResponseEntity.ok(deploymentService.getById(id));
+        }
+        DeploymentDTO dto = deploymentService.startProvisioning(id);
 
         if (category.requiresVm()) {
-            // Pour les VMs : changer le statut ici puis lancer async
-            DeploymentDTO dto = deploymentService.startProvisioning(id);
             vmProvisioningService.provisionAsync(id);
-            return ResponseEntity.ok(dto);
+
+        } else if (category == ServiceCategory.BASE_DONNEES) {
+            databaseProvisioningService.provisionAsync(id);          // ← NOUVEAU
+
         } else {
-            // Pour le stockage : provisionAsync gère lui-même startProvisioning
-            // On change juste le statut pour la réponse immédiate
-            DeploymentDTO dto = deploymentService.startProvisioning(id);
             storageProvisioningService.provisionAsync(id);
-            return ResponseEntity.ok(dto);
         }
+
+        return ResponseEntity.ok(dto);
     }
+
 
     // Endpoint DELETE branché sur la suppression de la ressource de stockage
     @DeleteMapping("/{id}/storage")
-    public ResponseEntity<Void> deleteStorageResource(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteStorageResource(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String keycloakId = jwt.getSubject();
+        User caller = userService.findByKeycloakId(keycloakId);
+
+        Deployment dep = deploymentService.findEntityById(id);
+        if (!dep.getUser().getId().equals(caller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
         storageProvisioningService.deleteStorageResource(id);
         return ResponseEntity.noContent().build();
     }
@@ -225,13 +262,92 @@ public class DeploymentController {
                 .filter(sr -> sr.getStorageType() == ServiceCategory.OBJECT_STORAGE
                         || sr.getStorageType() == ServiceCategory.STOCKAGE)
                 .map(sr -> {
+                    String endpoint = minioEndpointResolver.resolve(sr); // ← NodePort résolu
                     Map<String, Object> creds = new HashMap<>();
-                    creds.put("bucketName", sr.getBucketName());
-                    creds.put("s3Endpoint", sr.getS3Endpoint());
-                    creds.put("accessKeyId", sr.getAccessKeyId());
+                    creds.put("bucketName",      sr.getBucketName());
+                    creds.put("s3Endpoint",      endpoint);
+                    creds.put("consoleEndpoint", minioEndpointResolver.resolveConsole(sr)); // ← ajouter// ← plus la Route
+                    creds.put("accessKeyId",     sr.getAccessKeyId());
                     creds.put("secretAccessKey", sr.getSecretAccessKey());
                     return ResponseEntity.ok(creds);
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+    @GetMapping("/{id}/database-resource")
+    @Operation(summary = "Récupérer les informations de la base de données")
+    public ResponseEntity<?> getDatabaseResource(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        return databaseResourceRepository.findByDeploymentId(id)
+                .map(db -> {
+                    Map<String, Object> dto = new HashMap<>();
+                    dto.put("clusterName",     db.getClusterName());
+                    dto.put("namespace",       db.getNamespace());
+                    dto.put("hostRw",          db.getHostRw());
+                    dto.put("hostRo",          db.getHostRo());
+                    dto.put("port",            db.getPort());
+                    dto.put("dbName",          db.getDbName());
+                    dto.put("dbUser",          db.getDbUser());
+                    dto.put("status",          db.getStatus());
+                    dto.put("instances",       db.getInstances());
+                    dto.put("storageGb",       db.getStorageGb());
+                    dto.put("readyAt",         db.getReadyAt());
+                    return ResponseEntity.ok(dto);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+// ── Endpoint GET credentials (mot de passe) ───────────────────────────────
+
+    @GetMapping("/{id}/database-credentials")
+    @Operation(summary = "Récupérer les credentials de connexion à la BDD")
+    public ResponseEntity<?> getDatabaseCredentials(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String keycloakId = jwt.getSubject();
+        User caller = userService.findByKeycloakId(keycloakId);
+
+        Deployment dep = deploymentService.findEntityById(id);
+        if (!dep.getUser().getId().equals(caller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return databaseResourceRepository.findByDeploymentId(id)
+                .filter(db -> db.getStatus() == DatabaseStatus.READY)
+                .map(db -> {
+                    Map<String, Object> creds = new HashMap<>();
+                    creds.put("host",     db.getHostRw());
+                    creds.put("hostRo",   db.getHostRo());
+                    creds.put("port",     db.getPort());
+                    creds.put("dbName",   db.getDbName());
+                    creds.put("username", db.getDbUser());
+                    creds.put("password", db.getDbPassword());
+                    creds.put("jdbcUrl",  "jdbc:postgresql://" + db.getHostRw()
+                            + ":" + db.getPort() + "/" + db.getDbName());
+                    return ResponseEntity.ok(creds);
+                })
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+// ── Endpoint DELETE BDD ───────────────────────────────────────────────────
+
+    @DeleteMapping("/{id}/database")
+    @Operation(summary = "Supprimer le cluster de base de données")
+    public ResponseEntity<Void> deleteDatabaseResource(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
+
+        String keycloakId = jwt.getSubject();
+        User caller = userService.findByKeycloakId(keycloakId);
+
+        Deployment dep = deploymentService.findEntityById(id);
+        if (!dep.getUser().getId().equals(caller.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        databaseProvisioningService.deleteDatabaseResource(id);
+        return ResponseEntity.noContent().build();
     }
 }

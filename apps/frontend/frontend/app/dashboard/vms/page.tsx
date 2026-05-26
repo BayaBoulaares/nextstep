@@ -23,7 +23,7 @@ import {
   getVmCredentials, getVmNetwork, exposeVmSsh, unexposeVmSsh,
   getVmMetrics, getVmEvents, cloneVm,
   getVmConfig, updateVmConfig,
-  setInterfaceLinkState, updateVmInterface, deleteVmInterface,
+  setInterfaceLinkState, updateVmInterface, deleteVmInterface, addVmInterface,
   listSnapshots, createSnapshot, deleteSnapshot, restoreSnapshot,
   type VmDTO, type VmNetworkInfo, type VmMetrics, type VmEvent,
   type VmCloneRequest, type VmCloneResult,
@@ -107,8 +107,37 @@ function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfig
   const [actionBusy,    setActionBusy]    = React.useState<string | null>(null)
   const [actionErr,     setActionErr]     = React.useState<string | null>(null)
   const [localNets,     setLocalNets]     = React.useState(config?.networks ?? [])
+  const [showAddIface,  setShowAddIface]  = React.useState(false)
+  const [addIfaceName,  setAddIfaceName]  = React.useState("")
+  const [addIfaceModel, setAddIfaceModel] = React.useState("virtio")
+  const [addIfaceType,  setAddIfaceType]  = React.useState("masquerade")
+  const [addIfaceBusy,  setAddIfaceBusy]  = React.useState(false)
+  const [addIfaceErr,   setAddIfaceErr]   = React.useState<string | null>(null)
 
   React.useEffect(() => { setLocalNets(config?.networks ?? []) }, [config])
+
+  const handleAddIface = async () => {
+    const name = addIfaceName.trim()
+    if (!name) { setAddIfaceErr("Le nom de l'interface est requis."); return }
+    if (!/^[a-z][a-z0-9]*$/.test(name)) { setAddIfaceErr("Nom invalide : minuscules et chiffres uniquement (ex: eth1)."); return }
+    if (localNets.some(n => n.name === name)) { setAddIfaceErr(`Une interface "${name}" existe déjà.`); return }
+    setAddIfaceBusy(true); setAddIfaceErr(null)
+    try {
+      await addVmInterface(vmName, name, addIfaceModel, addIfaceType)
+      setLocalNets(prev => [...prev, {
+        name, model: addIfaceModel,
+        networkName: addIfaceType === "masquerade" ? "Pod Networking" : "Bridge",
+        macAddress: "—",
+      }])
+      setShowAddIface(false)
+      setAddIfaceName(""); setAddIfaceModel("virtio"); setAddIfaceType("masquerade")
+      notify(`Interface "${name}" ajoutée avec succès.`, "info")
+    } catch (e: any) {
+      setAddIfaceErr(e.message)
+    } finally {
+      setAddIfaceBusy(false)
+    }
+  }
 
   const filtered = localNets.filter(n => n.name.toLowerCase().includes(search.toLowerCase()))
 
@@ -216,17 +245,88 @@ function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfig
         <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{actionErr}</p>
       )}
 
-      {vmStatus !== "Stopped" && (
+      {["Running", "Provisioning", "Stopping", "ImportInProgress"].includes(vmStatus) && (
         <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
-          ⚠ La VM doit être arrêtée pour modifier les interfaces réseau.
+          ⚠ La VM est en cours d'exécution. Attendez qu'elle soit complètement arrêtée.
         </p>
       )}
       <Button size="sm" className="h-8 gap-1.5 text-[12px] bg-blue-600 hover:bg-blue-700 text-white"
-        disabled={vmStatus !== "Stopped"}
-        title={vmStatus !== "Stopped" ? "Arrêtez la VM avant d'ajouter une interface" : "Ajouter une interface réseau"}
-        onClick={() => notify("Fonctionnalité bientôt disponible — nécessite un patch YAML KubeVirt.", "info")}>
+        disabled={["Running", "Provisioning", "Stopping", "ImportInProgress"].includes(vmStatus)}
+        title={["Running", "Provisioning", "Stopping", "ImportInProgress"].includes(vmStatus) ? "Attendez que la VM soit arrêtée (" + vmStatus + ")" : "Ajouter une interface réseau"}
+        onClick={() => setShowAddIface(true)}>
         <Plus className="w-3.5 h-3.5" /> Ajouter une interface réseau
       </Button>
+
+      {/* ── Modal ajout interface ── */}
+      {showAddIface && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl shadow-2xl w-full max-w-sm mx-4 overflow-hidden">
+            <div className="px-5 py-4 border-b border-border/60 flex items-center justify-between">
+              <p className="text-[14px] font-semibold">Ajouter une interface réseau</p>
+              <Button size="sm" variant="ghost" className="h-7 w-7 p-0"
+                onClick={() => { setShowAddIface(false); setAddIfaceErr(null) }}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+            <div className="p-5 space-y-4">
+              <div>
+                <label className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5 block">
+                  Nom de l'interface <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={addIfaceName}
+                  onChange={e => { setAddIfaceName(e.target.value); setAddIfaceErr(null) }}
+                  placeholder="ex: eth1"
+                  autoFocus
+                  className="w-full h-9 rounded-lg border border-border bg-muted/40 px-3 text-[13px] font-mono focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Minuscules et chiffres uniquement (ex: eth1, net0)</p>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5 block">Modèle</label>
+                <select value={addIfaceModel} onChange={e => setAddIfaceModel(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-muted/40 px-3 text-[13px] focus:outline-none focus:ring-1 focus:ring-ring">
+                  <option value="virtio">virtio (recommandé)</option>
+                  <option value="e1000">e1000</option>
+                  <option value="e1000e">e1000e</option>
+                  <option value="rtl8139">rtl8139</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5 block">Type de réseau</label>
+                <select value={addIfaceType} onChange={e => setAddIfaceType(e.target.value)}
+                  className="w-full h-9 rounded-lg border border-border bg-muted/40 px-3 text-[13px] focus:outline-none focus:ring-1 focus:ring-ring">
+                  <option value="masquerade">Masquerade (Pod Networking)</option>
+                  <option value="bridge">Bridge</option>
+                </select>
+              </div>
+              {addIfaceErr && (
+                <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {addIfaceErr}
+                </p>
+              )}
+              <p className="text-[10px] text-muted-foreground bg-muted/30 rounded-lg px-3 py-2 border border-border/40">
+                ⚠ L'ajout sera appliqué via un patch YAML KubeVirt. La VM restera arrêtée.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="outline" className="flex-1 h-9 text-[12px]"
+                  onClick={() => { setShowAddIface(false); setAddIfaceErr(null) }}
+                  disabled={addIfaceBusy}>
+                  Annuler
+                </Button>
+                <Button className="flex-1 h-9 text-[12px] gap-1.5"
+                  onClick={handleAddIface}
+                  disabled={addIfaceBusy || !addIfaceName.trim()}>
+                  {addIfaceBusy
+                    ? <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    : <Plus className="w-3.5 h-3.5" />}
+                  Ajouter
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2">
         <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]">

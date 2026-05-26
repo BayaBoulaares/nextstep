@@ -18,7 +18,7 @@ export const getDeploymentById = (id: number) =>
   apiFetch<DeploymentDTO>(`/api/deployments/${id}`)
 
 export const getAllDeployments = () =>
-  apiFetch<DeploymentDTO[]>("/api/deployments")
+  apiFetch<DeploymentDTO[]>("/api/deployments/user/me")
 
 // ── Création ──────────────────────────────────────────────────────────────────
 

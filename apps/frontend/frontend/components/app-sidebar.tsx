@@ -36,22 +36,22 @@ import {
 } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
 import { NavSecondary } from "@/components/nav-secondary"
-import { MonitorIcon, HardDrive } from "lucide-react"
+import { MonitorIcon, HardDrive, Leaf, Braces, ShieldCheck } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 const ICON_COLOR = "#0a7fcf"
 
 const NAV_CLIENT = [
-  { title: "Services Cloud",    url: "/dashboard/services",     icon: IconCloudComputing },
-  { title: "Mes Plans",         url: "/dashboard/mes-plans",    icon: IconListDetails },
-  { title: "Mes Abonnements",         url: "/dashboard/abonnements",    icon: IconFileInvoice  },
-  { title: "Stockage",          url: "/dashboard/storage",      icon: HardDrive },
+  { title: "Services Cloud", url: "/dashboard/services", icon: IconCloudComputing },
+  { title: "Mes Plans", url: "/dashboard/mes-plans", icon: IconListDetails },
+  { title: "Mes Abonnements", url: "/dashboard/abonnements", icon: IconFileInvoice },
+  { title: "Stockage", url: "/dashboard/storage", icon: HardDrive },
 ]
 
 // Types de déploiements possibles pour le client
 // En production, ces données viendraient de l'API selon les abonnements du client
 const DEPLOYMENT_TYPES = [
-  { title: "Machines Virtuelles", url: "/dashboard/vms",        icon: MonitorIcon },
+  { title: "Machines Virtuelles", url: "/dashboard/vms", icon: MonitorIcon },
   //{ title: "Conteneurs",          url: "/dashboard/deployments/containers",  icon: IconContainer },
   //{ title: "Serveurs Dédiés",     url: "/dashboard/deployments/servers",     icon: IconServer },
 ]
@@ -61,16 +61,19 @@ const NAV_COMMON = [
 ]
 
 const NAV_ADMIN_ONLY = [
-  { title: "Services Cloud",  url: "/dashboard/services",           icon: IconCloudComputing },
-  { title: "Clients",         url: "/dashboard/admin/clients",      icon: IconUsers },
-  { title: "Audit Logs",      url: "/dashboard/audit-logs",         icon: IconShield },
-  { title: "Abonnements",     url: "/dashboard/admin/abonnements",  icon: IconChartBar },
+  { title: "Services Cloud", url: "/dashboard/services", icon: IconCloudComputing },
+  { title: "Clients", url: "/dashboard/admin/clients", icon: IconUsers },
+  { title: "Audit Logs", url: "/dashboard/audit-logs", icon: IconShield },
+  { title: "Abonnements", url: "/dashboard/admin/abonnements", icon: IconChartBar },
+  { title: "Ordonnanceur Carbone", url: "/dashboard/ia/carbon_scheduler", icon: Leaf },
+  { title: "Générateur YAML", url: "/dashboard/ia/yaml-generator", icon: Braces },
+  { title: "Auto-Guérison", url: "/dashboard/ia/auto-healer", icon: ShieldCheck },
 ]
 
 const NAV_SECONDARY = [
   { title: "Paramètres", url: "/dashboard/settings", icon: IconSettings },
-  { title: "Aide",       url: "/dashboard/help",     icon: IconHelp },
-  { title: "Recherche",  url: "/dashboard/search",   icon: IconSearch },
+  { title: "Aide", url: "/dashboard/help", icon: IconHelp },
+  { title: "Recherche", url: "/dashboard/search", icon: IconSearch },
 ]
 
 function NavItem({
@@ -151,8 +154,8 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const isAdmin = roles.includes("admin")
 
   const user = {
-    name:   session?.user?.name  ?? "Utilisateur",
-    email:  session?.user?.email ?? "",
+    name: session?.user?.name ?? "Utilisateur",
+    email: session?.user?.email ?? "",
     avatar: session?.user?.image ?? "",
   }
 
