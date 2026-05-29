@@ -127,7 +127,7 @@ public class NamespaceService {
         return k8sClient.namespaces().withName(namespace).get() != null;
     }
 
-    public void provisionIfAbsent(String username) {
+    /*public void provisionIfAbsent(String username) {
         String namespace = getNamespaceForUser(username);
 
         // ✅ Sécurité : ne jamais toucher au namespace opérateur
@@ -152,7 +152,9 @@ public class NamespaceService {
                 .withNewMetadata()
                 .withName(namespace)
                 .addToLabels("portal/owner",   operatorNamespace)
-                .addToLabels("portal/client",  username)
+                //.addToLabels("portal/client",  username)
+                .addToLabels("portal/client", sanitizeLabel(username))
+
                 .addToLabels("portal/project", "nextstep-pfe")
                 .addToLabels("portal/type",    "client-tenant")
                 .endMetadata()
@@ -182,6 +184,95 @@ public class NamespaceService {
         applyTenantNetworkPolicy(namespace);
 
         log.info("Namespace client {} provisionné avec quota + NetworkPolicy", namespace);
+    }*/
+    public void provisionIfAbsent(String username) {
+        String namespace = getNamespaceForUser(username);
+
+        if (isOperatorNamespace(namespace)) {
+            throw new IllegalArgumentException(
+                    "Impossible de provisionner le namespace opérateur: " + namespace
+            );
+        }
+
+        if (namespaceExists(namespace)) {
+            log.info("Namespace {} existe déjà", namespace);
+            applyCloudNativePGPermissions(namespace);  // ✅ namespace existe → OK
+            return;
+        }
+
+        log.info("Création du namespace client {}", namespace);
+
+        // 1. Créer le namespace avec labels
+        Namespace ns = new NamespaceBuilder()
+                .withNewMetadata()
+                .withName(namespace)
+                .addToLabels("portal/owner",   operatorNamespace)
+                .addToLabels("portal/client",  username)
+                .addToLabels("portal/project", "nextstep-pfe")
+                .addToLabels("portal/type",    "client-tenant")
+                .endMetadata()
+                .build();
+
+        k8sClient.namespaces().resource(ns).create();
+
+        // ✅ ATTENDRE que le namespace soit réellement Ready avant d'y créer des ressources
+        waitForNamespaceReady(namespace);
+
+        // 2. ResourceQuota
+        ResourceQuota quota = new ResourceQuotaBuilder()
+                .withNewMetadata()
+                .withName("quota-" + username)
+                .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                .addToHard("count/virtualmachines.kubevirt.io", new Quantity("5"))
+                .addToHard("limits.cpu",    new Quantity("8"))
+                .addToHard("limits.memory", new Quantity("16Gi"))
+                .endSpec()
+                .build();
+
+        k8sClient.resourceQuotas()
+                .inNamespace(namespace)
+                .resource(quota)
+                .create();
+
+        // 3. NetworkPolicy d'isolation tenant
+        applyTenantNetworkPolicy(namespace);
+
+        // 4. ✅ SCC en DERNIER — namespace garanti existant
+        applyCloudNativePGPermissions(namespace);
+
+        log.info("Namespace client {} provisionné avec quota + NetworkPolicy + SCC", namespace);
+    }
+    private void waitForNamespaceReady(String namespace) {
+        int maxRetries = 10;
+        int delayMs    = 500;
+
+        for (int i = 0; i < maxRetries; i++) {
+            try {
+                var ns = k8sClient.namespaces().withName(namespace).get();
+                if (ns != null
+                        && ns.getStatus() != null
+                        && "Active".equals(ns.getStatus().getPhase())) {
+                    log.info("[NS] Namespace {} Ready après {}ms",
+                            namespace, i * delayMs);
+                    return;
+                }
+            } catch (Exception e) {
+                log.debug("[NS] Attente namespace {} ({}/{}): {}",
+                        namespace, i + 1, maxRetries, e.getMessage());
+            }
+
+            try {
+                Thread.sleep(delayMs);
+            } catch (InterruptedException ie) {
+                Thread.currentThread().interrupt();
+                return;
+            }
+        }
+
+        log.warn("[NS] Namespace {} non Ready après {}ms — on continue quand même",
+                namespace, maxRetries * delayMs);
     }
 
     // ✅ NetworkPolicy : isolation entre tenants
@@ -286,4 +377,18 @@ public class NamespaceService {
                 log.error("[SCC] Impossible d'appliquer SCC sur {}: {}", namespace, e2.getMessage());
             }
         }
-}}
+
+}
+
+    private String sanitizeLabel(String value) {
+        // Retirer le domaine si c'est un email
+        String clean = value.contains("@")
+                ? value.split("@")[0]
+                : value;
+        // Remplacer les caractères invalides
+        return clean.toLowerCase()
+                .replaceAll("[^a-z0-9._-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+    }
+}

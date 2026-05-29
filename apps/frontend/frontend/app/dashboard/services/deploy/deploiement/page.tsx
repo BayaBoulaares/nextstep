@@ -273,8 +273,10 @@ import { Stepper } from "@/components/deploy/stepper"
 import { useDeploymentTunnel, clearDraft } from "@/lib/hooks/useDeployments"
 import { PasswordDialog } from "@/components/vms/PasswordDialog"
 import { getStorageCredentials } from "@/lib/services/storage.api"
-import type { DeploymentPollResult, StorageCredentials } from "@/lib/types"
-import { isStorageCategory } from "@/lib/types"
+import { getNginxStatus } from "@/lib/services/nginx.api"
+import { NginxCredentialsBlock } from "@/components/nginx/NginxCredentialsBlock"
+import type { DeploymentPollResult, StorageCredentials, NginxDeploymentResult } from "@/lib/types"
+import { isStorageCategory, isNginxCategory, NGINX_DEPLOY_STEPS } from "@/lib/types"
 import { Check, CheckCircle, Loader2, Rocket, XCircle, Eye, EyeOff, Copy } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getDatabaseCredentials } from "@/lib/services/database.api"
@@ -285,7 +287,9 @@ import {
 } from "@/lib/types"
 
 // ─── Constantes ───────────────────────────────────────────────────────────────
-const DB_STEPS = DATABASE_DEPLOY_STEPS
+
+const DB_STEPS    = DATABASE_DEPLOY_STEPS
+const NGINX_STEPS = NGINX_DEPLOY_STEPS
 
 const STEPS = [
   { id: 1, label: "Sélection du plan" },
@@ -295,26 +299,26 @@ const STEPS = [
 ]
 
 const VM_STEPS = [
-  { id: 1, label: "Commande validée", description: "Ressources allouées dans le datacenter" },
-  { id: 2, label: "Création de la VM", description: "Hyperviseur KVM — Allocation vCPU & RAM" },
-  { id: 3, label: "Installation de l'OS", description: "Image officielle montée sur le volume NVMe" },
-  { id: 4, label: "Configuration réseau", description: "VPC, IP privée, groupe de sécurité" },
-  { id: 5, label: "Activation des services", description: "Backup, Monitoring, SSH Keys" },
+  { id: 1, label: "Commande validée",       description: "Ressources allouées dans le datacenter"      },
+  { id: 2, label: "Création de la VM",      description: "Hyperviseur KVM — Allocation vCPU & RAM"     },
+  { id: 3, label: "Installation de l'OS",   description: "Image officielle montée sur le volume NVMe"  },
+  { id: 4, label: "Configuration réseau",   description: "VPC, IP privée, groupe de sécurité"          },
+  { id: 5, label: "Activation des services",description: "Backup, Monitoring, SSH Keys"                },
 ]
 
-// CORRIGÉ — adapté à MinIO + NFS
 const STORAGE_STEPS = [
-  { id: 1, label: "Commande validée", description: "Ressources réservées dans le cluster" },
-  { id: 2, label: "Création de la ressource", description: "Déploiement MinIO / PVC NFS" },
-  { id: 3, label: "Liaison du volume", description: "Binding PVC — vérification ReadyReplicas" },
-  { id: 4, label: "Génération des accès", description: "Credentials S3 MinIO disponibles" },
+  { id: 1, label: "Commande validée",      description: "Ressources réservées dans le cluster"         },
+  { id: 2, label: "Création de la ressource", description: "Déploiement MinIO / PVC NFS"              },
+  { id: 3, label: "Liaison du volume",     description: "Binding PVC — vérification ReadyReplicas"    },
+  { id: 4, label: "Génération des accès",  description: "Credentials S3 MinIO disponibles"            },
 ]
+
 const STATUS_TO_STEP: Record<string, number> = {
-  EN_ATTENTE: 1,
+  EN_ATTENTE:      1,
   PROVISIONNEMENT: 2,
-  ACTIF: 6,
-  EN_LIGNE: 6,
-  ECHEC: -1,
+  ACTIF:           6,
+  EN_LIGNE:        6,
+  ECHEC:          -1,
 }
 
 // ─── StepRow ──────────────────────────────────────────────────────────────────
@@ -326,7 +330,7 @@ function StepRow({
   step: { id: number; label: string; description: string }
   currentStep: number
 }) {
-  const done = step.id < currentStep
+  const done   = step.id < currentStep
   const active = step.id === currentStep
 
   return (
@@ -340,9 +344,9 @@ function StepRow({
           ? "bg-[#0a7fcf] border-[#0a7fcf] text-white"
           : "bg-background border-border text-muted-foreground"
       )}>
-        {done ? <Check className="w-3.5 h-3.5" /> :
-          active ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
-            step.id}
+        {done   ? <Check className="w-3.5 h-3.5" /> :
+         active ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> :
+                  step.id}
       </div>
       <div className="flex-1">
         <p className={cn(
@@ -360,14 +364,12 @@ function StepRow({
 // ─── S3CredentialsBlock ───────────────────────────────────────────────────────
 
 function S3CredentialsBlock({ deploymentId }: { deploymentId: number }) {
-  const [creds, setCreds] = React.useState<StorageCredentials | null>(null)
+  const [creds,      setCreds]      = React.useState<StorageCredentials | null>(null)
   const [showSecret, setShowSecret] = React.useState(false)
-  const [copied, setCopied] = React.useState<string | null>(null)
+  const [copied,     setCopied]     = React.useState<string | null>(null)
 
   React.useEffect(() => {
-    getStorageCredentials(deploymentId)
-      .then(setCreds)
-      .catch(() => { })
+    getStorageCredentials(deploymentId).then(setCreds).catch(() => {})
   }, [deploymentId])
 
   const copyToClipboard = (value: string, key: string) => {
@@ -380,9 +382,9 @@ function S3CredentialsBlock({ deploymentId }: { deploymentId: number }) {
   if (!creds?.accessKeyId) return null
 
   const rows: { label: string; value: string; secret?: boolean; key: string }[] = [
-    { label: "Bucket", value: creds.bucketName ?? "—", key: "bucket" },
-    { label: "Endpoint", value: creds.s3Endpoint ?? "—", key: "endpoint" },
-    { label: "Access Key", value: creds.accessKeyId ?? "—", key: "accessKey" },
+    { label: "Bucket",     value: creds.bucketName      ?? "—", key: "bucket"    },
+    { label: "Endpoint",   value: creds.s3Endpoint      ?? "—", key: "endpoint"  },
+    { label: "Access Key", value: creds.accessKeyId     ?? "—", key: "accessKey" },
     { label: "Secret Key", value: creds.secretAccessKey ?? "—", key: "secretKey", secret: true },
   ]
 
@@ -399,10 +401,7 @@ function S3CredentialsBlock({ deploymentId }: { deploymentId: number }) {
           <div key={row.key} className="flex items-center gap-3 px-5 py-3">
             <span className="text-[12px] text-muted-foreground w-24 shrink-0">{row.label}</span>
             <span className="text-[12px] font-mono flex-1 truncate">
-              {row.secret && !showSecret
-                ? "••••••••••••••••••••"
-                : row.value
-              }
+              {row.secret && !showSecret ? "••••••••••••••••••••" : row.value}
             </span>
             <div className="flex items-center gap-1 shrink-0">
               {row.secret && (
@@ -410,20 +409,14 @@ function S3CredentialsBlock({ deploymentId }: { deploymentId: number }) {
                   onClick={() => setShowSecret(v => !v)}
                   className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showSecret
-                    ? <EyeOff className="w-3.5 h-3.5" />
-                    : <Eye className="w-3.5 h-3.5" />
-                  }
+                  {showSecret ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               )}
               <button
                 onClick={() => copyToClipboard(row.value, row.key)}
                 className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Copy className={cn(
-                  "w-3.5 h-3.5 transition-colors",
-                  copied === row.key && "text-emerald-500"
-                )} />
+                <Copy className={cn("w-3.5 h-3.5 transition-colors", copied === row.key && "text-emerald-500")} />
               </button>
             </div>
           </div>
@@ -432,16 +425,19 @@ function S3CredentialsBlock({ deploymentId }: { deploymentId: number }) {
     </div>
   )
 }
+
+// ─── DatabaseCredentialsBlock ─────────────────────────────────────────────────
+
 function DatabaseCredentialsBlock({ deploymentId }: { deploymentId: number }) {
-  const [creds, setCreds] = React.useState<DatabaseCredentials | null>(null)
+  const [creds,   setCreds]   = React.useState<DatabaseCredentials | null>(null)
   const [showPwd, setShowPwd] = React.useState(false)
-  const [copied, setCopied] = React.useState<string | null>(null)
+  const [copied,  setCopied]  = React.useState<string | null>(null)
   const [loading, setLoading] = React.useState(true)
 
   React.useEffect(() => {
     getDatabaseCredentials(deploymentId)
       .then(setCreds)
-      .catch(() => { })
+      .catch(() => {})
       .finally(() => setLoading(false))
   }, [deploymentId])
 
@@ -461,13 +457,13 @@ function DatabaseCredentialsBlock({ deploymentId }: { deploymentId: number }) {
   if (!creds) return null
 
   const rows: { label: string; value: string; secret?: boolean; key: string; mono?: boolean }[] = [
-    { label: "Hôte (RW)", value: creds.host, key: "host", mono: true },
-    { label: "Hôte (RO)", value: creds.hostRo, key: "hostRo", mono: true },
-    { label: "Port", value: String(creds.port), key: "port" },
-    { label: "Base", value: creds.dbName, key: "dbName", mono: true },
-    { label: "Utilisateur", value: creds.username, key: "user", mono: true },
-    { label: "Mot de passe", value: creds.password, key: "pwd", secret: true, mono: true },
-    { label: "JDBC URL", value: creds.jdbcUrl, key: "jdbc", mono: true },
+    { label: "Hôte (RW)",    value: creds.host,     key: "host",   mono: true },
+    { label: "Hôte (RO)",    value: creds.hostRo,   key: "hostRo", mono: true },
+    { label: "Port",         value: String(creds.port), key: "port" },
+    { label: "Base",         value: creds.dbName,   key: "dbName", mono: true },
+    { label: "Utilisateur",  value: creds.username, key: "user",   mono: true },
+    { label: "Mot de passe", value: creds.password, key: "pwd",    secret: true, mono: true },
+    { label: "JDBC URL",     value: creds.jdbcUrl,  key: "jdbc",   mono: true },
   ]
 
   return (
@@ -482,10 +478,7 @@ function DatabaseCredentialsBlock({ deploymentId }: { deploymentId: number }) {
         {rows.map(row => (
           <div key={row.key} className="flex items-center gap-3 px-5 py-3">
             <span className="text-[12px] text-muted-foreground w-28 shrink-0">{row.label}</span>
-            <span className={cn(
-              "text-[12px] flex-1 truncate",
-              row.mono && "font-mono"
-            )}>
+            <span className={cn("text-[12px] flex-1 truncate", row.mono && "font-mono")}>
               {row.secret && !showPwd ? "••••••••••••••••••••" : row.value}
             </span>
             <div className="flex items-center gap-1 shrink-0">
@@ -494,25 +487,19 @@ function DatabaseCredentialsBlock({ deploymentId }: { deploymentId: number }) {
                   onClick={() => setShowPwd(v => !v)}
                   className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  {showPwd
-                    ? <EyeOff className="w-3.5 h-3.5" />
-                    : <Eye className="w-3.5 h-3.5" />}
+                  {showPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                 </button>
               )}
               <button
                 onClick={() => copy(row.value, row.key)}
                 className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
               >
-                <Copy className={cn(
-                  "w-3.5 h-3.5 transition-colors",
-                  copied === row.key && "text-emerald-500"
-                )} />
+                <Copy className={cn("w-3.5 h-3.5 transition-colors", copied === row.key && "text-emerald-500")} />
               </button>
             </div>
           </div>
         ))}
       </div>
-      {/* String de connexion complète */}
       <div className="px-5 py-3 bg-muted/20 border-t border-border/60">
         <p className="text-[11px] text-muted-foreground mb-1.5">Chaîne de connexion psql</p>
         <code className="text-[11px] font-mono bg-muted px-2 py-1 rounded block break-all">
@@ -527,34 +514,43 @@ function DatabaseCredentialsBlock({ deploymentId }: { deploymentId: number }) {
 
 export default function DeploiementPage() {
   const hasProvisionedRef = React.useRef(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
+  const router            = useRouter()
+  const searchParams      = useSearchParams()
 
   const { provision, pollUntilRunning, vmPassword, vmName, clearVmPassword } =
     useDeploymentTunnel()
 
-  // ── Tous les états déclarés ici ────────────────────────────────────────────
+  // ── États ─────────────────────────────────────────────────────────────────
   const [currentStep,     setCurrentStep]     = React.useState(1)
   const [done,            setDone]            = React.useState(false)
   const [errorMsg,        setErrorMsg]        = React.useState<string | null>(null)
   const [isStorage,       setIsStorage]       = React.useState(false)
-  const [isDatabase,      setIsDatabase]      = React.useState(false)   // ← remonté ici
-  const [storageCategory, setStorageCategory] = React.useState<string | null>(null) // ← remonté ici
+  const [isDatabase,      setIsDatabase]      = React.useState(false)
+  const [isNginx,         setIsNginx]         = React.useState(false)
+  const [storageCategory, setStorageCategory] = React.useState<string | null>(null)
   const [deploymentId,    setDeploymentId]    = React.useState<number | null>(null)
+  const [nginxResult,     setNginxResult]     = React.useState<NginxDeploymentResult | null>(null)
 
   const idParam    = searchParams.get("id")
   const retryParam = searchParams.get("retry")
 
-  // ── Dérivé — doit être APRÈS les états ────────────────────────────────────
-  const uiSteps = isDatabase ? DB_STEPS : isStorage ? STORAGE_STEPS : VM_STEPS
+  // ── uiSteps — nginx en priorité ───────────────────────────────────────────
+  const uiSteps = isNginx
+    ? NGINX_STEPS
+    : isDatabase
+      ? DB_STEPS
+      : isStorage
+        ? STORAGE_STEPS
+        : VM_STEPS
 
   // ── Lire la catégorie depuis le draft ─────────────────────────────────────
   React.useEffect(() => {
     try {
       const draft = JSON.parse(sessionStorage.getItem("deploy_draft") ?? "{}")
-      const cat = draft?.category ?? null
+      const cat   = draft?.category ?? null
       setIsStorage(isStorageCategory(cat))
       setIsDatabase(isDatabaseCategory(cat))
+      setIsNginx(isNginxCategory(cat))
       setStorageCategory(cat)
     } catch {}
   }, [])
@@ -588,23 +584,38 @@ export default function DeploiementPage() {
             setErrorMsg("Le provisionnement a échoué côté serveur")
             return
           }
-          const uiStepsLength = isDatabase
-            ? DB_STEPS.length
-            : isStorage
-              ? STORAGE_STEPS.length
-              : VM_STEPS.length
+          const uiStepsLength = isNginx
+            ? NGINX_STEPS.length
+            : isDatabase
+              ? DB_STEPS.length
+              : isStorage
+                ? STORAGE_STEPS.length
+                : VM_STEPS.length
           const step = STATUS_TO_STEP[d.status] ?? 2
           setCurrentStep(Math.min(step, uiStepsLength + 1))
         })
 
-        const finalLength = isDatabase
-          ? DB_STEPS.length
-          : isStorage
-            ? STORAGE_STEPS.length
-            : VM_STEPS.length
+        const finalLength = isNginx
+          ? NGINX_STEPS.length
+          : isDatabase
+            ? DB_STEPS.length
+            : isStorage
+              ? STORAGE_STEPS.length
+              : VM_STEPS.length
+
         setCurrentStep(finalLength + 1)
         setDone(true)
         clearDraft()
+
+        // Récupérer l'URL nginx après déploiement réussi
+        if (isNginx) {
+          try {
+            const result = await getNginxStatus()
+            setNginxResult(result)
+          } catch {
+            // Non bloquant — l'URL s'affiche dans le dashboard
+          }
+        }
 
       } catch (e: any) {
         const msg: string = e?.message ?? "Erreur lors du provisionnement"
@@ -628,10 +639,16 @@ export default function DeploiementPage() {
     }
   }
 
+  // ── Titre selon le type de service ────────────────────────────────────────
+  const successTitle = isNginx    ? "Hébergement nginx actif"
+                     : isDatabase ? "Base de données prête"
+                     : isStorage  ? "Stockage prêt"
+                     :              "Votre service est prêt"
+
   return (
     <SidebarInset>
       {/* Dialog password — VM uniquement */}
-      {!isStorage && !isDatabase && vmPassword && vmName && (
+      {!isStorage && !isDatabase && !isNginx && vmPassword && vmName && (
         <PasswordDialog
           vmName={vmName}
           password={vmPassword}
@@ -650,7 +667,7 @@ export default function DeploiementPage() {
 
       <div className="flex flex-col items-center pt-14 px-6 min-h-[calc(100vh-112px)]">
 
-        {/* Icône état */}
+        {/* ── Icône état ────────────────────────────────────────────────── */}
         <div className={cn(
           "w-20 h-20 rounded-full flex items-center justify-center mb-6 transition-all duration-500",
           done     && "bg-emerald-50 border-2 border-emerald-500",
@@ -671,7 +688,7 @@ export default function DeploiementPage() {
           )}
         </div>
 
-        {/* Titre */}
+        {/* ── Titre ─────────────────────────────────────────────────────── */}
         <h1 className={cn(
           "text-2xl font-semibold tracking-tight mb-2",
           done     && "text-emerald-600",
@@ -679,16 +696,14 @@ export default function DeploiementPage() {
           !done && !errorMsg && "text-[#0a7fcf]"
         )}>
           {done
-            ? isDatabase ? "Base de données prête"
-              : isStorage ? "Stockage prêt"
-              : "Votre service est prêt"
+            ? successTitle
             : errorMsg
               ? "Échec du provisionnement"
               : "Déploiement en cours"
           }
         </h1>
 
-        {/* Étapes */}
+        {/* ── Étapes ────────────────────────────────────────────────────── */}
         {!errorMsg && (
           <div className="w-full max-w-md border border-border rounded-2xl overflow-hidden bg-card mb-6">
             {uiSteps.map(step => (
@@ -703,8 +718,8 @@ export default function DeploiementPage() {
           </p>
         )}
 
-        {/* Succès VM */}
-        {done && !isStorage && !isDatabase && (
+        {/* ── Succès VM ─────────────────────────────────────────────────── */}
+        {done && !isStorage && !isDatabase && !isNginx && (
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -722,7 +737,7 @@ export default function DeploiementPage() {
           </div>
         )}
 
-        {/* Succès Stockage */}
+        {/* ── Succès Stockage ───────────────────────────────────────────── */}
         {done && isStorage && (
           <div className="flex flex-col items-center gap-4 w-full max-w-md">
             {deploymentId &&
@@ -738,7 +753,7 @@ export default function DeploiementPage() {
               </div>
             )}
             <div className="flex gap-3 mt-2">
-              <Button variant="outline" onClick={() => router.push("/dashboard/storage")}>
+              <Button variant="outline" onClick={() => router.push("/dashboard/stockage")}>
                 Voir mes stockages
               </Button>
               <Button
@@ -751,7 +766,7 @@ export default function DeploiementPage() {
           </div>
         )}
 
-        {/* Succès Base de données */}
+        {/* ── Succès Base de données ────────────────────────────────────── */}
         {done && isDatabase && (
           <div className="flex flex-col items-center gap-4 w-full max-w-md">
             {deploymentId && (
@@ -774,7 +789,30 @@ export default function DeploiementPage() {
           </div>
         )}
 
-        {/* Erreur */}
+        {/* ── Succès nginx ──────────────────────────────────────────────── */}
+        {done && isNginx && (
+          <div className="flex flex-col items-center gap-4 w-full max-w-md">
+            {nginxResult && (
+              <NginxCredentialsBlock result={nginxResult} />
+            )}
+            <div className="flex gap-3 mt-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push("/dashboard/hebergement")}
+              >
+                Voir mes hébergements
+              </Button>
+              <Button
+                className="h-9 text-[13px] font-medium px-6 bg-[#0a7fcf] hover:bg-[#0869b0] text-white"
+                onClick={() => router.push("/dashboard")}
+              >
+                Dashboard →
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* ── Erreur ────────────────────────────────────────────────────── */}
         {errorMsg && (
           <div className="flex flex-col items-center gap-4">
             <p className="text-[13px] text-muted-foreground text-center max-w-sm">

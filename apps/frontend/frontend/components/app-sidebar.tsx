@@ -19,6 +19,11 @@ import {
   IconContainer,
   IconPackage,
   IconFileInvoice,
+  IconDeviceDesktop,
+  IconCpu,
+  IconDatabase,
+  IconBrandDocker,
+  IconShieldLock,
 } from "@tabler/icons-react"
 import {
   Sidebar,
@@ -36,7 +41,7 @@ import {
 } from "@/components/ui/sidebar"
 import { NavUser } from "@/components/nav-user"
 import { NavSecondary } from "@/components/nav-secondary"
-import { MonitorIcon, HardDrive, Leaf, Braces, ShieldCheck } from "lucide-react"
+import { MonitorIcon, HardDrive, Leaf, Braces, ShieldCheck, Globe } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
 const ICON_COLOR = "#0a7fcf"
@@ -45,13 +50,21 @@ const NAV_CLIENT = [
   { title: "Services Cloud", url: "/dashboard/services", icon: IconCloudComputing },
   { title: "Mes Plans", url: "/dashboard/mes-plans", icon: IconListDetails },
   { title: "Mes Abonnements", url: "/dashboard/abonnements", icon: IconFileInvoice },
-  { title: "Stockage", url: "/dashboard/storage", icon: HardDrive },
 ]
 
 // Types de déploiements possibles pour le client
 // En production, ces données viendraient de l'API selon les abonnements du client
 const DEPLOYMENT_TYPES = [
-  { title: "Machines Virtuelles", url: "/dashboard/vms", icon: MonitorIcon },
+  { title: "Machines Virtuelles", url: "/dashboard/vms", icon: IconCpu  },
+  { title: "Stockage", url: "/dashboard/storage", icon: HardDrive },
+  { title: "Hebergement", url: "/dashboard/hebergement", icon: Globe },
+  { title: "Base de Données", url: "/dashboard/databases", icon: IconDatabase },
+  { title: "Registre", url: "/dashboard/services/registry", icon: IconPackage  },
+  { title: "IAM", url: "/dashboard/services/iam", icon: IconShieldLock }
+
+
+
+
   //{ title: "Conteneurs",          url: "/dashboard/deployments/containers",  icon: IconContainer },
   //{ title: "Serveurs Dédiés",     url: "/dashboard/deployments/servers",     icon: IconServer },
 ]

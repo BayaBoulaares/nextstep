@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/deployments")
@@ -42,6 +43,7 @@ public class DeploymentController {
     private final StorageProvisioningService storageProvisioningService;
     private final DatabaseProvisioningService databaseProvisioningService;
     private final DatabaseResourceRepository databaseResourceRepository;
+    private  final NginxProvisioningService  nginxProvisioningService;
     @Autowired
     private VmProvisioningService vmProvisioningService;
     private final MinioEndpointResolver minioEndpointResolver;
@@ -181,7 +183,7 @@ public class DeploymentController {
         return ResponseEntity.ok(deploymentService.getById(id));
     }*/
 
-    @PatchMapping("/{id}/provision")
+    /*@PatchMapping("/{id}/provision")
     public ResponseEntity<DeploymentDTO> startProvisioning(@PathVariable Long id) {
         Deployment dep = deploymentService.findEntityById(id);
 
@@ -208,8 +210,43 @@ public class DeploymentController {
         }
 
         return ResponseEntity.ok(dto);
-    }
+    }*/
+    @PatchMapping("/{id}/provision")
+    public ResponseEntity<DeploymentDTO> startProvisioning(
+            @PathVariable Long id,
+            @AuthenticationPrincipal Jwt jwt) {
 
+        Deployment dep = deploymentService.findEntityById(id);
+        ServiceCategory category = dep.getPlan().getService().getCategory();
+
+        if (dep.getStatus() == DeploymentStatus.PROVISIONNEMENT) {
+            return ResponseEntity.ok(deploymentService.getById(id));
+        }
+
+        DeploymentDTO dto = deploymentService.startProvisioning(id);
+
+        switch (category) {
+            case CALCUL      -> vmProvisioningService.provisionAsync(id);
+            case HEBERGEMENT -> {
+                String username = jwt.getClaimAsString("preferred_username");
+                Plan plan = dep.getPlan();
+                // async pour ne pas bloquer la réponse HTTP
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        nginxProvisioningService.provisionNginx(username, plan);
+                        deploymentService.markRunning(id); // → ACTIF
+                    } catch (Exception e) {
+                        deploymentService.changeStatus(id, DeploymentStatus.ECHEC);
+                    }
+                });
+            }
+            case BASE_DONNEES -> databaseProvisioningService.provisionAsync(id);
+            case STOCKAGE     -> storageProvisioningService.provisionAsync(id);
+            default -> log.info("Catégorie {} — pas de provisioning automatique", category);
+        }
+
+        return ResponseEntity.ok(dto);
+    }
 
     // Endpoint DELETE branché sur la suppression de la ressource de stockage
     @DeleteMapping("/{id}/storage")

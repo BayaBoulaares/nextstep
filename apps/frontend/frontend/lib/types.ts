@@ -459,6 +459,7 @@ export const STORAGE_CATEGORIES: ServiceCategory[] = [
 
 export const CATEGORIES_WITHOUT_OS: ServiceCategory[] = [
   "STOCKAGE",
+  "HEBERGEMENT",
   "RESEAU",
   "EMAIL",
   "SECURITE",
@@ -554,3 +555,33 @@ export const DATABASE_DEPLOY_STEPS = [
   { id: 4, label: "Réplication active",    description: "Streaming replication entre les instances" },
   { id: 5, label: "Base de données prête", description: "Credentials disponibles — connexion active" },
 ]
+// ─────────────────────────────────────────────────────────────────────────────
+// AJOUTS à faire dans @/lib/types.ts
+// Coller ces lignes à la fin de ton fichier types.ts existant
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Type résultat déploiement nginx ──────────────────────────────────────────
+export type NginxStatus = "NOT_FOUND" | "STARTING" | "RUNNING" | "ERROR"
+
+export interface NginxDeploymentResult {
+  namespace:  string
+  appName:    string
+  publicUrl:  string | null
+  plan:       string
+  status:     NginxStatus
+}
+
+// ── Étapes affichées pendant le déploiement nginx ────────────────────────────
+export const NGINX_DEPLOY_STEPS = [
+  { id: 1, label: "Commande validée",      description: "Namespace client créé et isolé"          },
+  { id: 2, label: "Configuration nginx",   description: "ConfigMap généré selon votre plan"        },
+  { id: 3, label: "Déploiement du pod",    description: "Conteneur bitnami/nginx démarré"          },
+  { id: 4, label: "Service interne",       description: "ClusterIP routing activé"                 },
+  { id: 5, label: "Route publique HTTPS",  description: "URL dédiée générée sur le cluster"        },
+]
+
+// ── Détection catégorie nginx ─────────────────────────────────────────────────
+// Retourne true si la catégorie correspond à un service d'hébergement web nginx
+export function isNginxCategory(category?: string | null): boolean {
+  return category === "HEBERGEMENT"
+}

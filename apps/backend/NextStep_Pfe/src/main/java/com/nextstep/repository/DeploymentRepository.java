@@ -2,6 +2,7 @@ package com.nextstep.repository;
 
 import com.nextstep.entity.Deployment;
 import com.nextstep.entity.DeploymentStatus;
+import com.nextstep.entity.ServiceCategory;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -50,4 +51,6 @@ public interface DeploymentRepository extends JpaRepository<Deployment, Long> {
             "JOIN FETCH p.service " +
             "WHERE d.id = :id")
     Optional<Deployment> findByIdWithUserAndPlan(@Param("id") Long id);
+    List<Deployment> findByUserIdAndPlan_Service_Category(UUID userId, ServiceCategory category);
+
 }
