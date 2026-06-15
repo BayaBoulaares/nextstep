@@ -395,8 +395,8 @@ const STEPS = [
 
 function planSpecs(plan: PlanDTO): string {
   return [
-    plan.vcores    ? `${plan.vcores} vCPU`      : "",
-    plan.ramGb     ? `${plan.ramGb} Go RAM`     : "",
+    plan.vcores ? `${plan.vcores} vCPU` : "",
+    plan.ramGb ? `${plan.ramGb} Go RAM` : "",
     plan.storageGb ? `${plan.storageGb} Go SSD` : "",
   ].filter(Boolean).join(" · ") || "—"
 }
@@ -433,10 +433,10 @@ export default function RecapPage() {
 
   const isSubmitting = React.useRef(false)
 
-  const [service,   setService]   = React.useState<CloudServiceDTO | null>(null)
-  const [plan,      setPlan]      = React.useState<PlanDTO | null>(null)
-  const [draft,     setDraft]     = React.useState<DeploymentDraft | null>(null)
-  const [fetching,  setFetching]  = React.useState(true)
+  const [service, setService] = React.useState<CloudServiceDTO | null>(null)
+  const [plan, setPlan] = React.useState<PlanDTO | null>(null)
+  const [draft, setDraft] = React.useState<DeploymentDraft | null>(null)
+  const [fetching, setFetching] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
 
   React.useEffect(() => {
@@ -465,18 +465,18 @@ export default function RecapPage() {
     isSubmitting.current = true
 
     const request: DeploymentRequest = {
-      resourceName:        draft.resourceName!,
-      planId:              draft.planId!,
-      projectId:           draft.projectId,
-      regionId:            draft.regionId,
-      availabilityZone:    draft.availabilityZone,
-      description:         draft.description,
-      backupEnabled:       draft.backupEnabled       ?? false,
-      monitoringEnabled:   draft.monitoringEnabled   ?? false,
-      antiDdosEnabled:     draft.antiDdosEnabled     ?? false,
+      resourceName: draft.resourceName!,
+      planId: draft.planId!,
+      projectId: draft.projectId,
+      regionId: draft.regionId,
+      availabilityZone: draft.availabilityZone,
+      description: draft.description,
+      backupEnabled: draft.backupEnabled ?? false,
+      monitoringEnabled: draft.monitoringEnabled ?? false,
+      antiDdosEnabled: draft.antiDdosEnabled ?? false,
       additionalStorageGb: draft.additionalStorageGb ?? 0,
-      operatingSystem:     draft.operatingSystem,
-      availabilitySet:     draft.availabilitySet,
+      operatingSystem: draft.operatingSystem,
+      availabilitySet: draft.availabilitySet,
     }
 
     try {
@@ -488,20 +488,20 @@ export default function RecapPage() {
   }
 
   // Dérivés
-  const category  = service?.category
+  const category = service?.category
   const isStorage = isStorageCategory(category)
-  const osLabel   = draft?.operatingSystem
+  const osLabel = draft?.operatingSystem
     ? (OS_LABELS[draft.operatingSystem] ?? draft.operatingSystem)
     : null
 
-  const ht    = plan ? plan.price : null
-  const tva   = ht != null ? ht * 0.2 : null
+  const ht = plan ? plan.price : null
+  const tva = ht != null ? ht * 0.2 : null
   const total = ht != null && tva != null ? ht + tva : null
 
   const CYCLE_SUFFIX: Record<string, string> = {
     HORAIRE: "/h",
     MENSUEL: "/mois",
-    ANNUEL:  "/an",
+    ANNUEL: "/an",
   }
   const cycleSuffix = plan ? (CYCLE_SUFFIX[plan.billingCycle] ?? "") : ""
 
@@ -535,7 +535,7 @@ export default function RecapPage() {
       </div>
     )
   }
-  
+
 
   // ── Rendu principal ───────────────────────────────────────────────────────
 
@@ -573,14 +573,24 @@ export default function RecapPage() {
           <RecapSection
             title="Service commandé"
             rows={[
-              { label: "Service",   value: `${service?.icon ?? ""} ${service?.name ?? "—"}`.trim() },
+              { label: "Service", value: `${service?.icon ?? ""} ${service?.name ?? "—"}`.trim() },
               { label: "Catégorie", value: service?.category ?? "—" },
-              { label: "Plan",      value: plan?.name ?? "—" },
-              { label: "Tier",      value: plan?.tier ?? "—" },
+              { label: "Plan", value: plan?.name ?? "—" },
+              { label: "Tier", value: plan?.tier ?? "—" },
               // Stockage → capacité ; VM → specs complètes
               ...(isStorage
-                ? [{ label: "Capacité", value: plan?.storageGb ? `${plan.storageGb} Go` : "—" }]
-                : [{ label: "Specs",    value: plan ? planSpecs(plan) : "—" }]
+                ? [
+                  { label: "Capacité", value: plan?.storageGb ? `${plan.storageGb} Go` : "—" },
+                  {
+                    label: "Mode d'accès",
+                    value: category === "OBJECT_STORAGE" ? "S3 API (HTTP/HTTPS)"
+                      : category === "FILE_STORAGE" ? "ReadWriteMany (NFS)"
+                        : "ReadWriteOnce (Block)",
+                  },
+                ]
+                : [
+                  { label: "Specs", value: plan ? planSpecs(plan) : "—" },
+                ]
               ),
               {
                 label: "Ressource",
@@ -598,25 +608,25 @@ export default function RecapPage() {
           <RecapSection
             title="Configuration"
             rows={[
-              { label: "Zone",   value: draft.availabilityZone ?? "—" },
+              { label: "Zone", value: draft.availabilityZone ?? "—" },
               { label: "Backup", value: draft.backupEnabled ? "✓ Activé" : "Non" },
               // Monitoring & Anti-DDoS : uniquement pour les services VM
               ...(!isStorage
                 ? [
-                    { label: "Monitoring", value: draft.monitoringEnabled ? "✓ Activé" : "Non" },
-                    { label: "Anti-DDoS",  value: draft.antiDdosEnabled   ? "✓ Activé" : "Non" },
-                  ]
+                  { label: "Monitoring", value: draft.monitoringEnabled ? "✓ Activé" : "Non" },
+                  { label: "Anti-DDoS", value: draft.antiDdosEnabled ? "✓ Activé" : "Non" },
+                ]
                 : []
               ),
               ...(draft.availabilitySet
                 ? [{
-                    label: "Availability Set",
-                    value: (
-                      <span className="font-mono text-[12px] bg-muted px-2 py-0.5 rounded">
-                        🔗 {draft.availabilitySet}
-                      </span>
-                    ),
-                  }]
+                  label: "Availability Set",
+                  value: (
+                    <span className="font-mono text-[12px] bg-muted px-2 py-0.5 rounded">
+                      🔗 {draft.availabilitySet}
+                    </span>
+                  ),
+                }]
                 : []
               ),
             ]}
@@ -629,10 +639,10 @@ export default function RecapPage() {
             </p>
             <div className="border border-border rounded-xl overflow-hidden divide-y divide-border">
               {[
-                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht    != null ? `${ht.toFixed(2)} TND`    : "—", bold: false },
-                { label: "Sous-total HT",                                price: ht    != null ? `${ht.toFixed(2)} TND`    : "—", bold: false },
-                { label: "TVA (20%)",                                    price: tva   != null ? `+${tva.toFixed(2)} TND`  : "—", bold: false },
-                { label: `Total TTC${cycleSuffix}`,                      price: total != null ? `${total.toFixed(2)} TND` : "—", bold: true  },
+                { label: `Plan ${plan?.name ?? ""} (HT${cycleSuffix})`, price: ht != null ? `${ht.toFixed(2)} TND` : "—", bold: false },
+                { label: "Sous-total HT", price: ht != null ? `${ht.toFixed(2)} TND` : "—", bold: false },
+                { label: "TVA (20%)", price: tva != null ? `+${tva.toFixed(2)} TND` : "—", bold: false },
+                { label: `Total TTC${cycleSuffix}`, price: total != null ? `${total.toFixed(2)} TND` : "—", bold: true },
               ].map((line, i) => (
                 <div key={i} className={cn(
                   "flex items-center justify-between px-5 py-3 bg-card",

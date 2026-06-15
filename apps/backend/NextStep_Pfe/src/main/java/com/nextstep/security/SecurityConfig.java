@@ -1,6 +1,7 @@
 package com.nextstep.security;
 
 
+import com.nextstep.config.SseTokenFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -66,10 +67,14 @@ import java.util.List;
 public class SecurityConfig {
 
     private final KeycloakJwtConverter keycloakJwtConverter;
+    private final SseTokenFilter sseTokenFilter;  // ← injecter
+
 
     // Injection par constructeur — Spring injecte le @Component ci-dessus
-    public SecurityConfig(KeycloakJwtConverter keycloakJwtConverter) {
+    public SecurityConfig(KeycloakJwtConverter keycloakJwtConverter, SseTokenFilter sseTokenFilter) {
         this.keycloakJwtConverter = keycloakJwtConverter;
+        this.sseTokenFilter = sseTokenFilter;
+
     }
 
     // ── Chaîne 1 : routes publiques ───────────────────────────────────────
@@ -103,6 +108,9 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .addFilterBefore(sseTokenFilter,
+                        org.springframework.security.oauth2.server.resource.web
+                                .authentication.BearerTokenAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("admin") // ✅ ajouté

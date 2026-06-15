@@ -31,7 +31,7 @@ import type {
 } from "@/lib/types"
 import { cn } from "@/lib/utils"
 import { useStorageDeployments, type StorageDeployment } from "@/lib/hooks/useStorageDeployments"
-
+import { CopyButton } from "@/components/CopyButton"
 // ══════════════════════════════════════════════════════════════════════════════
 // Constantes
 // ══════════════════════════════════════════════════════════════════════════════
@@ -178,22 +178,23 @@ function NotifyContainer({ items, dismiss }: {
 // StorageCredentialsPanel
 // ══════════════════════════════════════════════════════════════════════════════
 
-function StorageCredentialsPanel({ deploymentId, storageType }: {
-    deploymentId: number; storageType: StorageType | null
+function StorageCredentialsPanel({ deploymentId, storageType, storage }: {
+    deploymentId: number; storageType: StorageType | null; storage: StorageResourceResponse | null
 }) {
     const [creds, setCreds] = React.useState<StorageCredentials | null>(null)
-    const [loading, setLoading] = React.useState(true)
+    const [loading, setLoading] = React.useState(false)
     const [error, setError] = React.useState<string | null>(null)
     const [showSecret, setShowSecret] = React.useState(false)
     const [copied, setCopied] = React.useState<string | null>(null)
-
+    // ← Appeler l'API SEULEMENT pour Object Storage
     React.useEffect(() => {
+        if (storageType !== "OBJECT_STORAGE") return
         setLoading(true)
         getStorageCredentials(deploymentId)
             .then(setCreds)
             .catch(e => setError(e.message))
             .finally(() => setLoading(false))
-    }, [deploymentId])
+    }, [deploymentId, storageType])
 
     const copyText = (value: string, key: string) => {
         navigator.clipboard.writeText(value)
@@ -208,23 +209,53 @@ function StorageCredentialsPanel({ deploymentId, storageType }: {
     )
 
     if (storageType !== "OBJECT_STORAGE") {
+        const pvcName = storage?.pvcName ?? "<nom-de-votre-pvc>"
+        const namespace = storage?.namespace ?? "<namespace>"
+        const accessMode = storage?.accessMode ?? (
+            storageType === "FILE_STORAGE" ? "ReadWriteMany" : "ReadWriteOnce"
+        )
+
         return (
             <div className="p-5 space-y-3">
-                <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-4 text-center">
-                    <Lock className="w-8 h-8 mx-auto mb-2 text-muted-foreground/40" />
-                    <p className="text-[13px] font-medium">Accès via PVC</p>
-                    <p className="text-[12px] text-muted-foreground mt-1">
-                        Ce volume est monté directement dans vos pods Kubernetes.
-                        Aucun credential S3 n'est nécessaire.
-                    </p>
+                {/* Info PVC */}
+                <div className="grid grid-cols-2 gap-2">
+                    <InfoCard label="Nom du PVC" value={pvcName} />
+                    <InfoCard label="Namespace" value={namespace} />
+                    <InfoCard label="Mode d'accès" value={accessMode} mono={false} />
+                    <InfoCard label="Capacité" value={storage?.capacity ?? "—"} mono={false} />
                 </div>
-                <div className="bg-zinc-900 rounded-xl px-4 py-3 font-mono text-[12px] text-emerald-400 space-y-1">
-                    <p className="text-zinc-500 text-[10px] mb-2"># Exemple de montage dans un Pod</p>
+
+                {/* Bouton copier le nom du PVC */}
+                <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
+                            Nom du PVC
+                        </p>
+                        <code className="text-[13px] font-mono font-medium">{pvcName}</code>
+                    </div>
+                    <CopyButton value={pvcName} />
+                </div>
+
+                {/* Exemple YAML */}
+                <div className="bg-zinc-900 rounded-xl px-4 py-3 font-mono text-[12px] text-emerald-400 space-y-0.5">
+                    <p className="text-zinc-500 text-[10px] mb-2"># Montage dans votre Deployment</p>
                     <p>volumes:</p>
-                    <p className="ml-4">- name: my-storage</p>
+                    <p className="ml-4">- name: storage</p>
                     <p className="ml-6">persistentVolumeClaim:</p>
-                    <p className="ml-8">claimName: <span className="text-white">{"<nom-de-votre-pvc>"}</span></p>
+                    <p className="ml-8">claimName: <span className="text-white">{pvcName}</span></p>
+                    <p>volumeMounts:</p>
+                    <p className="ml-4">- name: storage</p>
+                    <p className="ml-6">mountPath: <span className="text-amber-400">/mnt/data</span></p>
+                    <p className="text-zinc-500 mt-2"># namespace: {namespace}</p>
+                    <p className="text-zinc-500"># accessMode: {accessMode}</p>
                 </div>
+
+                {storageType === "FILE_STORAGE" && (
+                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-[11px] text-amber-700 flex items-start gap-2">
+                        <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                        Ce volume ReadWriteMany peut être monté simultanément par plusieurs pods.
+                    </div>
+                )}
             </div>
         )
     }
@@ -312,7 +343,7 @@ function EndpointDisplay({ deploymentId }: { deploymentId: number }) {
     React.useEffect(() => {
         getStorageCredentials(deploymentId)
             .then(c => setEndpoint(c.s3Endpoint ?? null))
-            .catch(() => {})
+            .catch(() => { })
     }, [deploymentId])
 
     if (!endpoint) return null
@@ -362,7 +393,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
         setCopied(key)
         setTimeout(() => setCopied(null), 2000)
     }
-    
+
 
     // ── Panel Overview ────────────────────────────────────────────────────────
     const PanelOverview = () => (
@@ -425,18 +456,26 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                         <p className="text-[10px] text-blue-500 uppercase tracking-wider mb-0.5">Bucket</p>
                         <code className="text-[13px] font-mono font-medium text-blue-700">{storage.bucketName}</code>
                     </div>
-                    <button
-                        onClick={() => copyText(storage.bucketName!, "bucket")}
-                        className="p-1.5 rounded-lg hover:bg-blue-100 text-blue-400 hover:text-blue-600 transition-colors"
-                    >
-                        {copied === "bucket" ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
-                    </button>
+                    <CopyButton value={storage.bucketName} />
                 </div>
             )}
-
-{storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
-    <EndpointDisplay deploymentId={item.deploymentId} />
-)}
+            {/* ← NOUVEAU — Block/File : afficher le PVC */}
+            {(storageType === "BLOCK_STORAGE" || storageType === "FILE_STORAGE") && storage?.pvcName && (
+                <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] text-violet-500 uppercase tracking-wider mb-0.5">
+                            Nom du PVC
+                        </p>
+                        <code className="text-[13px] font-mono font-medium text-violet-700">
+                            {storage.pvcName}
+                        </code>
+                    </div>
+                    <CopyButton value={storage.pvcName} />
+                </div>
+            )}
+            {storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
+                <EndpointDisplay deploymentId={item.deploymentId} />
+            )}
 
             {storage?.storageClassName && (
                 <div className="flex items-center justify-between py-2 px-3 bg-muted/30 border border-border/50 rounded-xl text-[12px]">
@@ -461,7 +500,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
             {(storage?.status === "PROVISIONING" || storage?.status === "PENDING") && (
                 <div className="flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-[12px] text-amber-700">
                     <Loader2 className="w-4 h-4 animate-spin flex-shrink-0" />
-                    <p>Provisionnement en cours — la ressource sera prête dans quelques instants.</p>
+                    <p>Provisionnement en cours la ressource sera prête dans quelques instants.</p>
                 </div>
             )}
             {storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
@@ -515,8 +554,10 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
             }
         }, [])
 
-        React.useEffect(() => { load() }, [load])
-
+        React.useEffect(() => {
+            if (storageType !== "OBJECT_STORAGE") return  // ← ajouter
+            load()
+        }, [load])
         const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
             const file = e.target.files?.[0]
             if (!file) return
@@ -632,10 +673,16 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 { label: "Type de stockage", value: typeCfg?.label ?? "—" },
                 {
                     label: "Mode d'accès",
-                    value: storageType === "OBJECT_STORAGE" ? "S3 API (HTTP/HTTPS)"
-                        : storageType === "FILE_STORAGE" ? "ReadWriteMany (RWX)"
-                            : "ReadWriteOnce (RWO)",
+                    value: storage?.accessMode ?? (
+                        storageType === "OBJECT_STORAGE" ? "S3 API (HTTP/HTTPS)"
+                            : storageType === "FILE_STORAGE" ? "ReadWriteMany (RWX)"
+                                : "ReadWriteOnce (RWO)"
+                    ),
                 },
+                ...(storageType !== "OBJECT_STORAGE" && storage?.pvcName ? [{
+                    label: "Nom du PVC",
+                    value: storage.pvcName,
+                }] : []),
             ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between py-2.5 px-3 bg-muted/30 border border-border/50 rounded-xl text-[13px]">
                     <span className="text-muted-foreground">{label}</span>
@@ -691,7 +738,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
     // ── PANELS map ────────────────────────────────────────────────────────────
     const PANELS: Record<TabId, React.ReactNode> = {
         overview: <PanelOverview />,
-        acces: <StorageCredentialsPanel deploymentId={item.deploymentId} storageType={storageType} />,
+        acces: <StorageCredentialsPanel deploymentId={item.deploymentId} storageType={storageType} storage={storage} />,
         fichiers: <PanelFichiers />,
         config: <PanelConfig />,
         events: <PanelEvents />,

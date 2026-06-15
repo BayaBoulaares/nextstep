@@ -19,6 +19,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @Service
 @RequiredArgsConstructor
@@ -33,7 +34,8 @@ public class AbonnementService {
     @Autowired  // ajouter dans le constructeur @RequiredArgsConstructor
     private final DeploymentFactory deploymentFactory;
     private final NginxProvisioningService nginxProvisioningService;
-
+    private final DeploymentService deploymentService;
+    private final NamespaceService namespaceService;
     public AbonnementResponse souscrire(UUID clientId, AbonnementRequest req) {
 
         User user = userRepository.findById(clientId)
@@ -72,21 +74,67 @@ public class AbonnementService {
 
         // ✅ FIX 2 : sauvegarder d'abord, puis déclencher le provisioning
         AbonnementResponse response = toResponse(abonnementRepository.save(abo));
+        try {
+            String username = client.getEmail().split("@")[0]
+                    .toLowerCase().replaceAll("[^a-z0-9-]", "-")
+                    .replaceAll("-+", "-").replaceAll("^-|-$", "");
+            namespaceService.updateQuotaForPlan(username, plan);
+        } catch (Exception e) {
+            // Non bloquant : la souscription est déjà enregistrée
+            log.warn("[QUOTA] Mise à jour quota échouée (non bloquant) : {}", e.getMessage());
+        }
 
         // ✅ FIX 3 : provisioning nginx APRÈS le return, plus de code mort
-        if (plan.getService() != null &&
+       /* if (plan.getService() != null &&
                 "nginx".equalsIgnoreCase(plan.getService().getName())) {
             try {
                 log.info("[NGINX] Déclenchement provisioning pour client={} plan={}",
                         client.getEmail(), plan.getTier());
-                nginxProvisioningService.provisionNginx(client.getEmail(), plan);
+                //nginxProvisioningService.provisionNginx(client.getEmail(), plan);
+                String username = client.getEmail().split("@")[0]
+                        .toLowerCase()
+                        .replaceAll("[^a-z0-9-]", "-")
+                        .replaceAll("-+", "-")
+                        .replaceAll("^-|-$", "");                nginxProvisioningService.provisionNginx(username, plan);
             } catch (Exception e) {
                 // On ne fail pas la souscription si le provisioning échoue
                 // Le client peut relancer depuis son tableau de bord
                 log.error("[NGINX] Échec provisioning pour client={} : {}",
                         client.getEmail(), e.getMessage());
             }
-        }
+        }*/
+        if (plan.getService() != null &&
+                plan.getService().getCategory() == ServiceCategory.HEBERGEMENT) {
+            try {
+                String username = client.getEmail().split("@")[0]
+                        .toLowerCase().replaceAll("[^a-z0-9-]", "-")
+                        .replaceAll("-+", "-").replaceAll("^-|-$", "");
+                final Long deploymentId = req.getDeploymentId();
+                final Plan finalPlan = plan;
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        nginxProvisioningService.provisionNginx(username, finalPlan);
+                        if (deploymentId != null) deploymentService.markRunning(deploymentId);
+                    } catch (Exception e) {
+                        log.error("[NGINX] Échec async : {}", e.getMessage());
+                        if (deploymentId != null)
+                            deploymentService.changeStatus(deploymentId, DeploymentStatus.ECHEC);
+                    }
+                });
+                log.info("[NGINX] Provisioning pour client={} plan={}", username, plan.getTier());
+                nginxProvisioningService.provisionNginx(username, plan);
+
+                // ✅ Mettre à jour le statut en base
+                if (req.getDeploymentId() != null) {
+                    deploymentService.markRunning(req.getDeploymentId());
+                    log.info("[NGINX] Deployment {} → ACTIF", req.getDeploymentId());
+                }
+            } catch (Exception e) {
+                log.error("[NGINX] Échec provisioning : {}", e.getMessage());
+                if (req.getDeploymentId() != null) {
+                    deploymentService.changeStatus(req.getDeploymentId(), DeploymentStatus.ECHEC);
+                }
+            }}
 
         return response;
     }

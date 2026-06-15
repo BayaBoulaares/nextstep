@@ -37,30 +37,30 @@ import { PasswordDialog } from "@/components/vms/PasswordDialog"
 // Constantes
 // ─────────────────────────────────────────────
 const STATUS_STYLE: Record<string, string> = {
-  Running:          "bg-emerald-50 text-emerald-700 border-emerald-200",
-  Stopped:          "bg-zinc-50 text-zinc-500 border-zinc-200",
+  Running: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Stopped: "bg-zinc-50 text-zinc-500 border-zinc-200",
   ImagePullBackOff: "bg-red-50 text-red-600 border-red-200",
-  Provisioning:     "bg-amber-50 text-amber-700 border-amber-200",
+  Provisioning: "bg-amber-50 text-amber-700 border-amber-200",
   ImportInProgress: "bg-blue-50 text-blue-700 border-blue-200",
 }
 
-type TabId = "overview"|"metrics"|"config"|"events"|"console"|"ssh"|"acces"|"snapshots"|"diag"
+type TabId = "overview" | "metrics" | "config" | "events" | "console" | "ssh" | "acces" | "snapshots" | "diag"
 interface Tab { id: TabId; label: string; icon: React.ReactNode }
 
 const TABS: Tab[] = [
-  { id: "overview",  label: "Vue d'ensemble", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
-  { id: "metrics",   label: "Métriques",      icon: <Activity        className="w-3.5 h-3.5" /> },
-  { id: "config",    label: "Configuration",  icon: <Settings        className="w-3.5 h-3.5" /> },
-  { id: "events",    label: "Événements",     icon: <ScrollText      className="w-3.5 h-3.5" /> },
-  { id: "console",   label: "Console",        icon: <Monitor         className="w-3.5 h-3.5" /> },
-  { id: "ssh",       label: "SSH",            icon: <Wifi            className="w-3.5 h-3.5" /> },
-  { id: "acces",     label: "Accès",          icon: <KeyRound        className="w-3.5 h-3.5" /> },
-  { id: "snapshots", label: "Instantanés",    icon: <Layers          className="w-3.5 h-3.5" /> },
-  { id: "diag",      label: "Diagnostics",    icon: <ShieldAlert     className="w-3.5 h-3.5" /> },
+  { id: "overview", label: "Vue d'ensemble", icon: <LayoutDashboard className="w-3.5 h-3.5" /> },
+  { id: "metrics", label: "Métriques", icon: <Activity className="w-3.5 h-3.5" /> },
+  { id: "config", label: "Configuration", icon: <Settings className="w-3.5 h-3.5" /> },
+  { id: "events", label: "Événements", icon: <ScrollText className="w-3.5 h-3.5" /> },
+  { id: "console", label: "Console", icon: <Monitor className="w-3.5 h-3.5" /> },
+  { id: "ssh", label: "SSH", icon: <Wifi className="w-3.5 h-3.5" /> },
+  { id: "acces", label: "Accès", icon: <KeyRound className="w-3.5 h-3.5" /> },
+  { id: "snapshots", label: "Instantanés", icon: <Layers className="w-3.5 h-3.5" /> },
+  { id: "diag", label: "Diagnostics", icon: <ShieldAlert className="w-3.5 h-3.5" /> },
 ]
 
 type CredState = { login: string; password: string; visible: boolean; loading: boolean; pwVisible: boolean }
-type NetState  = { info: VmNetworkInfo | null; visible: boolean; loading: boolean }
+type NetState = { info: VmNetworkInfo | null; visible: boolean; loading: boolean }
 
 // ─────────────────────────────────────────────
 // Helpers UI
@@ -84,35 +84,35 @@ function InfoCard({ label, value, mono = true }: { label: string; value: React.R
 
 function getOsLabel(osImage?: string | null): string {
   if (!osImage) return "—"
-  if (osImage.includes("noble")      || osImage.includes("ubuntu/24")  || osImage.includes("ubuntu:24"))  return "Ubuntu 24.04"
-  if (osImage.includes("ubuntu-2404")|| osImage.includes("ubuntu2404"))                                    return "Ubuntu 24.04"
-  if (osImage.includes("jammy")      || osImage.includes("ubuntu/22")  || osImage.includes("ubuntu:22"))  return "Ubuntu 22.04"
-  if (osImage.includes("ubuntu-2204")|| osImage.includes("ubuntu2204"))                                    return "Ubuntu 22.04"
-  if (osImage.includes("bookworm")   || osImage.includes("debian-12"))                                     return "Debian 12"
-  if (osImage.includes("bullseye")   || osImage.includes("debian-11"))                                     return "Debian 11"
-  if (osImage.includes("Rocky-9")    || osImage.includes("rocky"))                                         return "Rocky Linux 9"
-  if (osImage.includes("fedora"))                                                                           return "Fedora"
+  if (osImage.includes("noble") || osImage.includes("ubuntu/24") || osImage.includes("ubuntu:24")) return "Ubuntu 24.04"
+  if (osImage.includes("ubuntu-2404") || osImage.includes("ubuntu2404")) return "Ubuntu 24.04"
+  if (osImage.includes("jammy") || osImage.includes("ubuntu/22") || osImage.includes("ubuntu:22")) return "Ubuntu 22.04"
+  if (osImage.includes("ubuntu-2204") || osImage.includes("ubuntu2204")) return "Ubuntu 22.04"
+  if (osImage.includes("bookworm") || osImage.includes("debian-12")) return "Debian 12"
+  if (osImage.includes("bullseye") || osImage.includes("debian-11")) return "Debian 11"
+  if (osImage.includes("Rocky-9") || osImage.includes("rocky")) return "Rocky Linux 9"
+  if (osImage.includes("fedora")) return "Fedora"
   return osImage.split("/").pop()?.split("?")[0] ?? osImage
 }
 
 // ─────────────────────────────────────────────
 // NetworkSection — composant autonome (hors VmDetailCard)
 // ─────────────────────────────────────────────
-function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfigDTO | null; vmName: string; vmStatus: string; notify: (msg:string, type?:"info"|"warn"|"error")=>void }) {
-  const [search,        setSearch]        = React.useState("")
-  const [openMenu,      setOpenMenu]      = React.useState<string | null>(null)
-  const [editModal,     setEditModal]     = React.useState<string | null>(null)
-  const [editModel,     setEditModel]     = React.useState("virtio")
+function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfigDTO | null; vmName: string; vmStatus: string; notify: (msg: string, type?: "info" | "warn" | "error") => void }) {
+  const [search, setSearch] = React.useState("")
+  const [openMenu, setOpenMenu] = React.useState<string | null>(null)
+  const [editModal, setEditModal] = React.useState<string | null>(null)
+  const [editModel, setEditModel] = React.useState("virtio")
   const [deleteConfirm, setDeleteConfirm] = React.useState<string | null>(null)
-  const [actionBusy,    setActionBusy]    = React.useState<string | null>(null)
-  const [actionErr,     setActionErr]     = React.useState<string | null>(null)
-  const [localNets,     setLocalNets]     = React.useState(config?.networks ?? [])
-  const [showAddIface,  setShowAddIface]  = React.useState(false)
-  const [addIfaceName,  setAddIfaceName]  = React.useState("")
+  const [actionBusy, setActionBusy] = React.useState<string | null>(null)
+  const [actionErr, setActionErr] = React.useState<string | null>(null)
+  const [localNets, setLocalNets] = React.useState(config?.networks ?? [])
+  const [showAddIface, setShowAddIface] = React.useState(false)
+  const [addIfaceName, setAddIfaceName] = React.useState("")
   const [addIfaceModel, setAddIfaceModel] = React.useState("virtio")
-  const [addIfaceType,  setAddIfaceType]  = React.useState("masquerade")
-  const [addIfaceBusy,  setAddIfaceBusy]  = React.useState(false)
-  const [addIfaceErr,   setAddIfaceErr]   = React.useState<string | null>(null)
+  const [addIfaceType, setAddIfaceType] = React.useState("masquerade")
+  const [addIfaceBusy, setAddIfaceBusy] = React.useState(false)
+  const [addIfaceErr, setAddIfaceErr] = React.useState<string | null>(null)
 
   React.useEffect(() => { setLocalNets(config?.networks ?? []) }, [config])
 
@@ -360,13 +360,13 @@ function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfig
       ) : (
         <div className="border border-border/50 rounded-xl overflow-visible">
           <div className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_1fr_1.3fr_28px] bg-muted/40 border-b border-border/50 px-3 py-2 text-[10px] text-muted-foreground uppercase tracking-wider font-medium rounded-t-xl">
-            {["Nom ↑","Modèle ↕","Réseau ↕","État ↕","Type ↕","Adresse... ↕",""].map((h,i) => (
-              <span key={i} className={cn("flex items-center", i===0 && "text-blue-600 font-semibold")}>{h}</span>
+            {["Nom ↑", "Modèle ↕", "Réseau ↕", "État ↕", "Type ↕", "Adresse... ↕", ""].map((h, i) => (
+              <span key={i} className={cn("flex items-center", i === 0 && "text-blue-600 font-semibold")}>{h}</span>
             ))}
           </div>
           {filtered.map(n => {
             const isDown = (n as any).linkDown === true
-            const busy   = actionBusy === n.name
+            const busy = actionBusy === n.name
             return (
               <div key={n.name}
                 className="grid grid-cols-[1fr_1fr_1.5fr_0.6fr_1fr_1.3fr_28px] items-center px-3 py-3 border-b border-border/30 last:border-0 hover:bg-muted/20 text-[12px] relative">
@@ -375,38 +375,38 @@ function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfig
                 <span className="text-[11px]">{n.networkName === "Pod Networking" ? "Mise en réseau des pods" : n.networkName}</span>
                 <span>
                   {busy ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
-                  : isDown ? (
-                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
-                      <circle cx="12" cy="12" r="11" fill="#f3f4f6"/>
-                      <rect x="9" y="7" width="6" height="7" rx="1" fill="#9ca3af"/>
-                      <rect x="10" y="6" width="1.5" height="2" rx="0.5" fill="#9ca3af"/>
-                      <rect x="12.5" y="6" width="1.5" height="2" rx="0.5" fill="#9ca3af"/>
-                      <path d="M12 14v3" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round"/>
-                    </svg>
-                  ) : (
-                    <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
-                      <circle cx="12" cy="12" r="11" fill="#e6f4ea"/>
-                      <rect x="9" y="7" width="6" height="7" rx="1" fill="#1e7e34"/>
-                      <rect x="10" y="6" width="1.5" height="2" rx="0.5" fill="#1e7e34"/>
-                      <rect x="12.5" y="6" width="1.5" height="2" rx="0.5" fill="#1e7e34"/>
-                      <path d="M12 14v3" stroke="#1e7e34" strokeWidth="1.5" strokeLinecap="round"/>
-                      <circle cx="17" cy="7" r="4" fill="#1e7e34"/>
-                      <path d="M17 5v4M15 7h4" stroke="white" strokeWidth="1.2" strokeLinecap="round"/>
-                    </svg>
-                  )}
+                    : isDown ? (
+                      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
+                        <circle cx="12" cy="12" r="11" fill="#f3f4f6" />
+                        <rect x="9" y="7" width="6" height="7" rx="1" fill="#9ca3af" />
+                        <rect x="10" y="6" width="1.5" height="2" rx="0.5" fill="#9ca3af" />
+                        <rect x="12.5" y="6" width="1.5" height="2" rx="0.5" fill="#9ca3af" />
+                        <path d="M12 14v3" stroke="#9ca3af" strokeWidth="1.5" strokeLinecap="round" />
+                      </svg>
+                    ) : (
+                      <svg viewBox="0 0 24 24" className="w-6 h-6" fill="none">
+                        <circle cx="12" cy="12" r="11" fill="#e6f4ea" />
+                        <rect x="9" y="7" width="6" height="7" rx="1" fill="#1e7e34" />
+                        <rect x="10" y="6" width="1.5" height="2" rx="0.5" fill="#1e7e34" />
+                        <rect x="12.5" y="6" width="1.5" height="2" rx="0.5" fill="#1e7e34" />
+                        <path d="M12 14v3" stroke="#1e7e34" strokeWidth="1.5" strokeLinecap="round" />
+                        <circle cx="17" cy="7" r="4" fill="#1e7e34" />
+                        <path d="M17 5v4M15 7h4" stroke="white" strokeWidth="1.2" strokeLinecap="round" />
+                      </svg>
+                    )}
                 </span>
                 <span className="capitalize">
-                  {n.model==="masquerade"?"Masquerade":n.model==="bridge"?"Bridge":n.model}
+                  {n.model === "masquerade" ? "Masquerade" : n.model === "bridge" ? "Bridge" : n.model}
                 </span>
                 <span className="font-mono text-[11px] text-muted-foreground truncate">
                   {n.macAddress !== "—" ? n.macAddress : "—"}
                 </span>
                 <div className="relative flex items-center justify-center">
                   <button className="w-6 h-6 rounded flex items-center justify-center hover:bg-muted text-muted-foreground hover:text-foreground"
-                    onClick={e => { e.stopPropagation(); setOpenMenu(openMenu===n.name?null:n.name) }}
+                    onClick={e => { e.stopPropagation(); setOpenMenu(openMenu === n.name ? null : n.name) }}
                     disabled={busy}>
                     <svg viewBox="0 0 24 24" className="w-4 h-4" fill="currentColor">
-                      <circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/>
+                      <circle cx="12" cy="5" r="1.5" /><circle cx="12" cy="12" r="1.5" /><circle cx="12" cy="19" r="1.5" />
                     </svg>
                   </button>
                   {openMenu === n.name && (
@@ -439,7 +439,7 @@ function NetworkSection({ config, vmName, vmStatus, notify }: { config: VmConfig
 // ─────────────────────────────────────────────
 // Notify — remplace alert() natif du browser
 // ─────────────────────────────────────────────
-interface NotifyItem { id: string; type: "info"|"warn"|"error"; msg: string }
+interface NotifyItem { id: string; type: "info" | "warn" | "error"; msg: string }
 
 function useNotify() {
   const [items, setItems] = React.useState<NotifyItem[]>([])
@@ -453,17 +453,17 @@ function useNotify() {
   return { items, show, dismiss }
 }
 
-function NotifyContainer({ items, dismiss }: { items: NotifyItem[]; dismiss: (id:string)=>void }) {
+function NotifyContainer({ items, dismiss }: { items: NotifyItem[]; dismiss: (id: string) => void }) {
   if (!items.length) return null
   const STYLE: Record<string, string> = {
-    info:  "bg-blue-50 border-blue-200 text-blue-800",
-    warn:  "bg-amber-50 border-amber-200 text-amber-800",
+    info: "bg-blue-50 border-blue-200 text-blue-800",
+    warn: "bg-amber-50 border-amber-200 text-amber-800",
     error: "bg-red-50 border-red-200 text-red-800",
   }
   const ICON: Record<string, React.ReactNode> = {
-    info:  <Info          className="w-4 h-4 flex-shrink-0 text-blue-600"  />,
-    warn:  <ShieldAlert   className="w-4 h-4 flex-shrink-0 text-amber-600" />,
-    error: <X             className="w-4 h-4 flex-shrink-0 text-red-600"   />,
+    info: <Info className="w-4 h-4 flex-shrink-0 text-blue-600" />,
+    warn: <ShieldAlert className="w-4 h-4 flex-shrink-0 text-amber-600" />,
+    error: <X className="w-4 h-4 flex-shrink-0 text-red-600" />,
   }
   return (
     <div className="fixed bottom-4 right-4 z-[200] flex flex-col gap-2 max-w-sm w-full pointer-events-none">
@@ -488,11 +488,11 @@ function NotifyContainer({ items, dismiss }: { items: NotifyItem[]; dismiss: (id
 // CloneModal
 // ─────────────────────────────────────────────
 function CloneModal({ vm, onClose, onSuccess }: { vm: VmDTO; onClose: () => void; onSuccess: () => Promise<void> }) {
-  const [cloneName,    setCloneName]    = React.useState("")
+  const [cloneName, setCloneName] = React.useState("")
   const [cloneLoading, setCloneLoading] = React.useState(false)
-  const [cloneError,   setCloneError]   = React.useState<string | null>(null)
-  const [cloneResult,  setCloneResult]  = React.useState<VmCloneResult | null>(null)
-  const [copied,       setCopied]       = React.useState(false)
+  const [cloneError, setCloneError] = React.useState<string | null>(null)
+  const [cloneResult, setCloneResult] = React.useState<VmCloneResult | null>(null)
+  const [copied, setCopied] = React.useState(false)
 
   const nameRegex = /^[a-z0-9][a-z0-9\-]{1,30}[a-z0-9]$/
 
@@ -579,7 +579,7 @@ function CloneModal({ vm, onClose, onSuccess }: { vm: VmDTO; onClose: () => void
                 </label>
                 <input type="text" placeholder={`${vm.name}-clone`} value={cloneName}
                   onChange={e => { setCloneName(e.target.value); setCloneError(null) }}
-                  onKeyDown={e => e.key==="Enter" && !cloneLoading && handleClone()} autoFocus
+                  onKeyDown={e => e.key === "Enter" && !cloneLoading && handleClone()} autoFocus
                   className={cn("w-full h-9 rounded-lg border bg-muted/40 px-3 text-[13px] font-mono focus:outline-none focus:ring-1 focus:ring-ring transition-colors",
                     cloneError ? "border-red-300" : "border-border")} />
                 <p className="text-[10px] text-muted-foreground">Minuscules, chiffres et tirets · 3–32 caractères</p>
@@ -610,22 +610,22 @@ function CloneModal({ vm, onClose, onSuccess }: { vm: VmDTO; onClose: () => void
 function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh, notify }: {
   vm: VmDTO; onAction: (fn: () => Promise<void>, name: string) => Promise<void>
   actionLoading: string | null; onDeleteRequest: (name: string) => void; onRefresh: () => Promise<void>
-  notify: (msg: string, type?: "info"|"warn"|"error") => void
+  notify: (msg: string, type?: "info" | "warn" | "error") => void
 }) {
-  const [activeTab,    setActiveTab]    = React.useState<TabId>("overview")
-  const [vncData,      setVncData]      = React.useState<{ url: string; token: string } | null>(null)
-  const [cred,         setCred]         = React.useState<CredState | null>(null)
-  const [net,          setNet]          = React.useState<NetState>({ info: null, visible: false, loading: false })
-  const [metrics,      setMetrics]      = React.useState<VmMetrics | null>(null)
-  const [metricsLoad,  setMetricsLoad]  = React.useState(false)
-  const [events,       setEvents]       = React.useState<VmEvent[]>([])
-  const [eventsLoad,   setEventsLoad]   = React.useState(false)
-  const [copied,       setCopied]       = React.useState<string | null>(null)
-  const [showClone,    setShowClone]    = React.useState(false)
+  const [activeTab, setActiveTab] = React.useState<TabId>("overview")
+  const [vncData, setVncData] = React.useState<{ url: string; token: string } | null>(null)
+  const [cred, setCred] = React.useState<CredState | null>(null)
+  const [net, setNet] = React.useState<NetState>({ info: null, visible: false, loading: false })
+  const [metrics, setMetrics] = React.useState<VmMetrics | null>(null)
+  const [metricsLoad, setMetricsLoad] = React.useState(false)
+  const [events, setEvents] = React.useState<VmEvent[]>([])
+  const [eventsLoad, setEventsLoad] = React.useState(false)
+  const [copied, setCopied] = React.useState<string | null>(null)
+  const [showClone, setShowClone] = React.useState(false)
   const [snapCreating, setSnapCreating] = React.useState(false)
 
   const isRunning = vm.status === "Running"
-  const isBusy    = actionLoading === vm.name
+  const isBusy = actionLoading === vm.name
 
   const copyText = (text: string, key: string) => {
     navigator.clipboard.writeText(text); setCopied(key)
@@ -634,31 +634,31 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
   const handleTabChange = async (tabId: TabId) => {
     setActiveTab(tabId)
-    if (tabId==="console" && !vncData && isRunning) {
+    if (tabId === "console" && !vncData && isRunning) {
       try { const d = await getVncUrl(vm.name); setVncData(d) }
       catch (e: any) { notify("Impossible d'ouvrir la console VNC : " + e.message, "error") }
     }
-    if (tabId==="acces" && !cred) {
-      setCred({ login:"", password:"", visible:false, loading:true, pwVisible:false })
-      try { const d = await getVmCredentials(vm.name); setCred({...d, visible:true, loading:false, pwVisible:false}) }
-      catch { setCred({ login:"ubuntu", password:"non-disponible", visible:true, loading:false, pwVisible:false }) }
+    if (tabId === "acces" && !cred) {
+      setCred({ login: "", password: "", visible: false, loading: true, pwVisible: false })
+      try { const d = await getVmCredentials(vm.name); setCred({ ...d, visible: true, loading: false, pwVisible: false }) }
+      catch { setCred({ login: "ubuntu", password: "non-disponible", visible: true, loading: false, pwVisible: false }) }
     }
-    if (tabId==="ssh" && !net.info && !net.loading) {
-      setNet({ info:null, visible:false, loading:true })
+    if (tabId === "ssh" && !net.info && !net.loading) {
+      setNet({ info: null, visible: false, loading: true })
       try {
         const services = await getVmNetwork(vm.name)
-        const info = services.length>0 ? services[0] : await exposeVmSsh(vm.name)
-        setNet({ info, visible:true, loading:false })
-      } catch (e: any) { setNet({ info:null, visible:false, loading:false }); notify("Erreur réseau : "+e.message, "error") }
+        const info = services.length > 0 ? services[0] : await exposeVmSsh(vm.name)
+        setNet({ info, visible: true, loading: false })
+      } catch (e: any) { setNet({ info: null, visible: false, loading: false }); notify("Erreur réseau : " + e.message, "error") }
     }
-    if (tabId==="metrics" && !metrics && !metricsLoad) {
+    if (tabId === "metrics" && !metrics && !metricsLoad) {
       setMetricsLoad(true)
-      try { setMetrics(await getVmMetrics(vm.name)) } catch {}
+      try { setMetrics(await getVmMetrics(vm.name)) } catch { }
       finally { setMetricsLoad(false) }
     }
-    if (tabId==="events" && events.length===0 && !eventsLoad) {
+    if (tabId === "events" && events.length === 0 && !eventsLoad) {
       setEventsLoad(true)
-      try { setEvents(await getVmEvents(vm.name)) } catch {}
+      try { setEvents(await getVmEvents(vm.name)) } catch { }
       finally { setEventsLoad(false) }
     }
   }
@@ -666,7 +666,7 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
   const handleQuickSnapshot = async () => {
     setSnapCreating(true)
     try { await createSnapshot(vm.name, undefined); await handleTabChange("snapshots") }
-    catch (e: any) { notify("Snapshot échoué : "+e.message, "error") }
+    catch (e: any) { notify("Snapshot échoué : " + e.message, "error") }
     finally { setSnapCreating(false) }
   }
 
@@ -674,28 +674,28 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
   const PanelOverview = () => (
     <div className="p-5 space-y-4">
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        <InfoCard label="Nom"      value={vm.name} />
-        <InfoCard label="Statut"   value={
+        <InfoCard label="Nom" value={vm.name} />
+        <InfoCard label="Statut" value={
           <span className={cn("px-2 py-0.5 rounded-full text-[11px] border font-medium",
             STATUS_STYLE[vm.status] ?? "bg-muted text-muted-foreground border-border")}>
             {vm.status}
           </span>
         } mono={false} />
-        <InfoCard label="OS"       value={getOsLabel(vm.osImage)} mono={false} />
+        <InfoCard label="OS" value={getOsLabel(vm.osImage)} mono={false} />
         <InfoCard label="Namespace" value={vm.namespace} />
-        <InfoCard label="IP"       value={
+        <InfoCard label="IP" value={
           vm.ip
             ? <span className="flex items-center gap-1">{vm.ip}
-                <button onClick={() => copyText(vm.ip!, "ip")} className="ml-1">
-                  {copied==="ip" ? <Check className="w-3 h-3 text-emerald-500"/> : <Copy className="w-3 h-3 text-muted-foreground"/>}
-                </button>
-              </span>
+              <button onClick={() => copyText(vm.ip!, "ip")} className="ml-1">
+                {copied === "ip" ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-muted-foreground" />}
+              </button>
+            </span>
             : <span className="text-muted-foreground/50 text-[12px]">Non assignée</span>
         } mono={false} />
-        <InfoCard label="CPU | RAM" value={`${vm.cpuCores??"?"} vCPU | ${vm.ramGb??""}`} />
-        <InfoCard label="Nœud"     value={vm.node ?? "—"} />
+        <InfoCard label="CPU | RAM" value={`${vm.cpuCores ?? "?"} vCPU | ${vm.ramGb ?? ""}`} />
+        <InfoCard label="Nœud" value={vm.node ?? "—"} />
         <InfoCard label="Créée le" value={vm.createdAt ? new Date(vm.createdAt).toLocaleDateString("fr-FR") : "—"} mono={false} />
-        <InfoCard label="Machine"  value={vm.machineType ?? "—"} />
+        <InfoCard label="Machine" value={vm.machineType ?? "—"} />
       </div>
       {vm.fqdn && (
         <div className="bg-muted/40 border border-border/60 rounded-xl px-3 py-2.5 text-[12px]">
@@ -719,22 +719,21 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
   // ── PanelMetrics ──
   const PanelMetrics = () => {
-    if (metricsLoad) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>
+    if (metricsLoad) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
     const m = metrics
     return (
       <div className="p-5 space-y-4">
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           {([
-            { label:"CPU",     value: m?`${m.cpuPercent.toFixed(2)}%`:"—",  sub:"Demandé de 1",                        pct:m?.cpuPercent,  color:"bg-blue-500"   },
-            { label:"Mémoire", value: m?`${m.memPercent.toFixed(1)}%`:"—",  sub:m?`${m.memUsedMiB} MiB / ${m.memTotalMiB} MiB`:"", pct:m?.memPercent,  color:"bg-amber-500"  },
-            { label:"Disque",  value: m?`${m.diskPercent.toFixed(2)}%`:"—", sub:m?.diskUsed??"",                       pct:m?.diskPercent, color:"bg-emerald-500"},
-            { label:"Réseau",  value: m?`${m.netBps} Bps`:"—",             sub:"Transfert total",                     pct:undefined,      color:""              },
+            { label: "CPU", value: m ? `${m.cpuPercent.toFixed(2)}%` : "—", sub: "Demandé de 1", pct: m?.cpuPercent, color: "bg-blue-500" },
+            { label: "Mémoire", value: m ? `${m.memPercent.toFixed(1)}%` : "—", sub: m ? `${m.memUsedMiB} MiB / ${m.memTotalMiB} MiB` : "", pct: m?.memPercent, color: "bg-amber-500" },
+            { label: "Disque", value: m ? m.diskUsed : "—", sub: "I/O disque (read+write)", pct: undefined, color: "" }, { label: "Réseau", value: m ? `${m.netBps} Bps` : "—", sub: "Transfert total", pct: undefined, color: "" },
           ] as const).map(({ label, value, sub, pct, color }) => (
             <div key={label} className="bg-muted/40 border border-border/60 rounded-xl px-3 py-3">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">{label}</p>
               <p className="text-[20px] font-medium">{value}</p>
               <p className="text-[11px] text-muted-foreground">{sub}</p>
-              {pct!==undefined && <ProgressBar value={pct} color={color} />}
+              {pct !== undefined && <ProgressBar value={pct} color={color} />}
             </div>
           ))}
         </div>
@@ -749,21 +748,21 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
   // ── PanelConfig ──
   const PanelConfig = () => {
-    type ConfigSection = "details"|"storage"|"network"|"scheduling"|"ssh"
-    const [section,      setSection]      = React.useState<ConfigSection>("details")
-    const [config,       setConfig]       = React.useState<VmConfigDTO | null>(null)
-    const [configLoad,   setConfigLoad]   = React.useState(true)
-    const [configErr,    setConfigErr]    = React.useState<string | null>(null)
-    const [saving,       setSaving]       = React.useState(false)
-    const [saveOk,       setSaveOk]       = React.useState(false)
-    const [editDesc,     setEditDesc]     = React.useState(false)
-    const [editCpu,      setEditCpu]      = React.useState(false)
+    type ConfigSection = "details" | "storage" | "network" | "scheduling" | "ssh"
+    const [section, setSection] = React.useState<ConfigSection>("details")
+    const [config, setConfig] = React.useState<VmConfigDTO | null>(null)
+    const [configLoad, setConfigLoad] = React.useState(true)
+    const [configErr, setConfigErr] = React.useState<string | null>(null)
+    const [saving, setSaving] = React.useState(false)
+    const [saveOk, setSaveOk] = React.useState(false)
+    const [editDesc, setEditDesc] = React.useState(false)
+    const [editCpu, setEditCpu] = React.useState(false)
     const [editHostname, setEditHostname] = React.useState(false)
-    const [draftDesc,    setDraftDesc]    = React.useState("")
-    const [draftCpu,     setDraftCpu]     = React.useState("")
-    const [draftRam,     setDraftRam]     = React.useState("")
-    const [draftHost,    setDraftHost]    = React.useState("")
-    const [draftOpts,    setDraftOpts]    = React.useState({ headlessMode:false, guestLogAccess:true, deleteProtection:false })
+    const [draftDesc, setDraftDesc] = React.useState("")
+    const [draftCpu, setDraftCpu] = React.useState("")
+    const [draftRam, setDraftRam] = React.useState("")
+    const [draftHost, setDraftHost] = React.useState("")
+    const [draftOpts, setDraftOpts] = React.useState({ headlessMode: false, guestLogAccess: true, deleteProtection: false })
 
     React.useEffect(() => {
       setConfigLoad(true); setConfigErr(null)
@@ -774,7 +773,7 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
           setDraftCpu(d.details.cpuCores ?? "1")
           setDraftRam(d.details.ram ?? "1Gi")
           setDraftHost(d.details.hostname ?? vm.name)
-          setDraftOpts({ headlessMode:d.details.headlessMode, guestLogAccess:d.details.guestLogAccess, deleteProtection:d.details.deleteProtection })
+          setDraftOpts({ headlessMode: d.details.headlessMode, guestLogAccess: d.details.guestLogAccess, deleteProtection: d.details.deleteProtection })
         })
         .catch(e => setConfigErr(e.message))
         .finally(() => setConfigLoad(false))
@@ -783,24 +782,24 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
     const saveDetails = async () => {
       setSaving(true)
       try {
-        await updateVmConfig(vm.name, { description:draftDesc, cpuCores:draftCpu, ram:draftRam, hostname:draftHost, ...draftOpts })
+        await updateVmConfig(vm.name, { description: draftDesc, cpuCores: draftCpu, ram: draftRam, hostname: draftHost, ...draftOpts })
         setSaveOk(true); setEditDesc(false); setEditCpu(false); setEditHostname(false)
         setTimeout(() => setSaveOk(false), 2000)
         const d = await getVmConfig(vm.name); setConfig(d)
-      } catch (e: any) { notify("Erreur sauvegarde : "+e.message, "error") }
+      } catch (e: any) { notify("Erreur sauvegarde : " + e.message, "error") }
       finally { setSaving(false) }
     }
 
     const NAV: { id: ConfigSection; label: string; icon: React.ReactNode }[] = [
-      { id:"details",    label:"Détails",      icon:<Info          className="w-3.5 h-3.5"/> },
-      { id:"storage",    label:"Stockage",     icon:<HardDrive     className="w-3.5 h-3.5"/> },
-      { id:"network",    label:"Réseau",       icon:<Globe         className="w-3.5 h-3.5"/> },
-      { id:"scheduling", label:"Planification",icon:<CalendarClock className="w-3.5 h-3.5"/> },
-      { id:"ssh",        label:"SSH",          icon:<LockIcon      className="w-3.5 h-3.5"/> },
+      { id: "details", label: "Détails", icon: <Info className="w-3.5 h-3.5" /> },
+      { id: "storage", label: "Stockage", icon: <HardDrive className="w-3.5 h-3.5" /> },
+      { id: "network", label: "Réseau", icon: <Globe className="w-3.5 h-3.5" /> },
+      { id: "scheduling", label: "Planification", icon: <CalendarClock className="w-3.5 h-3.5" /> },
+      { id: "ssh", label: "SSH", icon: <LockIcon className="w-3.5 h-3.5" /> },
     ]
 
-    if (configLoad) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>
-    if (configErr)  return <div className="p-5"><p className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">Erreur : {configErr}</p></div>
+    if (configLoad) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
+    if (configErr) return <div className="p-5"><p className="text-[12px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-4 py-3">Erreur : {configErr}</p></div>
 
     return (
       <div className="flex min-h-[380px]">
@@ -808,8 +807,8 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
           {NAV.map(s => (
             <button key={s.id} onClick={() => setSection(s.id)}
               className={cn("w-full text-left flex items-center gap-2 px-4 py-2.5 text-[12px] transition-colors",
-                section===s.id ? "text-foreground font-medium border-l-2 border-foreground bg-muted/30"
-                               : "text-muted-foreground hover:text-foreground border-l-2 border-transparent")}>
+                section === s.id ? "text-foreground font-medium border-l-2 border-foreground bg-muted/30"
+                  : "text-muted-foreground hover:text-foreground border-l-2 border-transparent")}>
               {s.icon}{s.label}
             </button>
           ))}
@@ -818,38 +817,38 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
         <div className="flex-1 p-5 overflow-auto space-y-4">
 
           {/* DÉTAILS */}
-          {section==="details" && (
+          {section === "details" && (
             <>
               <div className="flex items-center justify-between mb-1">
                 <p className="text-[13px] font-medium">Détails de la machine virtuelle</p>
-                {saveOk && <span className="text-[11px] text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3"/>Enregistré</span>}
+                {saveOk && <span className="text-[11px] text-emerald-600 flex items-center gap-1"><Check className="w-3 h-3" />Enregistré</span>}
               </div>
               <div className="border border-border/50 rounded-xl px-4 py-3 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Description</p>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditDesc(!editDesc)}><Pencil className="w-3 h-3"/></Button>
+                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditDesc(!editDesc)}><Pencil className="w-3 h-3" /></Button>
                 </div>
                 {editDesc
-                  ? <input value={draftDesc} onChange={e=>setDraftDesc(e.target.value)} placeholder="Aucune"
-                      className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring"/>
-                  : <p className="text-[13px]">{config?.details.description||"Aucune"}</p>}
+                  ? <input value={draftDesc} onChange={e => setDraftDesc(e.target.value)} placeholder="Aucune"
+                    className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] focus:outline-none focus:ring-1 focus:ring-ring" />
+                  : <p className="text-[13px]">{config?.details.description || "Aucune"}</p>}
               </div>
               <div className="border border-border/50 rounded-xl px-4 py-3 space-y-2">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">CPU | Mémoire</p>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditCpu(!editCpu)}><Pencil className="w-3 h-3"/></Button>
+                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditCpu(!editCpu)}><Pencil className="w-3 h-3" /></Button>
                 </div>
                 {editCpu ? (
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="text-[10px] text-muted-foreground mb-1 block">vCPU</label>
-                      <input type="number" min={1} max={16} value={draftCpu} onChange={e=>setDraftCpu(e.target.value)}
-                        className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring"/>
+                      <input type="number" min={1} max={16} value={draftCpu} onChange={e => setDraftCpu(e.target.value)}
+                        className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring" />
                     </div>
                     <div>
                       <label className="text-[10px] text-muted-foreground mb-1 block">RAM (ex: 2Gi)</label>
-                      <input value={draftRam} onChange={e=>setDraftRam(e.target.value)}
-                        className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring"/>
+                      <input value={draftRam} onChange={e => setDraftRam(e.target.value)}
+                        className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring" />
                     </div>
                   </div>
                 ) : <p className="text-[13px] font-mono">{config?.details.cpuCores} vCPU | {config?.details.ram}</p>}
@@ -861,57 +860,57 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
               <div className="border border-border/50 rounded-xl px-4 py-3 space-y-1.5">
                 <div className="flex items-center justify-between">
                   <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider">Nom d'hôte</p>
-                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditHostname(!editHostname)}><Pencil className="w-3 h-3"/></Button>
+                  <Button size="sm" variant="ghost" className="h-6 w-6 p-0" onClick={() => setEditHostname(!editHostname)}><Pencil className="w-3 h-3" /></Button>
                 </div>
                 {editHostname
-                  ? <input value={draftHost} onChange={e=>setDraftHost(e.target.value)}
-                      className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring"/>
+                  ? <input value={draftHost} onChange={e => setDraftHost(e.target.value)}
+                    className="w-full h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring" />
                   : <p className="text-[13px] font-mono">{config?.details.hostname ?? vm.name}</p>}
               </div>
               <div className="border border-border/50 rounded-xl px-4 py-3 space-y-0">
                 <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wider mb-2">Options</p>
                 {([
-                  { label:"Mode sans tête",                     key:"headlessMode"     as const },
-                  { label:"Accès au journal du système invité", key:"guestLogAccess"   as const },
-                  { label:"Protection contre la suppression",   key:"deleteProtection" as const },
+                  { label: "Mode sans tête", key: "headlessMode" as const },
+                  { label: "Accès au journal du système invité", key: "guestLogAccess" as const },
+                  { label: "Protection contre la suppression", key: "deleteProtection" as const },
                 ]).map(({ label, key }) => (
                   <div key={key} className="flex justify-between items-center py-2.5 border-b border-border/40 last:border-0 text-[13px]">
                     <span className="text-muted-foreground">{label}</span>
-                    <button onClick={() => setDraftOpts(o => ({...o,[key]:!o[key]}))}
-                      className={cn("relative w-9 h-5 rounded-full transition-colors", draftOpts[key]?"bg-blue-600":"bg-muted-foreground/30")}>
-                      <span className={cn("absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform", draftOpts[key]&&"translate-x-4")}/>
+                    <button onClick={() => setDraftOpts(o => ({ ...o, [key]: !o[key] }))}
+                      className={cn("relative w-9 h-5 rounded-full transition-colors", draftOpts[key] ? "bg-blue-600" : "bg-muted-foreground/30")}>
+                      <span className={cn("absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform", draftOpts[key] && "translate-x-4")} />
                     </button>
                   </div>
                 ))}
               </div>
-              {(editDesc||editCpu||editHostname||
-                draftOpts.headlessMode     !== (config?.details.headlessMode     ?? false)||
-                draftOpts.guestLogAccess   !== (config?.details.guestLogAccess   ?? true) ||
+              {(editDesc || editCpu || editHostname ||
+                draftOpts.headlessMode !== (config?.details.headlessMode ?? false) ||
+                draftOpts.guestLogAccess !== (config?.details.guestLogAccess ?? true) ||
                 draftOpts.deleteProtection !== (config?.details.deleteProtection ?? false)
               ) && (
-                <Button className="w-full h-9 gap-1.5 text-[12px]" onClick={saveDetails} disabled={saving}>
-                  {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin"/> : <Check className="w-3.5 h-3.5"/>}
-                  Enregistrer les modifications
-                </Button>
-              )}
+                  <Button className="w-full h-9 gap-1.5 text-[12px]" onClick={saveDetails} disabled={saving}>
+                    {saving ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
+                    Enregistrer les modifications
+                  </Button>
+                )}
             </>
           )}
 
           {/* STOCKAGE */}
-          {section==="storage" && (
+          {section === "storage" && (
             <>
               <p className="text-[13px] font-medium">Disques</p>
               <p className="text-[11px] text-muted-foreground bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
                 ⚠ L'ajout/suppression de disques nécessite l'arrêt de la VM.
               </p>
-              {(!config?.disks || config.disks.length===0)
+              {(!config?.disks || config.disks.length === 0)
                 ? <p className="text-[12px] text-muted-foreground text-center py-8">Aucun disque trouvé.</p>
                 : (
                   <div className="border border-border/50 rounded-xl overflow-hidden">
                     <table className="w-full text-[12px]">
                       <thead>
                         <tr className="bg-muted/40 border-b border-border/50">
-                          {["Nom","Source","Taille","Lecteur","Interface","Classe",""].map(h => (
+                          {["Nom", "Source", "Taille", "Lecteur", "Interface", "Classe", ""].map(h => (
                             <th key={h} className="text-left px-3 py-2 text-[10px] text-muted-foreground uppercase tracking-wider font-medium">{h}</th>
                           ))}
                         </tr>
@@ -927,13 +926,13 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                             </td>
                             <td className="px-3 py-2.5">
                               <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
-                                disk.source==="DataVolume"    ? "bg-blue-50 text-blue-700"
-                              : disk.source==="CloudInit"     ? "bg-purple-50 text-purple-700"
-                              : disk.source==="ContainerDisk" ? "bg-amber-50 text-amber-700"
-                              : "bg-muted text-muted-foreground")}>
-                                {disk.source==="CloudInit" ? "Autre" : disk.source}
+                                disk.source === "DataVolume" ? "bg-blue-50 text-blue-700"
+                                  : disk.source === "CloudInit" ? "bg-purple-50 text-purple-700"
+                                    : disk.source === "ContainerDisk" ? "bg-amber-50 text-amber-700"
+                                      : "bg-muted text-muted-foreground")}>
+                                {disk.source === "CloudInit" ? "Autre" : disk.source}
                               </span>
-                              {disk.sourceRef!=="-" && (
+                              {disk.sourceRef !== "-" && (
                                 <p className="text-[10px] text-blue-600 mt-0.5 font-mono truncate max-w-[110px]">{disk.sourceRef}</p>
                               )}
                             </td>
@@ -945,7 +944,7 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                               {!disk.bootable && (
                                 <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-red-500 hover:text-red-600"
                                   onClick={() => notify("Détachement de disque — la VM doit être arrêtée.", "warn")}>
-                                  <Trash2 className="w-3 h-3"/>
+                                  <Trash2 className="w-3 h-3" />
                                 </Button>
                               )}
                             </td>
@@ -960,19 +959,19 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
           )}
 
           {/* RÉSEAU — composant propre, zéro hooks conditionnels */}
-          {section==="network" && <NetworkSection config={config} vmName={vm.name} vmStatus={vm.status} notify={notify} />}
+          {section === "network" && <NetworkSection config={config} vmName={vm.name} vmStatus={vm.status} notify={notify} />}
 
           {/* PLANIFICATION */}
-          {section==="scheduling" && (
+          {section === "scheduling" && (
             <>
               <p className="text-[13px] font-medium">Planification et besoins en ressources</p>
               <div className="grid grid-cols-2 gap-3">
                 {([
-                  { label:"Sélecteur de nœud",    value:config?.scheduling.nodeSelector       ?? "Aucun sélecteur",           editable:true  },
-                  { label:"Ressources dédiées",   value:config?.scheduling.dedicatedResources ?? "Aucune ressource dédiée",   editable:false },
-                  { label:"Tolérances",           value:config?.scheduling.tolerations        ?? "0 Règles de tolérance",     editable:true  },
-                  { label:"Stratégie d'éviction", value:config?.scheduling.evictionStrategy   ?? "LiveMigrate",               editable:true  },
-                  { label:"Règles d'affinité",    value:config?.scheduling.affinityRules      ?? "0 Règles d'affinité",       editable:true  },
+                  { label: "Sélecteur de nœud", value: config?.scheduling.nodeSelector ?? "Aucun sélecteur", editable: true },
+                  { label: "Ressources dédiées", value: config?.scheduling.dedicatedResources ?? "Aucune ressource dédiée", editable: false },
+                  { label: "Tolérances", value: config?.scheduling.tolerations ?? "0 Règles de tolérance", editable: true },
+                  { label: "Stratégie d'éviction", value: config?.scheduling.evictionStrategy ?? "LiveMigrate", editable: true },
+                  { label: "Règles d'affinité", value: config?.scheduling.affinityRules ?? "0 Règles d'affinité", editable: true },
                 ]).map(({ label, value, editable }) => (
                   <div key={label} className="bg-muted/40 border border-border/50 rounded-xl px-3 py-2.5">
                     <div className="flex items-center justify-between mb-1">
@@ -980,7 +979,7 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                       {editable && (
                         <Button size="sm" variant="ghost" className="h-5 w-5 p-0 opacity-50 hover:opacity-100"
                           onClick={() => notify("Modification de \"" + label + "\" — nécessite un patch YAML KubeVirt.", "warn")}>
-                          <Pencil className="w-2.5 h-2.5"/>
+                          <Pencil className="w-2.5 h-2.5" />
                         </Button>
                       )}
                     </div>
@@ -993,14 +992,14 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                 <div className={cn("relative w-9 h-5 rounded-full cursor-default",
                   config?.scheduling.deschedulerEnabled ? "bg-blue-600" : "bg-muted-foreground/30")}>
                   <span className={cn("absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform",
-                    config?.scheduling.deschedulerEnabled && "translate-x-4")}/>
+                    config?.scheduling.deschedulerEnabled && "translate-x-4")} />
                 </div>
               </div>
             </>
           )}
 
           {/* SSH CONFIG */}
-          {section==="ssh" && (
+          {section === "ssh" && (
             <>
               <div className="flex items-center gap-2 mb-1">
                 <p className="text-[13px] font-medium">Paramètres TLS</p>
@@ -1032,7 +1031,7 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                   <p className="text-[12px] font-medium">Clé SSH publique</p>
                   <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px]"
                     onClick={() => notify("Ajout de clé SSH — nécessite configuration cloud-init.", "warn")}>
-                    <Plus className="w-3 h-3"/> Ajouter
+                    <Plus className="w-3 h-3" /> Ajouter
                   </Button>
                 </div>
                 <p className="text-[12px] text-muted-foreground">Non disponible</p>
@@ -1049,25 +1048,25 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
   // ── PanelEvents ──
   const PanelEvents = () => {
-    const dotColor: Record<string,string> = { Normal:"bg-emerald-500", Warning:"bg-amber-500", Error:"bg-red-500" }
-    if (eventsLoad) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>
+    const dotColor: Record<string, string> = { Normal: "bg-emerald-500", Warning: "bg-amber-500", Error: "bg-red-500" }
+    if (eventsLoad) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
     return (
       <div className="p-5 space-y-1">
-        {events.length===0 && (
+        {events.length === 0 && (
           <p className="text-[12px] text-amber-700 bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
-            ⚠ Endpoint <code className="font-mono">GET /api/vms/{"{name}"}/events</code> requis côté backend.<br/>
+            ⚠ Endpoint <code className="font-mono">GET /api/vms/{"{name}"}/events</code> requis côté backend.<br />
             <span className="text-muted-foreground">En attendant : <code>kubectl get events -n {vm.namespace}</code></span>
           </p>
         )}
-        {events.map((ev,i) => (
+        {events.map((ev, i) => (
           <div key={i} className="flex gap-3 py-2.5 border-b border-border/40 last:border-0">
-            <div className={cn("w-2 h-2 rounded-full mt-1.5 flex-shrink-0", dotColor[ev.type] ?? "bg-zinc-400")}/>
+            <div className={cn("w-2 h-2 rounded-full mt-1.5 flex-shrink-0", dotColor[ev.type] ?? "bg-zinc-400")} />
             <div className="min-w-[56px] text-[11px] text-muted-foreground">{ev.lastTime}</div>
             <div>
               <p className="text-[12px] font-medium">{ev.message}</p>
               <p className="text-[11px] text-muted-foreground">{ev.reason}</p>
             </div>
-            {ev.count>1 && <span className="ml-auto text-[10px] text-muted-foreground">×{ev.count}</span>}
+            {ev.count > 1 && <span className="ml-auto text-[10px] text-muted-foreground">×{ev.count}</span>}
           </div>
         ))}
       </div>
@@ -1080,14 +1079,14 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
       {!isRunning
         ? <p className="text-[12px] text-muted-foreground">La VM doit être démarrée pour accéder à la console.</p>
         : !vncData
-          ? <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>
-          : <VncConsole apiUrl={vncData.url} token={vncData.token} vmName={vm.name}/>}
+          ? <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
+          : <VncConsole apiUrl={vncData.url} token={vncData.token} vmName={vm.name} />}
     </div>
   )
 
   // ── PanelSsh ──
   const PanelSsh = () => {
-    if (net.loading) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>
+    if (net.loading) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
     return (
       <div className="p-5 space-y-4">
         {!isRunning && (
@@ -1098,29 +1097,29 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
         {net.info ? (
           <>
             <div className="grid grid-cols-3 gap-2">
-              <InfoCard label="IP Node"  value={net.info.nodeIp}/>
-              <InfoCard label="Port SSH" value={String(net.info.nodePort)}/>
-              <InfoCard label="Type"     value={net.info.type}/>
+              <InfoCard label="IP Node" value={net.info.nodeIp} />
+              <InfoCard label="Port SSH" value={String(net.info.nodePort)} />
+              <InfoCard label="Type" value={net.info.type} />
             </div>
             <div className="bg-zinc-900 rounded-xl px-4 py-3 flex items-center gap-3">
-              <Terminal className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0"/>
+              <Terminal className="w-3.5 h-3.5 text-zinc-500 flex-shrink-0" />
               <code className="text-[12px] text-emerald-400 font-mono flex-1 break-all">{net.info.sshCommand}</code>
               <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-zinc-400 hover:text-white"
-                onClick={() => copyText(net.info!.sshCommand,"ssh")}>
-                {copied==="ssh" ? <Check className="w-3 h-3 text-emerald-400"/> : <Copy className="w-3 h-3"/>}
+                onClick={() => copyText(net.info!.sshCommand, "ssh")}>
+                {copied === "ssh" ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
             <div className="flex justify-between items-center">
               <p className="text-[11px] text-muted-foreground flex items-center gap-1.5">
-                <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0"/>
+                <ShieldAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                 Accessible uniquement depuis le réseau VPN NextStep
               </p>
               <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[11px] text-red-600 hover:text-red-700"
                 onClick={async () => {
-                  try { await unexposeVmSsh(vm.name); setNet({info:null,visible:false,loading:false}) }
+                  try { await unexposeVmSsh(vm.name); setNet({ info: null, visible: false, loading: false }) }
                   catch (e: any) { notify(e.message, "error") }
                 }}>
-                <X className="w-3 h-3"/> Supprimer
+                <X className="w-3 h-3" /> Supprimer
               </Button>
             </div>
           </>
@@ -1133,11 +1132,11 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
   // ── PanelAcces ──
   const PanelAcces = () => {
-    if (!cred||cred.loading) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>
+    if (!cred || cred.loading) return <div className="flex justify-center py-12"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>
     return (
       <div className="p-5 space-y-4">
         <div className="grid grid-cols-2 gap-2">
-          <InfoCard label="Login" value={cred.login}/>
+          <InfoCard label="Login" value={cred.login} />
           <div className="bg-muted/40 border border-border/60 rounded-xl px-3 py-2.5">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Mot de passe</p>
             <div className="flex items-center gap-2">
@@ -1145,12 +1144,12 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                 {cred.pwVisible ? cred.password : "••••••••••"}
               </code>
               <Button size="sm" variant="ghost" className="h-6 w-6 p-0"
-                onClick={() => setCred(c => c?{...c,pwVisible:!c.pwVisible}:c)}>
-                {cred.pwVisible ? <EyeOff className="w-3 h-3"/> : <Eye className="w-3 h-3"/>}
+                onClick={() => setCred(c => c ? { ...c, pwVisible: !c.pwVisible } : c)}>
+                {cred.pwVisible ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
               </Button>
               <Button size="sm" variant="ghost" className="h-6 w-6 p-0"
-                onClick={() => copyText(cred.password,"pw")}>
-                {copied==="pw" ? <Check className="w-3 h-3 text-emerald-600"/> : <Copy className="w-3 h-3"/>}
+                onClick={() => copyText(cred.password, "pw")}>
+                {copied === "pw" ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
               </Button>
             </div>
           </div>
@@ -1162,15 +1161,15 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
   // ── PanelSnapshots ──
   const PanelSnapshots = () => {
-    const [snapshots,     setSnapshots]     = React.useState<VmSnapshot[]>([])
-    const [loading,       setLoading]       = React.useState(false)
-    const [creating,      setCreating]      = React.useState(false)
-    const [newName,       setNewName]       = React.useState("")
-    const [restoring,     setRestoring]     = React.useState<string|null>(null)
-    const [deleting,      setDeleting]      = React.useState<string|null>(null)
-    const [error,         setError]         = React.useState<string|null>(null)
-    const [restoreTarget, setRestoreTarget] = React.useState<string|null>(null)
-    const [deleteTarget,  setDeleteTarget]  = React.useState<string|null>(null)
+    const [snapshots, setSnapshots] = React.useState<VmSnapshot[]>([])
+    const [loading, setLoading] = React.useState(false)
+    const [creating, setCreating] = React.useState(false)
+    const [newName, setNewName] = React.useState("")
+    const [restoring, setRestoring] = React.useState<string | null>(null)
+    const [deleting, setDeleting] = React.useState<string | null>(null)
+    const [error, setError] = React.useState<string | null>(null)
+    const [restoreTarget, setRestoreTarget] = React.useState<string | null>(null)
+    const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null)
 
     const loadSnaps = React.useCallback(async () => {
       setLoading(true); setError(null)
@@ -1183,7 +1182,7 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 
     const handleCreate = async () => {
       setCreating(true); setError(null)
-      try { await createSnapshot(vm.name, newName.trim()||undefined); setNewName(""); await loadSnaps() }
+      try { await createSnapshot(vm.name, newName.trim() || undefined); setNewName(""); await loadSnaps() }
       catch (e: any) { setError(e.message) }
       finally { setCreating(false) }
     }
@@ -1203,10 +1202,10 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
       finally { setDeleting(null) }
     }
 
-    const phaseStyle: Record<string,string> = {
+    const phaseStyle: Record<string, string> = {
       Succeeded: "bg-emerald-50 text-emerald-700 border-emerald-200",
       InProgress: "bg-amber-50 text-amber-700 border-amber-200",
-      Failed:     "bg-red-50 text-red-600 border-red-200",
+      Failed: "bg-red-50 text-red-600 border-red-200",
     }
 
     return (
@@ -1223,9 +1222,9 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
             <AlertDialogFooter>
               <AlertDialogCancel>Annuler</AlertDialogCancel>
               <AlertDialogAction
-                className="gap-1.5" style={{ backgroundColor:"#0a7fcf", borderColor:"#0a7fcf", color:"white" }}
+                className="gap-1.5" style={{ backgroundColor: "#0a7fcf", borderColor: "#0a7fcf", color: "white" }}
                 onClick={confirmRestore} disabled={!!restoring}>
-                {restoring ? <Loader2 className="size-3.5 animate-spin"/> : <RotateCcw className="size-3.5"/>}
+                {restoring ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" />}
                 Restaurer
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -1241,10 +1240,10 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
               </div>
               <div className="px-5 py-3 bg-muted/20"><code className="text-[12px] font-mono text-foreground">{deleteTarget}</code></div>
               <div className="flex gap-2 px-5 py-4">
-                <Button variant="outline" className="flex-1 h-9 text-[12px]" onClick={() => setDeleteTarget(null)} disabled={deleting===deleteTarget}>Annuler</Button>
+                <Button variant="outline" className="flex-1 h-9 text-[12px]" onClick={() => setDeleteTarget(null)} disabled={deleting === deleteTarget}>Annuler</Button>
                 <Button className="flex-1 h-9 text-[12px] bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5"
-                  onClick={() => handleDelete(deleteTarget)} disabled={deleting===deleteTarget}>
-                  {deleting===deleteTarget ? <><Loader2 className="w-3.5 h-3.5 animate-spin"/> Suppression…</> : <><Trash2 className="w-3.5 h-3.5"/> Supprimer</>}
+                  onClick={() => handleDelete(deleteTarget)} disabled={deleting === deleteTarget}>
+                  {deleting === deleteTarget ? <><Loader2 className="w-3.5 h-3.5 animate-spin" /> Suppression…</> : <><Trash2 className="w-3.5 h-3.5" /> Supprimer</>}
                 </Button>
               </div>
             </div>
@@ -1254,13 +1253,13 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
         <div className="p-5 space-y-4">
           <div className="flex gap-2">
             <input type="text" placeholder="Nom de l'instantané (optionnel)" value={newName}
-              onChange={e=>setNewName(e.target.value)}
-              className="flex-1 h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring"/>
-            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]" onClick={handleCreate} disabled={creating||!isRunning}>
-              {creating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Camera className="w-3 h-3"/>} Snapshot
+              onChange={e => setNewName(e.target.value)}
+              className="flex-1 h-8 rounded-lg border border-border bg-muted/40 px-3 text-[12px] font-mono focus:outline-none focus:ring-1 focus:ring-ring" />
+            <Button size="sm" variant="outline" className="h-8 gap-1.5 text-[12px]" onClick={handleCreate} disabled={creating || !isRunning}>
+              {creating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />} Snapshot
             </Button>
             <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={loadSnaps} disabled={loading}>
-              <RefreshCw className={cn("w-3 h-3", loading&&"animate-spin")}/>
+              <RefreshCw className={cn("w-3 h-3", loading && "animate-spin")} />
             </Button>
           </div>
           {!isRunning && (
@@ -1269,17 +1268,17 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
             </p>
           )}
           {error && <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">{error}</p>}
-          {loading && <div className="flex justify-center py-8"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>}
-          {!loading && snapshots.length===0 && (
+          {loading && <div className="flex justify-center py-8"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>}
+          {!loading && snapshots.length === 0 && (
             <div className="text-center py-10 text-muted-foreground">
-              <Camera className="w-8 h-8 mx-auto mb-3 opacity-20"/>
+              <Camera className="w-8 h-8 mx-auto mb-3 opacity-20" />
               <p className="text-[13px]">Aucun instantané disponible.</p>
               <p className="text-[11px] mt-1 opacity-60">Nécessite une VM avec DataVolume (stockage persistant NFS).</p>
             </div>
           )}
           {!loading && snapshots.map(snap => (
             <div key={snap.name} className="flex items-center gap-3 px-4 py-3 bg-muted/30 border border-border/50 rounded-xl">
-              <Camera className="w-4 h-4 text-muted-foreground flex-shrink-0"/>
+              <Camera className="w-4 h-4 text-muted-foreground flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-[13px] font-mono font-medium truncate">{snap.name}</p>
                 <p className="text-[11px] text-muted-foreground">
@@ -1291,12 +1290,12 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                 {snap.readyToUse ? "✓ Prêt" : snap.phase}
               </span>
               <Button size="sm" variant="outline" className="h-7 gap-1 text-[11px] flex-shrink-0"
-                onClick={() => setRestoreTarget(snap.name)} disabled={restoring===snap.name||!snap.readyToUse}>
-                {restoring===snap.name ? <Loader2 className="w-3 h-3 animate-spin"/> : <RotateCcw className="w-3 h-3"/>} Restaurer
+                onClick={() => setRestoreTarget(snap.name)} disabled={restoring === snap.name || !snap.readyToUse}>
+                {restoring === snap.name ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />} Restaurer
               </Button>
               <Button size="sm" variant="ghost" className="h-7 w-7 p-0 text-red-500 hover:text-red-600 flex-shrink-0"
-                onClick={() => setDeleteTarget(snap.name)} disabled={deleting===snap.name}>
-                {deleting===snap.name ? <Loader2 className="w-3 h-3 animate-spin"/> : <Trash2 className="w-3 h-3"/>}
+                onClick={() => setDeleteTarget(snap.name)} disabled={deleting === snap.name}>
+                {deleting === snap.name ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
               </Button>
             </div>
           ))}
@@ -1309,20 +1308,20 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
   const PanelDiag = () => (
     <div className="p-5 space-y-2">
       {([
-        { label:"VMI prête",               ok:true,       detail:"VirtualMachineInstance active"       },
-        { label:"Pod virt-launcher actif", ok:isRunning,  detail:`virt-launcher-${vm.name}`           },
-        { label:"Interface réseau",        ok:!!vm.ip,    detail:vm.ip ?? "IP non assignée"           },
-        { label:"Agent invité (QEMU)",     ok:false,      detail:"Non installé — requis pour métriques OS" },
-        { label:"Stockage rootdisk",       ok:true,       detail:"Dynamique / virtio"                 },
-        { label:"Stockage cloudinit",      ok:true,       detail:"Dynamique / virtio"                 },
+        { label: "VMI prête", ok: true, detail: "VirtualMachineInstance active" },
+        { label: "Pod virt-launcher actif", ok: isRunning, detail: `virt-launcher-${vm.name}` },
+        { label: "Interface réseau", ok: !!vm.ip, detail: vm.ip ?? "IP non assignée" },
+        { label: "Agent invité (QEMU)", ok: false, detail: "Non installé — requis pour métriques OS" },
+        { label: "Stockage rootdisk", ok: true, detail: "Dynamique / virtio" },
+        { label: "Stockage cloudinit", ok: true, detail: "Dynamique / virtio" },
       ]).map(({ label, ok, detail }) => (
         <div key={label} className="flex items-center justify-between py-2.5 px-3 bg-muted/30 border border-border/50 rounded-xl text-[13px]">
           <div>
             <p className="font-medium">{label}</p>
             <p className="text-[11px] text-muted-foreground">{detail}</p>
           </div>
-          <span className={cn("text-[11px] font-medium flex items-center gap-1", ok?"text-emerald-600":"text-amber-600")}>
-            {ok ? <Check className="w-3 h-3"/> : <ShieldAlert className="w-3 h-3"/>}
+          <span className={cn("text-[11px] font-medium flex items-center gap-1", ok ? "text-emerald-600" : "text-amber-600")}>
+            {ok ? <Check className="w-3 h-3" /> : <ShieldAlert className="w-3 h-3" />}
             {ok ? "OK" : "Attention"}
           </span>
         </div>
@@ -1331,20 +1330,20 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
   )
 
   const PANELS: Record<TabId, React.ReactNode> = {
-    overview:  <PanelOverview/>,
-    metrics:   <PanelMetrics/>,
-    config:    <PanelConfig/>,
-    events:    <PanelEvents/>,
-    console:   <PanelConsole/>,
-    ssh:       <PanelSsh/>,
-    acces:     <PanelAcces/>,
-    snapshots: <PanelSnapshots/>,
-    diag:      <PanelDiag/>,
+    overview: <PanelOverview />,
+    metrics: <PanelMetrics />,
+    config: <PanelConfig />,
+    events: <PanelEvents />,
+    console: <PanelConsole />,
+    ssh: <PanelSsh />,
+    acces: <PanelAcces />,
+    snapshots: <PanelSnapshots />,
+    diag: <PanelDiag />,
   }
 
   return (
     <>
-      {showClone && <CloneModal vm={vm} onClose={() => setShowClone(false)} onSuccess={onRefresh}/>}
+      {showClone && <CloneModal vm={vm} onClose={() => setShowClone(false)} onSuccess={onRefresh} />}
       <div className="border border-border rounded-2xl overflow-hidden">
         {/* Header */}
         <div className="px-5 py-3.5 bg-card border-b border-border/60">
@@ -1361,52 +1360,52 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
           </div>
           <div className="flex flex-wrap gap-4 text-[11px] text-muted-foreground">
             <span>{vm.namespace}</span>
-            {vm.ip       && <span className="flex items-center gap-1"><Network className="w-3 h-3"/>{vm.ip}</span>}
-            {vm.cpuCores && <span className="flex items-center gap-1"><Cpu className="w-3 h-3"/>{vm.cpuCores} vCPU</span>}
-            {vm.ramGb    && <span className="flex items-center gap-1"><MemoryStick className="w-3 h-3"/>{vm.ramGb}</span>}
+            {vm.ip && <span className="flex items-center gap-1"><Network className="w-3 h-3" />{vm.ip}</span>}
+            {vm.cpuCores && <span className="flex items-center gap-1"><Cpu className="w-3 h-3" />{vm.cpuCores} vCPU</span>}
+            {vm.ramGb && <span className="flex items-center gap-1"><MemoryStick className="w-3 h-3" />{vm.ramGb}</span>}
             {vm.createdAt && <span>Créée : {new Date(vm.createdAt).toLocaleDateString("fr-FR")}</span>}
           </div>
         </div>
 
         {/* Actions */}
         <div className="flex items-center gap-2 px-4 py-2 bg-muted/20 border-b border-border/40 flex-wrap">
-          {vm.status==="Stopped" ? (
+          {vm.status === "Stopped" ? (
             <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[12px]"
               onClick={() => onAction(() => startVm(vm.name), vm.name)} disabled={isBusy}>
-              {isBusy ? <Loader2 className="w-3 h-3 animate-spin"/> : <Play className="w-3 h-3"/>} Démarrer
+              {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Play className="w-3 h-3" />} Démarrer
             </Button>
           ) : (
             <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[12px]"
-              onClick={() => onAction(() => stopVm(vm.name), vm.name)} disabled={isBusy||!isRunning}>
-              {isBusy ? <Loader2 className="w-3 h-3 animate-spin"/> : <Square className="w-3 h-3"/>} Arrêter
+              onClick={() => onAction(() => stopVm(vm.name), vm.name)} disabled={isBusy || !isRunning}>
+              {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <Square className="w-3 h-3" />} Arrêter
             </Button>
           )}
           <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[12px]"
-            onClick={() => onAction(() => rebootVm(vm.name), vm.name)} disabled={isBusy||!isRunning}>
-            {isBusy ? <Loader2 className="w-3 h-3 animate-spin"/> : <RotateCcw className="w-3 h-3"/>} Reboot
+            onClick={() => onAction(() => rebootVm(vm.name), vm.name)} disabled={isBusy || !isRunning}>
+            {isBusy ? <Loader2 className="w-3 h-3 animate-spin" /> : <RotateCcw className="w-3 h-3" />} Reboot
           </Button>
           <Button size="sm" variant="outline" className="h-7 gap-1.5 text-[12px]"
-            onClick={handleQuickSnapshot} disabled={isBusy||snapCreating||!isRunning}
+            onClick={handleQuickSnapshot} disabled={isBusy || snapCreating || !isRunning}
             title={!isRunning ? "La VM doit être Running" : "Créer un instantané"}>
-            {snapCreating ? <Loader2 className="w-3 h-3 animate-spin"/> : <Camera className="w-3 h-3"/>} Snapshot
+            {snapCreating ? <Loader2 className="w-3 h-3 animate-spin" /> : <Camera className="w-3 h-3" />} Snapshot
           </Button>
           <Button size="sm" variant="outline"
             className="h-7 gap-1.5 text-[12px] text-violet-700 border-violet-200 hover:bg-violet-50"
             onClick={() => setShowClone(true)} disabled={isBusy}>
-            <GitBranch className="w-3 h-3"/> Cloner
+            <GitBranch className="w-3 h-3" /> Cloner
           </Button>
           <Button size="sm" variant="outline" className="h-7 w-7 p-0 text-red-600 hover:text-red-700 ml-auto"
             onClick={() => onDeleteRequest(vm.name)} disabled={isBusy} title="Supprimer">
-            <Trash2 className="w-3 h-3"/>
+            <Trash2 className="w-3 h-3" />
           </Button>
         </div>
 
         {/* Onglets */}
-        <div className="flex border-b border-border/60 overflow-x-auto bg-background" style={{ scrollbarWidth:"none" }}>
+        <div className="flex border-b border-border/60 overflow-x-auto bg-background" style={{ scrollbarWidth: "none" }}>
           {TABS.map(tab => (
             <button key={tab.id} onClick={() => handleTabChange(tab.id)}
               className={cn("flex items-center gap-1.5 px-4 py-2.5 text-[12px] whitespace-nowrap border-b-2 transition-colors flex-shrink-0",
-                activeTab===tab.id ? "border-foreground text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground")}>
+                activeTab === tab.id ? "border-foreground text-foreground font-medium" : "border-transparent text-muted-foreground hover:text-foreground")}>
               {tab.icon}{tab.label}
             </button>
           ))}
@@ -1424,12 +1423,12 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
 // ─────────────────────────────────────────────
 export default function VmsPage() {
   const { items: notifyItems, show: notify, dismiss: notifyDismiss } = useNotify()
-  const [vms,           setVms]           = React.useState<VmDTO[]>([])
-  const [loading,       setLoading]       = React.useState(true)
-  const [error,         setError]         = React.useState<string | null>(null)
+  const [vms, setVms] = React.useState<VmDTO[]>([])
+  const [loading, setLoading] = React.useState(true)
+  const [error, setError] = React.useState<string | null>(null)
   const [actionLoading, setActionLoading] = React.useState<string | null>(null)
-  const [passwordInfo,  setPasswordInfo]  = React.useState<{ vmName: string; password: string } | null>(null)
-  const [deleteTarget,  setDeleteTarget]  = React.useState<string | null>(null)
+  const [passwordInfo, setPasswordInfo] = React.useState<{ vmName: string; password: string } | null>(null)
+  const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = React.useState(false)
 
   const load = React.useCallback(async () => {
@@ -1460,7 +1459,7 @@ export default function VmsPage() {
     <SidebarInset>
       <NotifyContainer items={notifyItems} dismiss={notifyDismiss} />
       {passwordInfo && (
-        <PasswordDialog vmName={passwordInfo.vmName} password={passwordInfo.password} onClose={() => setPasswordInfo(null)}/>
+        <PasswordDialog vmName={passwordInfo.vmName} password={passwordInfo.password} onClose={() => setPasswordInfo(null)} />
       )}
 
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
@@ -1475,15 +1474,15 @@ export default function VmsPage() {
             <AlertDialogCancel disabled={deleteLoading}>Annuler</AlertDialogCancel>
             <AlertDialogAction className="bg-destructive hover:bg-destructive/90 text-destructive-foreground gap-1.5"
               onClick={confirmDelete} disabled={deleteLoading}>
-              {deleteLoading && <Loader2 className="size-3.5 animate-spin"/>} Supprimer
+              {deleteLoading && <Loader2 className="size-3.5 animate-spin" />} Supprimer
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       <header className="flex h-14 items-center gap-3 border-b border-border/60 px-5 bg-background/95 backdrop-blur sticky top-0 z-10">
-        <SidebarTrigger className="-ml-1 size-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"/>
-        <Separator orientation="vertical" className="h-4 opacity-40"/>
+        <SidebarTrigger className="-ml-1 size-8 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors" />
+        <Separator orientation="vertical" className="h-4 opacity-40" />
         <nav className="flex items-center gap-1.5 text-[13px]">
           <span className="text-muted-foreground">Dashboard</span>
           <span className="text-muted-foreground/30">/</span>
@@ -1494,7 +1493,7 @@ export default function VmsPage() {
         <Button size="sm" variant="outline"
           className="ml-auto h-8 gap-1.5 text-[12px] text-[#0a7fcf] border-[#0a7fcf] hover:bg-[#0a7fcf]/10"
           onClick={load}>
-          <RefreshCw className="w-3.5 h-3.5" style={{ color:"#0a7fcf" }}/> Actualiser
+          <RefreshCw className="w-3.5 h-3.5" style={{ color: "#0a7fcf" }} /> Actualiser
         </Button>
       </header>
 
@@ -1504,13 +1503,13 @@ export default function VmsPage() {
           <p className="text-[13px] text-muted-foreground mt-1">Gérez et accédez à vos VMs : Console VNC, SSH, métriques et plus.</p>
         </div>
 
-        {loading && <div className="flex items-center justify-center py-16"><Loader2 className="size-4 animate-spin text-muted-foreground"/></div>}
-        {error   && <div className="border border-red-200 bg-red-50 rounded-xl px-5 py-4 text-[13px] text-red-600">{error}</div>}
-        {!loading && !error && vms.length===0 && <div className="text-center py-16 text-[13px] text-muted-foreground">Aucune VM déployée.</div>}
+        {loading && <div className="flex items-center justify-center py-16"><Loader2 className="size-4 animate-spin text-muted-foreground" /></div>}
+        {error && <div className="border border-red-200 bg-red-50 rounded-xl px-5 py-4 text-[13px] text-red-600">{error}</div>}
+        {!loading && !error && vms.length === 0 && <div className="text-center py-16 text-[13px] text-muted-foreground">Aucune VM déployée.</div>}
 
         {!loading && vms.map(vm => (
           <VmDetailCard key={vm.name} vm={vm} onAction={handleAction}
-            actionLoading={actionLoading} onDeleteRequest={setDeleteTarget} onRefresh={load} notify={notify}/>
+            actionLoading={actionLoading} onDeleteRequest={setDeleteTarget} onRefresh={load} notify={notify} />
         ))}
       </div>
     </SidebarInset>

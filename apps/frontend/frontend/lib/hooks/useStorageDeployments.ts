@@ -22,22 +22,24 @@ function normalizeStorageResource(
 // ── Type ──────────────────────────────────────────────────────────────────────
 
 export interface StorageDeployment {
-  deploymentId:     number
-  resourceName:     string
-  categoryName:     string
-  planName:         string | null
-  monthlyPriceHt:   number | null
-  createdAt:        string | null
+  deploymentId: number
+  resourceName: string
+  categoryName: string
+  planName: string | null
+  monthlyPriceHt: number | null
+  createdAt: string | null
   deploymentStatus: string
-  storage:          StorageResourceResponse | null
+  storage: StorageResourceResponse | null
+  storageType: StorageType | null
+
 }
 
 // ── Hook ──────────────────────────────────────────────────────────────────────
 
 export function useStorageDeployments() {
-  const [items,   setItems]   = React.useState<StorageDeployment[]>([])
+  const [items, setItems] = React.useState<StorageDeployment[]>([])
   const [loading, setLoading] = React.useState(true)
-  const [error,   setError]   = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
 
   const load = React.useCallback(async () => {
     setLoading(true)
@@ -77,14 +79,18 @@ export function useStorageDeployments() {
           }
 
           return {
-            deploymentId:     d.id,
-            resourceName:     d.resourceName,
-            categoryName:     d.categoryName ?? "",
-            planName:         d.planName,
-            monthlyPriceHt:   d.monthlyPriceHt,
-            createdAt:        d.createdAt,
+            deploymentId: d.id,
+            resourceName: d.resourceName,
+            categoryName: d.categoryName ?? "",
+            planName: d.planName,
+            monthlyPriceHt: d.monthlyPriceHt,
+            createdAt: d.createdAt,
             deploymentStatus: d.status,
-            storage,
+            storage: storage ? normalizeStorageResource(storage) : null,
+            // ← dériver le type depuis la catégorie si storage pas encore là
+            storageType: storage
+              ? normalizeStorageType(storage.storageType as string)
+              : normalizeStorageType(d.categoryName ?? ""),
           }
         })
       )

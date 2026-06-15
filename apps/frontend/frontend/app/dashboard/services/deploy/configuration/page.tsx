@@ -490,15 +490,15 @@ const STEPS = [
 ]
 
 const ZONES: { id: AvailabilityZone; label: string; sub: string }[] = [
-  { id: "EO",      label: "EO",      sub: "Capacité élevée — placement prioritaire" },
-  { id: "DATAXION",label: "DATAXION",sub: "Capacité normale" },
-  { id: "TT",      label: "TT",      sub: "Haute disponibilité automatique (A + B)" },
+  { id: "EO", label: "EO", sub: "Capacité élevée — placement prioritaire" },
+  { id: "DATAXION", label: "DATAXION", sub: "Capacité normale" },
+  { id: "TT", label: "TT", sub: "Haute disponibilité automatique (A + B)" },
 ]
 
 const CYCLE_LABEL: Record<string, string> = {
   HORAIRE: "/h",
   MENSUEL: "/mois",
-  ANNUEL:  "/an",
+  ANNUEL: "/an",
 }
 
 const RESOURCE_NAME_REGEX = /^[a-z][a-z0-9-]{0,61}[a-z0-9]$|^[a-z]$/
@@ -522,8 +522,8 @@ function getOsOptions(category?: ServiceCategory): OperatingSystem[] {
 
 function planSpecs(p: PlanDTO): string {
   return [
-    p.vcores    ? `${p.vcores} vCPU`    : "",
-    p.ramGb     ? `${p.ramGb} Go RAM`   : "",
+    p.vcores ? `${p.vcores} vCPU` : "",
+    p.ramGb ? `${p.ramGb} Go RAM` : "",
     p.storageGb ? `${p.storageGb} Go SSD` : "",
   ].filter(Boolean).join(" · ")
 }
@@ -553,18 +553,18 @@ export default function ConfigurationPage() {
   const router = useRouter()
 
   const [availabilitySet, setAvailabilitySet] = React.useState("")
-  const [service,   setService]   = React.useState<CloudServiceDTO | null>(null)
-  const [plan,      setPlan]      = React.useState<PlanDTO | null>(null)
-  const [fetching,  setFetching]  = React.useState(true)
+  const [service, setService] = React.useState<CloudServiceDTO | null>(null)
+  const [plan, setPlan] = React.useState<PlanDTO | null>(null)
+  const [fetching, setFetching] = React.useState(true)
   const [loadError, setLoadError] = React.useState<string | null>(null)
   const [serviceId, setServiceId] = React.useState<number | null>(null)
-  const [planId,    setPlanId]    = React.useState<number | null>(null)
+  const [planId, setPlanId] = React.useState<number | null>(null)
 
-  const [resourceName,     setResourceName]     = React.useState("")
-  const [description,      setDescription]      = React.useState("")
-  const [zone,             setZone]             = React.useState<AvailabilityZone>("EO")
-  const [backupEnabled,    setBackupEnabled]    = React.useState(true)
-  const [operatingSystem,  setOperatingSystem]  = React.useState<OperatingSystem>("UBUNTU_24_04_LTS")
+  const [resourceName, setResourceName] = React.useState("")
+  const [description, setDescription] = React.useState("")
+  const [zone, setZone] = React.useState<AvailabilityZone>("EO")
+  const [backupEnabled, setBackupEnabled] = React.useState(true)
+  const [operatingSystem, setOperatingSystem] = React.useState<OperatingSystem>("UBUNTU_24_04_LTS")
 
   // Dérivé : la catégorie du service courant
   const category = service?.category
@@ -618,7 +618,7 @@ export default function ConfigurationPage() {
   }, [])
 
   const basePrice = plan?.price ?? 0
-  const cycleStr  = plan ? (CYCLE_LABEL[plan.billingCycle] ?? "") : ""
+  const cycleStr = plan ? (CYCLE_LABEL[plan.billingCycle] ?? "") : ""
 
   const handleContinue = () => {
     if (!serviceId || !planId) return
@@ -720,8 +720,8 @@ export default function ConfigurationPage() {
               {resourceNameError
                 ? <p className="text-[11px] text-destructive">{resourceNameError}</p>
                 : <p className="text-[11px] text-muted-foreground">
-                    Minuscules, chiffres et tirets — 2 à 63 caractères
-                  </p>
+                  Minuscules, chiffres et tirets — 2 à 63 caractères
+                </p>
               }
             </div>
             <div className="space-y-1.5">
@@ -736,6 +736,34 @@ export default function ConfigurationPage() {
               />
             </div>
           </SectionCard>
+          {/* ← NOUVEAU : encart explicatif stockage */}
+          {category === "OBJECT_STORAGE" && (
+            <div className="border border-blue-200 bg-blue-50 rounded-2xl px-5 py-4 text-[13px] text-blue-800 space-y-1">
+              <p className="font-semibold">🪣 Object Storage — MinIO</p>
+              <p>Un serveur MinIO dédié sera déployé dans votre namespace.</p>
+              <p className="text-[12px] text-blue-600">
+                Accès via API S3 compatible AWS SDK · URL HTTPS publique · Bucket créé automatiquement
+              </p>
+            </div>
+          )}
+          {category === "BLOCK_STORAGE" && (
+            <div className="border border-violet-200 bg-violet-50 rounded-2xl px-5 py-4 text-[13px] text-violet-800 space-y-1">
+              <p className="font-semibold">💿 Block Storage — PVC ReadWriteOnce</p>
+              <p>Un volume persistant sera créé et réservé exclusivement à votre namespace.</p>
+              <p className="text-[12px] text-violet-600">
+                Monté dans 1 seul pod · Idéal pour PostgreSQL, MySQL, MongoDB
+              </p>
+            </div>
+          )}
+          {category === "FILE_STORAGE" && (
+            <div className="border border-amber-200 bg-amber-50 rounded-2xl px-5 py-4 text-[13px] text-amber-800 space-y-1">
+              <p className="font-semibold">📁 File Storage — PVC ReadWriteMany</p>
+              <p>Un partage NFS accessible par plusieurs pods simultanément.</p>
+              <p className="text-[12px] text-amber-600">
+                Monté dans N pods · Idéal pour WordPress, logs partagés, assets statiques
+              </p>
+            </div>
+          )}
 
           {/* OS — masqué pour le stockage */}
           {showOs && (
@@ -861,10 +889,10 @@ export default function ConfigurationPage() {
             </div>
             <div className="px-5 py-4 space-y-2.5 bg-card border-b border-border">
               {[
-                { label: "Plan",  value: plan?.name ?? "—" },
-                { label: "Tier",  value: plan?.tier ?? "—" },
+                { label: "Plan", value: plan?.name ?? "—" },
+                { label: "Tier", value: plan?.tier ?? "—" },
                 { label: "Specs", value: plan ? planSpecs(plan) : "—" },
-                { label: "Zone",  value: zone },
+                { label: "Zone", value: zone },
                 ...(showOs
                   ? [{ label: "OS", value: OS_LABELS[operatingSystem] }]
                   : []

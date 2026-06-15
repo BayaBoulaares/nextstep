@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
@@ -294,5 +295,136 @@ public class EmailVerificationService {
                 LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy à HH:mm"))
         );
         sendEmail(toEmail, subject, body);  // ta méthode d'envoi existante
+    }
+    // Ajouter dans EmailVerificationService.java
+
+    public void sendInvoiceEmail(String toEmail, String clientName,
+                                 String planName, String serviceName,
+                                 String period, BigDecimal totalHt,
+                                 Long invoiceId) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("Votre facture NextStep IT — " + period);
+            helper.setText(buildInvoiceHtml(clientName, planName, serviceName,
+                    period, totalHt, invoiceId), true);
+            mailSender.send(message);
+            System.out.println("✅ Email facture envoyé à : " + toEmail);
+        } catch (MessagingException e) {
+            // Non bloquant — la facture est créée même si l'email échoue
+            System.err.println("❌ Email facture échoué : " + e.getMessage());
+        }
+    }
+
+    public void sendOverdueReminderEmail(String toEmail, String clientName,
+                                         String period, BigDecimal totalHt) {
+        try {
+            MimeMessage message = mailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
+            helper.setFrom(fromEmail);
+            helper.setTo(toEmail);
+            helper.setSubject("⚠️ Facture en retard — NextStep IT");
+            helper.setText(buildOverdueHtml(clientName, period, totalHt), true);
+            mailSender.send(message);
+        } catch (MessagingException e) {
+            System.err.println("❌ Email relance échoué : " + e.getMessage());
+        }
+    }
+
+    private String buildInvoiceHtml(String clientName, String planName,
+                                    String serviceName, String period,
+                                    BigDecimal totalHt, Long invoiceId) {
+        String dashboardUrl = frontendUrl + "/dashboard/billing";
+        return """
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: sans-serif; max-width: 520px;
+                     margin: 40px auto; color: #111; padding: 0 16px;">
+          <div style="background: #0a7fcf; color: white; padding: 20px 24px;
+                      border-radius: 10px 10px 0 0;">
+            <h2 style="margin: 0; font-size: 18px;">NextStep IT</h2>
+            <p style="margin: 4px 0 0; opacity: .8; font-size: 13px;">
+              Facture mensuelle
+            </p>
+          </div>
+          <div style="border: 1px solid #e5e7eb; border-top: none;
+                      border-radius: 0 0 10px 10px; padding: 24px;">
+            <p style="color: #444; line-height: 1.6;">
+              Bonjour <strong>%s</strong>,<br>
+              Votre facture pour <strong>%s</strong> est disponible.
+            </p>
+            <table style="width: 100%%; border-collapse: collapse; margin: 20px 0;">
+              <tr style="background: #f9fafb;">
+                <td style="padding: 10px 14px; font-size: 13px; color: #666;">Service</td>
+                <td style="padding: 10px 14px; font-size: 13px; font-weight: 600;">%s</td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 14px; font-size: 13px; color: #666;">Plan</td>
+                <td style="padding: 10px 14px; font-size: 13px; font-weight: 600;">%s</td>
+              </tr>
+              <tr style="background: #f9fafb;">
+                <td style="padding: 10px 14px; font-size: 13px; color: #666;">Période</td>
+                <td style="padding: 10px 14px; font-size: 13px;">%s</td>
+              </tr>
+              <tr style="border-top: 2px solid #e5e7eb;">
+                <td style="padding: 12px 14px; font-size: 15px; font-weight: 700;">Total HT</td>
+                <td style="padding: 12px 14px; font-size: 15px; font-weight: 700;
+                            color: #0a7fcf;">%s TND</td>
+              </tr>
+            </table>
+            <a href="%s" style="display: inline-block; padding: 12px 28px;
+               background: #0a7fcf; color: #fff; border-radius: 8px;
+               text-decoration: none; font-weight: 600; font-size: 14px;">
+              Voir ma facture →
+            </a>
+            <p style="color: #888; font-size: 12px; margin-top: 24px;">
+              Cette facture est disponible dans votre espace client.<br>
+              Pour toute question : support@nextstep.tn
+            </p>
+          </div>
+        </body>
+        </html>
+        """.formatted(clientName, period, serviceName, planName,
+                period, totalHt.toPlainString(), dashboardUrl);
+    }
+
+    private String buildOverdueHtml(String clientName, String period,
+                                    BigDecimal totalHt) {
+        String dashboardUrl = frontendUrl + "/dashboard/billing";
+        return """
+        <!DOCTYPE html>
+        <html>
+        <body style="font-family: sans-serif; max-width: 520px;
+                     margin: 40px auto; color: #111; padding: 0 16px;">
+          <div style="background: #dc2626; color: white; padding: 20px 24px;
+                      border-radius: 10px 10px 0 0;">
+            <h2 style="margin: 0; font-size: 18px;">Facture en retard</h2>
+            <p style="margin: 4px 0 0; opacity: .8; font-size: 13px;">NextStep IT</p>
+          </div>
+          <div style="border: 1px solid #fecaca; border-top: none;
+                      border-radius: 0 0 10px 10px; padding: 24px;">
+            <p>Bonjour <strong>%s</strong>,</p>
+            <p style="color: #444; line-height: 1.6;">
+              Votre facture de <strong>%s TND</strong> pour la période
+              <strong>%s</strong> est en retard de paiement.
+            </p>
+            <p style="color: #444;">
+              Veuillez régulariser votre situation pour maintenir
+              l'accès à vos services.
+            </p>
+            <a href="%s" style="display: inline-block; padding: 12px 28px;
+               background: #dc2626; color: #fff; border-radius: 8px;
+               text-decoration: none; font-weight: 600; font-size: 14px;">
+              Consulter ma facture →
+            </a>
+            <p style="color: #888; font-size: 12px; margin-top: 24px;">
+              Contact : support@nextstep.tn
+            </p>
+          </div>
+        </body>
+        </html>
+        """.formatted(clientName, totalHt.toPlainString(), period, dashboardUrl);
     }
 }

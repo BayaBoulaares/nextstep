@@ -11,6 +11,7 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -325,6 +326,7 @@ import org.springframework.web.client.RestTemplate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.locks.ReentrantLock;
 
 @Service
 public class KeycloakAdminService {
@@ -342,7 +344,10 @@ public class KeycloakAdminService {
     private String clientSecret;
 
     private final RestTemplate restTemplate = new RestTemplate();
-
+    private volatile String  cachedAdminToken = null;
+    private volatile Instant tokenExpiresAt   = Instant.EPOCH;
+    private final ReentrantLock tokenLock      = new ReentrantLock();
+    private static final long TOKEN_TTL_SECONDS = 55; // 60s Keycloak - 5s marge sécurité
 
     // ── Créer un utilisateur ──────────────────────────────────────────────────
 
@@ -548,7 +553,10 @@ public class KeycloakAdminService {
             return enriched;
         }).toList();
     }
-
+    private long toLong(Object val) {
+        if (val instanceof Number n) return n.longValue();
+        return 0L;
+    }
     // ── Révoquer une session ──────────────────────────────────────────────────
 
     public void revokeSession(String sessionId) {
@@ -629,7 +637,7 @@ public class KeycloakAdminService {
     }
 
     @SuppressWarnings("unchecked")
-    private String getAdminToken() {
+    /*private String getAdminToken() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -651,7 +659,48 @@ public class KeycloakAdminService {
     }
     // ── Supprimer un utilisateur par son keycloakId (UUID) ────────────────────────
 // Différent de deleteUser(email) qui cherche d'abord par email
+*/
+    private String getAdminToken() {
 
+        // Lecture rapide sans verrou (cas le plus fréquent — token encore valide)
+        if (cachedAdminToken != null && Instant.now().isBefore(tokenExpiresAt)) {
+            return cachedAdminToken;
+        }
+
+        // Token expiré ou absent : un seul thread renouvelle, les autres attendent
+        tokenLock.lock();
+        try {
+            // Double-check après acquisition du verrou
+            // (un autre thread a peut-être déjà renouvelé pendant qu'on attendait)
+            if (cachedAdminToken != null && Instant.now().isBefore(tokenExpiresAt)) {
+                return cachedAdminToken;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("grant_type",    "client_credentials");
+            params.add("client_id",     clientId);
+            params.add("client_secret", clientSecret);
+
+            ResponseEntity<Map> response = restTemplate.postForEntity(
+                    keycloakUrl + "/realms/" + realm
+                            + "/protocol/openid-connect/token",
+                    new HttpEntity<>(params, headers),
+                    Map.class
+            );
+
+            if (response.getBody() == null)
+                throw new RuntimeException("Impossible d'obtenir le token admin Keycloak");
+
+            cachedAdminToken = (String) response.getBody().get("access_token");
+            tokenExpiresAt   = Instant.now().plusSeconds(TOKEN_TTL_SECONDS);
+
+            return cachedAdminToken;
+
+        } finally {
+            tokenLock.unlock();
+        }}
     public void deleteUserById(String keycloakId) {
         try {
             String adminToken = getAdminToken();

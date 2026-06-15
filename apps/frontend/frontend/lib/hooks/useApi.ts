@@ -56,3 +56,47 @@ export function useUserDeployments() {
 export function useAllServices() {
   return useApi(getAllServices)
 }
+// Ajouter dans useApi.ts
+
+import { getMyInvoices, getInvoiceLines } from "@/lib/services/billing.api"
+import type { InvoiceResponse, InvoiceLineDTO } from "@/lib/types"
+
+// Dans useApi.ts — remplacer useMyInvoices
+
+export function useMyInvoices() {
+  const { data: session } = useSession()
+
+  // Essayer plusieurs sources pour l'userId
+  const userId = React.useMemo(() => {
+    const s = session as any
+    // Source 1 : userId exposé explicitement
+    if (s?.userId) return s.userId as string
+    // Source 2 : sub du token JWT décodé
+    if (s?.accessToken) {
+      try {
+        const payload = JSON.parse(
+          atob(s.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
+        )
+        return payload.sub as string
+      } catch { /* ignore */ }
+    }
+    return undefined
+  }, [session])
+
+  // Log temporaire pour déboguer
+  React.useEffect(() => {
+    console.log('[billing] userId résolu:', userId)
+  }, [userId])
+
+  return useApi<InvoiceResponse[]>(
+    () => userId ? getMyInvoices(userId) : Promise.resolve([]),
+    [userId]
+  )
+}
+
+export function useInvoiceLines(invoiceId: number | null) {
+  return useApi<InvoiceLineDTO[]>(
+    () => invoiceId ? getInvoiceLines(invoiceId) : Promise.resolve([]),
+    [invoiceId]
+  )
+}

@@ -6,6 +6,7 @@ import lombok.Data;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @Data
 public class InvoiceResponse {
@@ -19,4 +20,6 @@ public class InvoiceResponse {
     private LocalDateTime issuedAt;
     private LocalDateTime paidAt;
     private LocalDateTime createdAt;
+    private String serviceName;   // ← ajouter
+    private UUID clientId;        // ← ajouter
 }

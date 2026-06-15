@@ -75,6 +75,7 @@ public class NamespaceService {
 }*/
 package com.nextstep.service;
 
+import com.nextstep.entity.Plan;
 import io.fabric8.kubernetes.api.model.*;
 import io.fabric8.kubernetes.api.model.networking.v1.*;
 import io.fabric8.kubernetes.api.model.rbac.RoleBindingBuilder;
@@ -100,11 +101,10 @@ public class NamespaceService {
     // ✅ Namespace des CLIENTS : baya-tenant-{username}
     public String getNamespaceForUser(String username) {
         String clean = username.toLowerCase()
-                .replaceAll("[^a-z0-9-]", "-")
-                .replaceAll("-+", "-")
-                .replaceAll("^-|-$", "");
+                .replaceAll("[^a-z0-9-]", "-")//Remplacement des caractères interdits {Tout caractère qui n'est PAS : une lettre minuscule a-z,un chiffre 0-9 un tiret -}
+                .replaceAll("-+", "-") //Supprimer les doubles tirets
+                .replaceAll("^-|-$", ""); //Supprimer les tirets au début et à la fin
         return namespacePrefix + "-" + clean;
-        // ex: baya-tenant-baya-boulaares72
     }
 
     // ✅ TON namespace opérateur : tenant-baya
@@ -390,5 +390,101 @@ public class NamespaceService {
                 .replaceAll("[^a-z0-9._-]", "-")
                 .replaceAll("-+", "-")
                 .replaceAll("^-|-$", "");
+    }
+    // À ajouter dans NamespaceService.java
+
+    /**
+     * Met à jour le ResourceQuota d'un namespace selon le plan souscrit.
+     * Appelée depuis AbonnementService après une souscription réussie.
+     * Utilise serverSideApply() pour être idempotente.
+     */
+    public void updateQuotaForPlan(String username, Plan plan) {
+        String namespace = getNamespaceForUser(username);
+
+        if (!namespaceExists(namespace)) {
+            log.warn("[QUOTA] Namespace {} inexistant — quota non mis à jour", namespace);
+            return;
+        }
+
+        // Calculer les limites selon le tier du plan
+        QuotaLimits limits = resolveQuotaLimits(plan);
+
+        ResourceQuota quota = new ResourceQuotaBuilder()
+                .withNewMetadata()
+                .withName("quota-" + sanitize(username))
+                .withNamespace(namespace)
+                .addToLabels("portal/managed", "true")
+                .addToLabels("portal/plan-tier", plan.getTier().name())
+                .endMetadata()
+                .withNewSpec()
+                .addToHard("count/virtualmachines.kubevirt.io",
+                        new Quantity(String.valueOf(limits.maxVms())))
+                .addToHard("limits.cpu",
+                        new Quantity(limits.maxCpu()))
+                .addToHard("limits.memory",
+                        new Quantity(limits.maxMemory()))
+                .addToHard("requests.storage",
+                        new Quantity(limits.maxStorage()))
+                .endSpec()
+                .build();
+
+        k8sClient.resourceQuotas()
+                .inNamespace(namespace)
+                .resource(quota)
+                .serverSideApply();   // idempotent — crée ou met à jour
+
+        log.info("[QUOTA] Namespace {} mis à jour — tier={} vms={} cpu={} mem={} storage={}",
+                namespace, plan.getTier(),
+                limits.maxVms(), limits.maxCpu(),
+                limits.maxMemory(), limits.maxStorage());
+    }
+
+    // Résoudre les limites selon le tier
+    private QuotaLimits resolveQuotaLimits(Plan plan) {
+        return switch (plan.getTier()) {
+            case STARTER    -> new QuotaLimits(2,  "4",   "8Gi",  "100Gi");
+            case BUSINESS   -> new QuotaLimits(5,  "8",   "16Gi", "500Gi");
+            case ENTERPRISE -> new QuotaLimits(20, "32",  "64Gi", "2Ti");
+        };
+    }
+
+    // Record interne pour les limites calculées
+    private record QuotaLimits(
+            int maxVms,
+            String maxCpu,
+            String maxMemory,
+            String maxStorage
+    ) {}
+
+    private String sanitize(String input) {
+        return input.toLowerCase()
+                .replaceAll("[^a-z0-9-]", "-")
+                .replaceAll("-+", "-")
+                .replaceAll("^-|-$", "");
+    }
+    // Alternative plus simple dans NamespaceService.java
+    public void resetToMinimumQuota(String username) {
+        String namespace = getNamespaceForUser(username);
+        if (!namespaceExists(namespace)) return;
+
+        ResourceQuota quota = new ResourceQuotaBuilder()
+                .withNewMetadata()
+                .withName("quota-" + sanitize(username))
+                .withNamespace(namespace)
+                .endMetadata()
+                .withNewSpec()
+                .addToHard("count/virtualmachines.kubevirt.io", new Quantity("1"))
+                .addToHard("limits.cpu",     new Quantity("2"))
+                .addToHard("limits.memory",  new Quantity("4Gi"))
+                .addToHard("requests.storage", new Quantity("50Gi"))
+                .endSpec()
+                .build();
+
+        k8sClient.resourceQuotas()
+                .inNamespace(namespace)
+                .resource(quota)
+                .serverSideApply();
+
+        log.info("[QUOTA] Namespace {} rétrogradé au quota minimum", namespace);
     }
 }

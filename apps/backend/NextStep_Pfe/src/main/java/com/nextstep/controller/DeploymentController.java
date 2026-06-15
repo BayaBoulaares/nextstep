@@ -230,18 +230,23 @@ public class DeploymentController {
             case HEBERGEMENT -> {
                 String username = jwt.getClaimAsString("preferred_username");
                 Plan plan = dep.getPlan();
-                // async pour ne pas bloquer la réponse HTTP
                 CompletableFuture.runAsync(() -> {
                     try {
                         nginxProvisioningService.provisionNginx(username, plan);
-                        deploymentService.markRunning(id); // → ACTIF
+                        deploymentService.markRunning(id);
                     } catch (Exception e) {
                         deploymentService.changeStatus(id, DeploymentStatus.ECHEC);
                     }
                 });
             }
             case BASE_DONNEES -> databaseProvisioningService.provisionAsync(id);
-            case STOCKAGE     -> storageProvisioningService.provisionAsync(id);
+
+            // ← MODIFIER : regrouper les 4 types de stockage
+            case STOCKAGE,
+                 OBJECT_STORAGE,
+                 BLOCK_STORAGE,
+                 FILE_STORAGE    -> storageProvisioningService.provisionAsync(id);
+
             default -> log.info("Catégorie {} — pas de provisioning automatique", category);
         }
 
@@ -288,6 +293,10 @@ public class DeploymentController {
                     dto.put("accessKeyId",      sr.getAccessKeyId());
                     dto.put("status",           sr.getStatus());
                     dto.put("readyAt",          sr.getReadyAt());
+                    dto.put("createdAt",        sr.getCreatedAt());
+                    // ← AJOUTER ces deux lignes manquantes
+                    dto.put("pvcName",          sr.getPvcName());
+                    dto.put("accessMode",       sr.getAccessMode());
                     return ResponseEntity.ok(dto);
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -329,7 +338,11 @@ public class DeploymentController {
                     dto.put("status",          db.getStatus());
                     dto.put("instances",       db.getInstances());
                     dto.put("storageGb",       db.getStorageGb());
+                    dto.put("storageClassName", db.getStorageClassName());
                     dto.put("readyAt",         db.getReadyAt());
+                    dto.put("externalPort",    db.getExternalPort()); // ← ajouter cette ligne
+                    dto.put("externalHost",    db.getExternalHost()); // ← ajouter
+
                     return ResponseEntity.ok(dto);
                 })
                 .orElse(ResponseEntity.notFound().build());

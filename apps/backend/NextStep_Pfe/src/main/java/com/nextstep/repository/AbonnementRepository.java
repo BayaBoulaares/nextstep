@@ -2,6 +2,7 @@ package com.nextstep.repository;
 
 import com.nextstep.entity.Abonnement;
 import com.nextstep.entity.AbonnementStatus;
+import com.nextstep.entity.BillingCycle;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
@@ -20,5 +21,6 @@ public interface AbonnementRepository extends JpaRepository<Abonnement, Long> {
     Optional<Abonnement> findByIdAndClientId(Long id, java.util.UUID clientId);
     boolean existsByDeploymentId(Long deploymentId);
     void deleteByPlanId(Long planId);
+    List<Abonnement> findByStatusAndBillingCycle(AbonnementStatus status, BillingCycle cycle);
 
 }

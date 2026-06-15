@@ -53,15 +53,16 @@ public class UsageService {
         BigDecimal total = abo.getPlan().getPrice() != null
                 ? abo.getPlan().getPrice()
                 : BigDecimal.ZERO;
-
         Invoice invoice = Invoice.builder()
                 .abonnement(abo)
+                .client(abo.getClient())
                 .periodStart(debut)
                 .periodEnd(fin)
                 .totalHt(total)
                 .status(InvoiceStatus.EMISE)
                 .issuedAt(LocalDateTime.now())
                 .build();
+
 
         Invoice saved = invoiceRepository.save(invoice);
         log.info("[INVOICE] Facture créée id={} abo={} total={}", saved.getId(), abonnementId, total);
@@ -83,6 +84,8 @@ public class UsageService {
         r.setId(i.getId());
         r.setAbonnementId(i.getAbonnement().getId());
         r.setPlanName(i.getAbonnement().getPlan().getName());
+        r.setServiceName(i.getAbonnement().getPlan().getService().getName());
+        r.setClientId(i.getClient().getId());
         r.setStatus(i.getStatus());
         r.setPeriodStart(i.getPeriodStart());
         r.setPeriodEnd(i.getPeriodEnd());

@@ -118,3 +118,12 @@ export const reactivateClient = (keycloakId: string) =>
     `${process.env.NEXT_PUBLIC_API_URL}/api/admin/users/${keycloakId}/reactivate`,
     { method: "PATCH" }
   )
+  // Ajouter dans admin.api.ts
+
+export {
+  getAllInvoices        as adminGetAllInvoices,
+  getInvoiceStats      as adminGetInvoiceStats,
+  markInvoicePaid      as adminMarkInvoicePaid,
+  emitCreditNote       as adminEmitCreditNote,
+  generateMonthlyInvoices as adminGenerateMonthlyInvoices,
+} from "@/lib/services/billing.api"

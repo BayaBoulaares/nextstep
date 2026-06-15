@@ -11,11 +11,6 @@ public enum ServiceCategory {
             List.of("u1.nano","u1.micro","u1.small","u1.medium",
                     "u1.large","u1.xlarge","u1.2xlarge")
     ),
-    HEBERGEMENT(
-            true, "🌐",
-            "o1.small",
-            List.of("o1.nano","o1.micro","o1.small","o1.medium","o1.large")
-    ),
     IA(
             true, "🤖",
             "cx1.xlarge",
@@ -29,7 +24,7 @@ public enum ServiceCategory {
     EMAIL           (false, "📧", null, List.of()),
     SECURITE        (false, "🔒", null, List.of()),
     IAM             (false, "👤", null, List.of()),
-
+    HEBERGEMENT(false, "🌐",null,List.of()),
     // ── Sous-types de stockage (provisioning OpenShift) ───────────────────
     OBJECT_STORAGE  (false, "🪣", null, List.of()),
     BLOCK_STORAGE   (false, "💿", null, List.of()),
