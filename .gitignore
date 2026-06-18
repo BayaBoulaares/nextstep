@@ -65,7 +65,7 @@ infra.zip
 
 
 # Dossier dupliqué à la racine
-NextStep_Pfe/
+/NextStep_Pfe/
 
 # Terraform — state et vars sensibles
 **/.terraform/
