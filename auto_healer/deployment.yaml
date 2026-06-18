@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: auto-healer
+  namespace: tenant-baya
+  labels:
+    app: auto-healer
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: auto-healer
+  template:
+    metadata:
+      labels:
+        app: auto-healer
+    spec:
+      containers:
+        - name: auto-healer
+          image: image-registry.openshift-image-registry.svc:5000/tenant-baya/auto-healer:latest
+          ports:
+            - containerPort: 8002
+          env:
+            - name: DB_PATH
+              value: /data/incidents.db
+            - name: DEV_MODE
+              value: "false"
+            - name: ENVIRONMENT
+              value: "production"
+            - name: GROQ_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: auto-healer-secrets
+                  key: groq-api-key
+            - name: KEYCLOAK_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: auto-healer-secrets
+                  key: keycloak-client-secret
+          volumeMounts:
+            - name: incidents-storage
+              mountPath: /data
+      volumes:
+        - name: incidents-storage
+          persistentVolumeClaim:
+            claimName: auto-healer-pvc
