@@ -1,0 +1,10 @@
+variable "vm_name"         { type = string }
+variable "namespace"       { type = string }
+variable "instance_type"   { type = string }
+variable "disk_gb"         { type = number }
+variable "vm_password"     { type = string }
+variable "source_vm_name"  { type = string }
+variable "source_pvc_name" { type = string }
+variable "kube_host"       { type = string }
+variable "kube_token"      { type = string }
+variable "kube_ca"         { type = string }

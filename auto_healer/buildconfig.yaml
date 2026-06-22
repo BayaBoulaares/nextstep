@@ -1,0 +1,26 @@
+apiVersion: image.openshift.io/v1
+kind: ImageStream
+metadata:
+  name: auto-healer
+  namespace: tenant-baya
+---
+apiVersion: build.openshift.io/v1
+kind: BuildConfig
+metadata:
+  name: auto-healer
+  namespace: tenant-baya
+spec:
+  source:
+    type: Git
+    git:
+      uri: "https://github.com/BayaBoulaares/nextstep.git"
+      ref: "main"
+    contextDir: "auto_healer"
+  strategy:
+    type: Docker
+    dockerStrategy:
+      dockerfilePath: Dockerfile
+  output:
+    to:
+      kind: ImageStreamTag
+      name: "auto-healer:latest"

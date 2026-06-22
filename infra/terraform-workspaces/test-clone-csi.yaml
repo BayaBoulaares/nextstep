@@ -1,0 +1,19 @@
+﻿apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: test-clone-csi
+  namespace: baya-tenant-baya-boulaares72
+  annotations:
+    cdi.kubevirt.io/storage.usePopulator: "false"
+spec:
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+    storageClassName: nfs-csi
+  source:
+    pvc:
+      namespace: openshift-virtualization-os-images
+      name: ubuntu-2404-golden

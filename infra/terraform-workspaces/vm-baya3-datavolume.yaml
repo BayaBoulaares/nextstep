@@ -1,0 +1,55 @@
+apiVersion: kubevirt.io/v1
+kind: VirtualMachine
+metadata:
+  name: vm-baya3
+  namespace: baya-tenant-baya-boulaares72
+  labels:
+    portal/availability-set: as-test
+    portal/client: baya-tenant-baya-boulaares72
+spec:
+  running: false
+  instancetype:
+    kind: VirtualMachineClusterInstancetype
+    name: u1.small
+  dataVolumeTemplates:
+    - metadata:
+        name: vm-baya3-rootdisk
+      spec:
+        contentType: kubevirt
+        storage:
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+          storageClassName: nfs-csi
+        source:
+          http:
+            url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+  template:
+    metadata:
+      labels:
+        kubevirt.io/vm: vm-baya3
+    spec:
+      domain:
+        devices:
+          disks:
+            - name: rootdisk
+              disk:
+                bus: virtio
+            - name: cloudinit
+              disk:
+                bus: virtio
+      volumes:
+        - name: rootdisk
+          dataVolume:
+            name: vm-baya3-rootdisk
+        - name: cloudinit
+          cloudInitNoCloud:
+            userData: |
+              #cloud-config
+              user: ubuntu
+              password: TestPass123
+              chpasswd:
+                expire: false
+              ssh_pwauth: true

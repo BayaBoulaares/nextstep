@@ -1,0 +1,18 @@
+apiVersion: v1                 # Version de l'API Kubernetes utilisée pour cet objet
+kind: PersistentVolumeClaim    # Type de ressource : demande de stockage persistant (PVC)
+
+metadata:                      # Métadonnées de l'objet
+  name: postgres-nfs-pvc       # Nom unique du PVC dans le namespace
+  namespace: tenant-baya       # Namespace où sera créé le PVC
+
+spec:                          # Spécification du PVC
+  accessModes:                 # Modes d'accès demandés au volume
+    - ReadWriteOnce            # Le volume peut être monté en lecture/écriture par un seul nœud à la fois
+
+  storageClassName: nfs-storage # Classe de stockage à utiliser (StorageClass basée sur NFS)
+
+  resources:                   # Ressources demandées
+    requests:                  # Quantité minimale de ressources requise
+      storage: 5Gi             # Demande de 5 Gio (Gibioctets) d'espace de stockage
+
+#comment voir la liste de pv et pvc oc get pv ou get pvc 

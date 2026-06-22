@@ -1,0 +1,25 @@
+# keycloak-idp.yaml
+apiVersion: config.openshift.io/v1
+kind: OAuth
+metadata:
+  name: cluster
+spec:
+  identityProviders:
+  - name: keycloak
+    mappingMethod: claim
+    type: OpenID
+    openID:
+      clientID: openshift
+      clientSecret:
+        name: keycloak-oidc-secret
+      issuer: https://keycloak-nfs-nextstep-baya.apps.ocp4.nextstep-it.com/realms/nextstep
+      claims:
+        preferredUsername:
+        - preferred_username
+        name:
+        - name
+        email:
+        - email
+      extraScopes:
+      - email
+      - profile

@@ -1,0 +1,19 @@
+﻿apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataVolume
+metadata:
+  name: ubuntu-2404-golden-csi
+  namespace: openshift-virtualization-os-images
+  annotations:
+    cdi.kubevirt.io/storage.usePopulator: "false"
+spec:
+  contentType: kubevirt
+  source:
+    http:
+      url: https://cloud-images.ubuntu.com/noble/current/noble-server-cloudimg-amd64.img
+  storage:
+    accessModes:
+      - ReadWriteOnce
+    resources:
+      requests:
+        storage: 20Gi
+    storageClassName: nfs-csi

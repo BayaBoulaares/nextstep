@@ -1,0 +1,12 @@
+﻿spec:
+  featureGates:
+    - HonorWaitForFirstConsumer
+  filesystemOverhead:
+    global: "0.055"
+  podResourceRequirements:
+    limits:
+      cpu: "1"
+      memory: 2Gi
+    requests:
+      cpu: 100m
+      memory: 256Mi

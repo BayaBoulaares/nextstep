@@ -1,0 +1,5 @@
+﻿spec:
+  source:
+    pvc:
+      namespace: openshift-virtualization-os-images
+      name: ubuntu-2404-golden-csi

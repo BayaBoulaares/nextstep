@@ -1,0 +1,21 @@
+﻿apiVersion: ocs.openshift.io/v1
+kind: StorageCluster
+metadata:
+  name: ocs-storagecluster
+  namespace: tenant-baya
+spec:
+  manageNodes: false
+  storageDeviceSets:
+    - name: ocs-deviceset
+      count: 1
+      replica: 1
+      portable: true
+      dataPVCTemplate:
+        spec:
+          storageClassName: nfs-csi
+          accessModes:
+            - ReadWriteOnce
+          resources:
+            requests:
+              storage: 100Gi
+          volumeMode: Filesystem

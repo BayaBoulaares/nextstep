@@ -1,0 +1,6 @@
+﻿apiVersion: snapshot.storage.k8s.io/v1
+kind: VolumeSnapshotClass
+metadata:
+  name: nfs-storage-snapclass
+driver: k8s-sigs.io/nfs-subdir-external-provisioner
+deletionPolicy: Delete

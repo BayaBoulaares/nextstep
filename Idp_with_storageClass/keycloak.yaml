@@ -1,0 +1,54 @@
+apiVersion: k8s.keycloak.org/v2beta1
+kind: Keycloak
+metadata:
+  name: keycloak-nfs
+  namespace: tenant-baya
+spec:
+  instances: 1
+
+  db:
+    vendor: postgres
+    host: postgresql-nfs
+    database: keycloak
+    usernameSecret:
+      name: keycloak-nfs-db-secret
+      key: username
+    passwordSecret:
+      name: keycloak-nfs-db-secret
+      key: password
+
+  hostname:
+    hostname: keycloak-nfs-nextstep-baya.apps.ocp4.nextstep-it.com
+
+  http:
+    httpEnabled: true
+
+  proxy:
+    headers: xforwarded
+
+  ingress:
+    enabled: true
+
+  unsupported:
+    podTemplate:
+      spec:
+        nodeSelector:
+          kubernetes.io/hostname: node1
+
+        volumes:
+        - name: keycloak-nfs-storage
+          persistentVolumeClaim:
+            claimName: keycloak-nfs-pvc   # ← nom corrigé (était postgres-pvc par erreur)
+
+        containers:
+        - name: keycloak
+          volumeMounts:
+          - name: keycloak-nfs-storage
+            mountPath: /opt/keycloak/data
+          startupProbe:
+            httpGet:
+              path: /health/started
+              port: 9000
+            initialDelaySeconds: 30
+            periodSeconds: 5
+            failureThreshold: 300

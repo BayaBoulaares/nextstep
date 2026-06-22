@@ -1,0 +1,24 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: postgres-cluster
+  namespace: tenant-baya
+spec:
+  instances: 3                    # 1 primary + 2 standby (HA sur vos 3 noeuds)
+  
+  postgresql:
+    parameters:
+      max_connections: "200"
+      shared_buffers: "256MB"
+  
+  storage:
+    size: 10Gi
+    storageClass: nfs-storage     # votre StorageClass par défaut (Retain)
+  
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "500m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"

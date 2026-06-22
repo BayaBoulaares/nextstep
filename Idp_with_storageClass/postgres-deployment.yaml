@@ -1,0 +1,173 @@
+# Version de l'API Kubernetes utilisée pour les Deployments
+
+apiVersion: apps/v1
+
+
+
+# Type de ressource Kubernetes
+
+kind: Deployment
+
+
+
+metadata:
+
+  # Nom du Deployment
+
+  name: postgres-nfs
+
+
+
+  # Namespace dans lequel sera créé le Deployment
+
+  namespace: tenant-baya
+
+
+
+spec:
+
+  # Nombre de réplicas (instances) du Pod PostgreSQL
+
+  replicas: 1
+
+
+
+  # Sélecteur permettant au Deployment d'identifier les Pods qu'il gère
+
+  selector:
+
+    matchLabels:
+
+      # Le Pod doit posséder le label app=postgres
+
+      app: postgres-nfs
+
+
+
+  # Modèle (template) utilisé pour créer les Pods
+
+  template:
+
+    metadata:
+
+      labels:
+
+        # Label attribué au Pod créé
+
+        app: postgres-nfs
+
+
+
+    spec:
+
+
+
+      # Force le Pod à être déployé sur le nœud nommé "node1"
+
+      nodeSelector:
+
+        kubernetes.io/hostname: node1
+
+
+
+      # Définit le groupe propriétaire des fichiers montés
+
+      securityContext:
+
+        # L'utilisateur du conteneur pourra accéder aux fichiers du volume
+
+        # avec le groupe Linux 26 (postgres)
+
+        fsGroup: 26
+
+
+
+      containers:
+
+
+
+      # Définition du conteneur PostgreSQL
+
+      - name: postgres
+
+
+
+        # Image PostgreSQL 15 officielle Red Hat
+
+        image: registry.redhat.io/rhel9/postgresql-15:latest
+
+
+
+        ports:
+
+
+
+        # Port exposé à l'intérieur du conteneur
+
+        - containerPort: 5432
+
+
+
+        env:
+
+
+
+        # Nom de l'utilisateur PostgreSQL à créer
+
+        - name: POSTGRESQL_USER
+
+          value: keycloak
+
+
+
+        # Mot de passe de l'utilisateur PostgreSQL
+
+        - name: POSTGRESQL_PASSWORD
+
+          value: keycloak123
+
+
+
+        # Base de données créée au démarrage
+
+        - name: POSTGRESQL_DATABASE
+
+          value: keycloak
+
+
+
+        volumeMounts:
+
+
+
+        # Montage du volume persistant dans le conteneur
+
+        - name: pgdata
+
+
+
+          # Répertoire où PostgreSQL stocke ses données
+
+          mountPath: /var/lib/pgsql/data
+
+
+
+      volumes:
+
+
+
+      # Déclaration du volume utilisé par le Pod
+
+      - name: pgdata
+
+
+
+        # Le volume est fourni par un PVC existant
+
+        persistentVolumeClaim:
+
+
+
+          # Nom du PVC à utiliser
+
+          claimName: postgres-nfs-pvc

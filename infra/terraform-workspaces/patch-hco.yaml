@@ -1,0 +1,9 @@
+﻿spec:
+  resourceRequirements:
+    storageWorkloads:
+      limits:
+        memory: "2Gi"
+        cpu: "1"
+      requests:
+        memory: "256Mi"
+        cpu: "100m"

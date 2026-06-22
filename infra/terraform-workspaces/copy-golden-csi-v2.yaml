@@ -1,0 +1,31 @@
+﻿apiVersion: batch/v1
+kind: Job
+metadata:
+  name: copy-golden-to-csi-v2
+  namespace: openshift-virtualization-os-images
+spec:
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: copy
+          image: busybox
+          command:
+            - sh
+            - -c
+            - |
+              echo "Debut copie..." && \
+              dd if=/source/disk.img of=/dest/disk.img bs=4M && \
+              echo "DONE"
+          volumeMounts:
+            - name: source
+              mountPath: /source
+            - name: dest
+              mountPath: /dest
+      volumes:
+        - name: source
+          persistentVolumeClaim:
+            claimName: ubuntu-2404-golden
+        - name: dest
+          persistentVolumeClaim:
+            claimName: ubuntu-2404-golden-csi

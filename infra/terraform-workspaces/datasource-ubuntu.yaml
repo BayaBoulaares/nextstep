@@ -1,0 +1,10 @@
+﻿apiVersion: cdi.kubevirt.io/v1beta1
+kind: DataSource
+metadata:
+  name: ubuntu-2404
+  namespace: openshift-virtualization-os-images
+spec:
+  source:
+    pvc:
+      namespace: openshift-virtualization-os-images
+      name: ubuntu-2404-golden
