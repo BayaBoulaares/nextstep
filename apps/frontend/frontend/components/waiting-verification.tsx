@@ -94,7 +94,8 @@ export function WaitingVerification({ email, firstName, onBack }: WaitingVerific
                   type="button"
                   onClick={handleResend}
                   disabled={resending}
-                  className="underline underline-offset-4 hover:text-foreground font-medium transition-colors disabled:opacity-50"
+                  className="disabled:opacity-50"
+                  style={{ color: '#017FCF' }}
                 >
                   {resending ? (
                     <span className="inline-flex items-center gap-1">

@@ -45,11 +45,9 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
         redirect: false,
         email,
         password,
-        // ✅ "on" si coché, absent sinon — lu dans authorize() puis propagé au JWT
         rememberMe: rememberMe ? "on" : undefined,
       })
       if (result?.error) {
-        // ✅ Distinguer session expirée et mauvais identifiants
         if (result.error === "SessionExpired") {
           setError("Votre session a expiré, veuillez vous reconnecter")
         } else {
@@ -102,18 +100,19 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
 
   return (
     <div className={cn("flex flex-col gap-6", className)}>
-      <Card className="overflow-hidden p-0">
-        <CardContent className="grid p-0 md:grid-cols-2">
+      <Card className="overflow-hidden p-0 max-w-5xl mx-auto">
+        <CardContent className="grid p-0 md:grid-cols-2 min-h-[550px]">
 
-          <div className="p-6 md:p-8">
+          <div className="p-8 md:p-10">
 
             {/* ════════ VIEW : LOGIN ════════ */}
             {view === "login" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-5 max-w-sm mx-auto">
                 <div className="flex flex-col items-center gap-2 text-center">
-
-                  <h1 className="text-2xl font-bold !text-[#0a7fcf]">Connexion</h1>
-                  <p className="text-muted-foreground text-balance text-sm">
+                  <h1 className="text-2xl md:text-3xl font-bold !text-[#0a7fcf]">
+                    Connexion
+                  </h1>
+                  <p className="text-muted-foreground text-sm">
                     Entrez vos identifiants pour accéder à votre espace
                   </p>
                 </div>
@@ -124,8 +123,6 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                     {error}
                   </div>
                 )}
-
-
 
                 {/* ── Formulaire email/password ── */}
                 <form onSubmit={handleLogin} className="flex flex-col gap-4">
@@ -139,6 +136,7 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                       autoComplete="email"
                       value={email}
                       onChange={e => setEmail(e.target.value)}
+                      className="h-11"
                     />
                   </div>
 
@@ -148,7 +146,8 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                       <button
                         type="button"
                         onClick={() => { setError(""); setView("forgot") }}
-                        className="text-xs text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors"
+                        className="text-xs text-muted-foreground hover:text-primary transition-colors"
+                        style={{ color: '#017FCF' }}
                       >
                         Mot de passe oublié ?
                       </button>
@@ -161,10 +160,11 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                       autoComplete="current-password"
                       value={password}
                       onChange={e => setPassword(e.target.value)}
+                      className="h-11"
                     />
                   </div>
 
-                  {/* ✅ Checkbox "Se souvenir de moi" — correctement branché */}
+                  {/* ✅ Checkbox "Se souvenir de moi" */}
                   <div className="flex items-center gap-2">
                     <Checkbox
                       id="remember-me"
@@ -176,14 +176,15 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                       htmlFor="remember-me"
                       className="text-sm font-normal cursor-pointer select-none"
                     >
-                      Se souvenir de moi{" "}
-                      <span className="text-muted-foreground text-xs">
-
-                      </span>
+                      Se souvenir de moi
                     </Label>
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full" style={{ backgroundColor: "#0a7fcf", borderColor: "#0a7fcf" }}
+                  <Button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full h-11"
+                    style={{ backgroundColor: "#0a7fcf", borderColor: "#0a7fcf" }}
                   >
                     {loading
                       ? <><IconLoader2 className="size-4 animate-spin mr-2" />Connexion…</>
@@ -198,7 +199,7 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                     type="button"
                     onClick={onSwitchToRegister}
                     style={{ color: "#0a7fcf" }}
-                    className="underline underline-offset-4 hover:text-primary transition-colors"
+                    className="font-medium hover:underline transition-colors"
                   >
                     Créer un compte
                   </button>
@@ -208,10 +209,12 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
 
             {/* ════════ VIEW : FORGOT PASSWORD ════════ */}
             {view === "forgot" && (
-              <form onSubmit={handleForgotPassword} className="flex flex-col gap-5">
+              <form onSubmit={handleForgotPassword} className="flex flex-col gap-5 max-w-sm mx-auto">
                 <div className="flex flex-col items-center gap-2 text-center">
-                  <h1 className="text-2xl font-bold">Mot de passe oublié</h1>
-                  <p className="text-muted-foreground text-balance text-sm">
+                  <h1 className="text-2xl md:text-3xl font-bold text-[#017FCF]">
+                    Mot de passe oublié
+                  </h1>
+                  <p className="text-muted-foreground text-sm">
                     Entrez votre email et nous vous enverrons un lien de réinitialisation
                   </p>
                 </div>
@@ -233,10 +236,16 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                     autoComplete="email"
                     value={forgotEmail}
                     onChange={e => setForgotEmail(e.target.value)}
+                    className="h-11"
                   />
                 </div>
 
-                <Button type="submit" disabled={loading} className="w-full">
+                <Button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full h-11"
+                  style={{ backgroundColor: '#017FCF' }}
+                >
                   {loading
                     ? <><IconLoader2 className="size-4 animate-spin mr-2" />Envoi…</>
                     : "Envoyer le lien"
@@ -246,7 +255,8 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                 <button
                   type="button"
                   onClick={() => { setError(""); setView("login") }}
-                  className="text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-primary transition-colors"
+                  className="text-center text-sm transition-colors font-medium"
+                  style={{ color: '#017FCF' }}
                 >
                   ← Retour à la connexion
                 </button>
@@ -255,13 +265,15 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
 
             {/* ════════ VIEW : FORGOT SENT ════════ */}
             {view === "forgot-sent" && (
-              <div className="flex flex-col gap-5">
+              <div className="flex flex-col gap-5 max-w-sm mx-auto justify-center min-h-[400px]">
                 <div className="flex flex-col items-center gap-3 text-center">
-                  <div className="flex size-12 items-center justify-center rounded-full bg-emerald-100">
-                    <IconCircleCheck className="size-6 text-emerald-600" />
+                  <div className="flex size-14 items-center justify-center rounded-full bg-emerald-100">
+                    <IconCircleCheck className="size-7 text-emerald-600" />
                   </div>
-                  <h1 className="text-2xl font-bold">Email envoyé !</h1>
-                  <p className="text-muted-foreground text-balance text-sm">
+                  <h1 className="text-2xl md:text-3xl font-bold" style={{ color: '#017FCF' }}>
+                    Email envoyé !
+                  </h1>
+                  <p className="text-muted-foreground text-sm">
                     Si un compte existe pour <strong>{forgotEmail}</strong>, vous recevrez
                     un lien de réinitialisation dans quelques minutes.
                   </p>
@@ -271,7 +283,8 @@ export function LoginForm({ className, onSwitchToRegister }: LoginFormProps) {
                 </div>
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full h-11"
+                  style={{ borderColor: '#017FCF', color: '#017FCF' }}
                   onClick={() => { setForgotEmail(""); setError(""); setView("login") }}
                 >
                   Retour à la connexion

@@ -1,25 +1,25 @@
 "use client"
 
 import { useState, useEffect, Suspense } from "react"
-import { useSearchParams, useRouter }    from "next/navigation"
-import { Button }  from "@/components/ui/button"
-import { Input }   from "@/components/ui/input"
-import { Label }   from "@/components/ui/label"
+import { useSearchParams, useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { Card, CardContent } from "@/components/ui/card"
 import { IconLoader2, IconAlertCircle, IconCircleCheck } from "@tabler/icons-react"
 
 function ResetPasswordForm() {
   const searchParams = useSearchParams()
-  const router       = useRouter()
+  const router = useRouter()
 
   const token = searchParams.get("token") ?? ""
   const email = searchParams.get("email") ?? ""
 
-  const [password,  setPassword]  = useState("")
-  const [confirm,   setConfirm]   = useState("")
-  const [error,     setError]     = useState("")
-  const [success,   setSuccess]   = useState(false)
-  const [loading,   setLoading]   = useState(false)
+  const [password, setPassword] = useState("")
+  const [confirm, setConfirm] = useState("")
+  const [error, setError] = useState("")
+  const [success, setSuccess] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -37,9 +37,9 @@ function ResetPasswordForm() {
     setLoading(true)
     try {
       const res = await fetch("/api/auth/reset-password", {
-        method:  "POST",
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ token, email, password }),
+        body: JSON.stringify({ token, email, password }),
       })
 
       const data = await res.json()
@@ -85,7 +85,9 @@ function ResetPasswordForm() {
           ) : (
             <form onSubmit={handleSubmit} className="flex flex-col gap-5">
               <div className="flex flex-col items-center gap-2 text-center">
-                <h1 className="text-2xl font-bold">Nouveau mot de passe</h1>
+                <h1 className="text-2xl font-bold" style={{ color: '#017FCF' }}>
+                  Nouveau mot de passe
+                </h1>
                 <p className="text-muted-foreground text-sm">
                   Choisissez un mot de passe sécurisé
                 </p>
@@ -122,7 +124,12 @@ function ResetPasswordForm() {
                 />
               </div>
 
-              <Button type="submit" disabled={loading} className="w-full">
+              <Button
+                type="submit"
+                disabled={loading}
+                className="w-full"
+                style={{ backgroundColor: '#017FCF' }}
+              >
                 {loading
                   ? <><IconLoader2 className="size-4 animate-spin mr-2" />Enregistrement…</>
                   : "Réinitialiser le mot de passe"
