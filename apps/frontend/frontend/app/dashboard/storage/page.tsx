@@ -32,6 +32,8 @@ import type {
 import { cn } from "@/lib/utils"
 import { useStorageDeployments, type StorageDeployment } from "@/lib/hooks/useStorageDeployments"
 import { CopyButton } from "@/components/CopyButton"
+import { getMyVms, type VmDTO } from "@/lib/services/vms.api"
+
 // ══════════════════════════════════════════════════════════════════════════════
 // Constantes
 // ══════════════════════════════════════════════════════════════════════════════
@@ -175,7 +177,145 @@ function NotifyContainer({ items, dismiss }: {
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// StorageCredentialsPanel
+// AttachToVmPanel — remplace le bloc YAML pour Block/File Storage
+// ══════════════════════════════════════════════════════════════════════════════
+
+function AttachToVmPanel({
+    deploymentId, accessMode, capacity, storageType, attachedVmName,
+}: {
+    deploymentId: number; pvcName: string; namespace: string; accessMode: string
+    capacity: string; storageType: StorageType; attachedVmName: string | null
+}) {
+    const [vms, setVms] = React.useState<VmDTO[]>([])
+    const [selectedVm, setSelectedVm] = React.useState("")
+    const [loadingVms, setLoadingVms] = React.useState(true)
+    const [attaching, setAttaching] = React.useState(false)
+    const [detaching, setDetaching] = React.useState(false)
+    const [currentAttached, setCurrentAttached] = React.useState(attachedVmName)
+    const [actionError, setActionError] = React.useState<string | null>(null)
+
+    React.useEffect(() => {
+        getMyVms()
+            .then(setVms)
+            .catch(() => { })
+            .finally(() => setLoadingVms(false))
+    }, [])
+
+    React.useEffect(() => {
+        setCurrentAttached(attachedVmName)
+    }, [attachedVmName])
+
+    const handleAttach = async () => {
+        if (!selectedVm) return
+        setAttaching(true)
+        setActionError(null)
+        try {
+            await apiFetch(`/api/storage/${deploymentId}/attach`, {
+                method: "PATCH",
+                body: JSON.stringify({ vmName: selectedVm }),
+            })
+            setCurrentAttached(selectedVm)
+        } catch (e: any) {
+            setActionError(e.message ?? "Erreur lors de l'attachement")
+        } finally {
+            setAttaching(false)
+        }
+    }
+
+    const handleDetach = async () => {
+        setDetaching(true)
+        setActionError(null)
+        try {
+            await apiFetch(`/api/storage/${deploymentId}/detach`, { method: "PATCH" })
+            setCurrentAttached(null)
+        } catch (e: any) {
+            setActionError(e.message ?? "Erreur lors du détachement")
+        } finally {
+            setDetaching(false)
+        }
+    }
+
+    return (
+        <div className="p-5 space-y-3">
+            <div className="grid grid-cols-2 gap-2">
+                <InfoCard label="Capacité" value={capacity} />
+                <InfoCard label="Mode d'accès" value={accessMode} mono={false} />
+            </div>
+
+            {actionError && (
+                <p className="text-[11px] text-red-600 bg-red-50 border border-red-200 rounded-xl px-3 py-2">
+                    {actionError}
+                </p>
+            )}
+
+            {currentAttached ? (
+                <div className="border border-emerald-200 bg-emerald-50 rounded-xl p-4 space-y-2">
+                    <p className="text-[13px] font-medium text-emerald-800">
+                        Attaché à la VM <code className="font-mono">{currentAttached}</code>
+                    </p>
+                    <p className="text-[11px] text-emerald-700">
+                        Redémarrez la VM si le volume n'est pas encore visible à l'intérieur.
+                    </p>
+                    <Button
+                        size="sm" variant="outline"
+                        className="h-7 text-[12px] text-red-600 border-red-200 hover:bg-red-50"
+                        onClick={handleDetach} disabled={detaching}
+                    >
+                        {detaching ? <Loader2 className="w-3 h-3 mr-1 animate-spin" /> : null}
+                        Détacher
+                    </Button>
+                </div>
+            ) : (
+                <div className="border border-border/60 rounded-xl p-4 space-y-3">
+                    <p className="text-[13px] font-medium">Attacher ce volume à une VM</p>
+                    {loadingVms ? (
+                        <Loader2 className="size-4 animate-spin text-muted-foreground" />
+                    ) : vms.length === 0 ? (
+                        <p className="text-[12px] text-muted-foreground">
+                            Aucune VM disponible. Déployez une VM depuis le Marketplace d'abord.
+                        </p>
+                    ) : (
+                        <>
+                            <select
+                                value={selectedVm}
+                                onChange={e => setSelectedVm(e.target.value)}
+                                className="w-full h-9 rounded-lg border border-border bg-muted/40 px-3 text-[13px]"
+                            >
+                                <option value="">Sélectionner une VM…</option>
+                                {vms.map(vm => (
+                                    <option key={vm.name} value={vm.name}>{vm.name}</option>
+                                ))}
+                            </select>
+                            <Button
+                                className="w-full h-9 text-[12px]"
+                                disabled={!selectedVm || attaching}
+                                onClick={handleAttach}
+                            >
+                                {attaching ? <Loader2 className="w-3.5 h-3.5 animate-spin mr-1.5" /> : null}
+                                Attacher le volume
+                            </Button>
+                        </>
+                    )}
+                </div>
+            )}
+
+            {storageType === "FILE_STORAGE" && (
+                <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-[11px] text-amber-700 flex items-start gap-2">
+                    <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
+                    Ce volume ReadWriteMany peut être attaché à plusieurs VMs simultanément.
+                </div>
+            )}
+
+            <p className="text-[11px] text-muted-foreground bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                ⚠ La VM doit être redémarrée pour que le nouveau disque soit visible à l'intérieur
+                (montage manuel ensuite via <code className="font-mono">mkfs</code> + <code className="font-mono">mount</code> au premier usage).
+            </p>
+        </div>
+    )
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// StorageCredentialsPanel — onglet "Accès"
 // ══════════════════════════════════════════════════════════════════════════════
 
 function StorageCredentialsPanel({ deploymentId, storageType, storage }: {
@@ -186,6 +326,7 @@ function StorageCredentialsPanel({ deploymentId, storageType, storage }: {
     const [error, setError] = React.useState<string | null>(null)
     const [showSecret, setShowSecret] = React.useState(false)
     const [copied, setCopied] = React.useState<string | null>(null)
+
     // ← Appeler l'API SEULEMENT pour Object Storage
     React.useEffect(() => {
         if (storageType !== "OBJECT_STORAGE") return
@@ -208,58 +349,29 @@ function StorageCredentialsPanel({ deploymentId, storageType, storage }: {
         </div>
     )
 
+    // ── Block / File Storage : attachement direct à une VM, plus de YAML ──────
     if (storageType !== "OBJECT_STORAGE") {
-        const pvcName = storage?.pvcName ?? "<nom-de-votre-pvc>"
-        const namespace = storage?.namespace ?? "<namespace>"
+        const pvcName = storage?.pvcName ?? "—"
+        const namespace = storage?.namespace ?? "—"
         const accessMode = storage?.accessMode ?? (
             storageType === "FILE_STORAGE" ? "ReadWriteMany" : "ReadWriteOnce"
         )
+        const attachedVmName = (storage as any)?.attachedVmName ?? null
 
         return (
-            <div className="p-5 space-y-3">
-                {/* Info PVC */}
-                <div className="grid grid-cols-2 gap-2">
-                    <InfoCard label="Nom du PVC" value={pvcName} />
-                    <InfoCard label="Namespace" value={namespace} />
-                    <InfoCard label="Mode d'accès" value={accessMode} mono={false} />
-                    <InfoCard label="Capacité" value={storage?.capacity ?? "—"} mono={false} />
-                </div>
-
-                {/* Bouton copier le nom du PVC */}
-                <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 flex items-center justify-between">
-                    <div>
-                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-0.5">
-                            Nom du PVC
-                        </p>
-                        <code className="text-[13px] font-mono font-medium">{pvcName}</code>
-                    </div>
-                    <CopyButton value={pvcName} />
-                </div>
-
-                {/* Exemple YAML */}
-                <div className="bg-zinc-900 rounded-xl px-4 py-3 font-mono text-[12px] text-emerald-400 space-y-0.5">
-                    <p className="text-zinc-500 text-[10px] mb-2"># Montage dans votre Deployment</p>
-                    <p>volumes:</p>
-                    <p className="ml-4">- name: storage</p>
-                    <p className="ml-6">persistentVolumeClaim:</p>
-                    <p className="ml-8">claimName: <span className="text-white">{pvcName}</span></p>
-                    <p>volumeMounts:</p>
-                    <p className="ml-4">- name: storage</p>
-                    <p className="ml-6">mountPath: <span className="text-amber-400">/mnt/data</span></p>
-                    <p className="text-zinc-500 mt-2"># namespace: {namespace}</p>
-                    <p className="text-zinc-500"># accessMode: {accessMode}</p>
-                </div>
-
-                {storageType === "FILE_STORAGE" && (
-                    <div className="bg-amber-50 border border-amber-200 rounded-xl px-3 py-2.5 text-[11px] text-amber-700 flex items-start gap-2">
-                        <Info className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                        Ce volume ReadWriteMany peut être monté simultanément par plusieurs pods.
-                    </div>
-                )}
-            </div>
+            <AttachToVmPanel
+                deploymentId={deploymentId}
+                pvcName={pvcName}
+                namespace={namespace}
+                accessMode={accessMode}
+                capacity={storage?.capacity ?? "—"}
+                storageType={storageType as StorageType}
+                attachedVmName={attachedVmName}
+            />
         )
     }
 
+    // ── Object Storage : credentials S3 ────────────────────────────────────────
     if (error || !creds?.accessKeyId) {
         return (
             <div className="p-5">
@@ -371,6 +483,7 @@ function EndpointDisplay({ deploymentId }: { deploymentId: number }) {
         </div>
     )
 }
+
 // ══════════════════════════════════════════════════════════════════════════════
 // StorageDetailCard
 // ══════════════════════════════════════════════════════════════════════════════
@@ -393,7 +506,6 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
         setCopied(key)
         setTimeout(() => setCopied(null), 2000)
     }
-
 
     // ── Panel Overview ────────────────────────────────────────────────────────
     const PanelOverview = () => (
@@ -459,7 +571,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                     <CopyButton value={storage.bucketName} />
                 </div>
             )}
-            {/* ← NOUVEAU — Block/File : afficher le PVC */}
+
             {(storageType === "BLOCK_STORAGE" || storageType === "FILE_STORAGE") && storage?.pvcName && (
                 <div className="bg-violet-50 border border-violet-100 rounded-xl px-4 py-3 flex items-center justify-between">
                     <div>
@@ -473,6 +585,21 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                     <CopyButton value={storage.pvcName} />
                 </div>
             )}
+
+            {(storageType === "BLOCK_STORAGE" || storageType === "FILE_STORAGE")
+                && (storage as any)?.attachedVmName && (
+                <div className="bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-3 flex items-center justify-between">
+                    <div>
+                        <p className="text-[10px] text-emerald-600 uppercase tracking-wider mb-0.5">
+                            Attaché à la VM
+                        </p>
+                        <code className="text-[13px] font-mono font-medium text-emerald-700">
+                            {(storage as any).attachedVmName}
+                        </code>
+                    </div>
+                </div>
+            )}
+
             {storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
                 <EndpointDisplay deploymentId={item.deploymentId} />
             )}
@@ -503,6 +630,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                     <p>Provisionnement en cours la ressource sera prête dans quelques instants.</p>
                 </div>
             )}
+
             {storageType === "OBJECT_STORAGE" && storage?.status === "READY" && (
                 <div className="bg-muted/40 border border-border/60 rounded-xl px-4 py-3 flex items-center justify-between">
                     <div>
@@ -535,7 +663,7 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
         </div>
     )
 
-    // ── Panel Fichiers — DANS StorageDetailCard pour accéder à item/storageType/notify ──
+    // ── Panel Fichiers — uniquement Object Storage ─────────────────────────────
     const PanelFichiers = () => {
         const [objects, setObjects] = React.useState<any[]>([])
         const [loadingList, setLoadingList] = React.useState(true)
@@ -555,9 +683,10 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
         }, [])
 
         React.useEffect(() => {
-            if (storageType !== "OBJECT_STORAGE") return  // ← ajouter
+            if (storageType !== "OBJECT_STORAGE") return
             load()
         }, [load])
+
         const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
             const file = e.target.files?.[0]
             if (!file) return
@@ -682,6 +811,10 @@ function StorageDetailCard({ item, onDeleteRequest, onRefresh, notify }: {
                 ...(storageType !== "OBJECT_STORAGE" && storage?.pvcName ? [{
                     label: "Nom du PVC",
                     value: storage.pvcName,
+                }] : []),
+                ...(storageType !== "OBJECT_STORAGE" && (storage as any)?.attachedVmName ? [{
+                    label: "VM attachée",
+                    value: (storage as any).attachedVmName,
                 }] : []),
             ].map(({ label, value }) => (
                 <div key={label} className="flex items-center justify-between py-2.5 px-3 bg-muted/30 border border-border/50 rounded-xl text-[13px]">
@@ -875,8 +1008,7 @@ export default function StoragePage() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Supprimer cette ressource de stockage ?</AlertDialogTitle>
                         <AlertDialogDescription>
-                            La ressource <strong>{deleteTarget?.name}</strong> sera définitivement supprimée
-                            du cluster OpenShift. Toutes les données seront perdues.
+                            La ressource <strong>{deleteTarget?.name}</strong> sera définitivement supprimée. Toutes les données seront perdues.
                         </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
@@ -916,7 +1048,7 @@ export default function StoragePage() {
                 <div>
                     <h1 className="text-xl font-semibold tracking-tight">Mes ressources de stockage</h1>
                     <p className="text-[13px] text-muted-foreground mt-1">
-                        Gérez vos buckets S3, volumes block et partages de fichiers sur OpenShift.
+                        Gérez vos buckets S3, volumes block et partages de fichiers.
                     </p>
                 </div>
 

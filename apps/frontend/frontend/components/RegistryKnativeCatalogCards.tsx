@@ -29,7 +29,7 @@ export function RegistryCatalogCard() {
 
       <div className="px-5 pb-4">
         <p className="text-[12px] text-muted-foreground leading-relaxed">
-          Registre d'images <strong>privé par défaut</strong> — inclus dans votre cluster OpenShift.
+          Registre d'images <strong>privé par défaut</strong>
           Isolation totale via namespace dédié. ServiceAccount + pull secret auto-générés.
         </p>
       </div>

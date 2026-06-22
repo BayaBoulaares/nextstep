@@ -80,7 +80,7 @@ export function NginxUploadZone() {
           Glissez vos fichiers ici ou cliquez pour sélectionner
         </p>
         <p className="text-[11px] text-muted-foreground mt-1">
-          HTML, CSS, JS, images — déposés dans <code>/opt/app-root/src</code>
+          HTML, CSS, JS, images{ /*— déposés dans /opt/app-root/src*/}
         </p>
         <input
           ref={inputRef}

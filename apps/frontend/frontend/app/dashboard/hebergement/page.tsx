@@ -140,7 +140,7 @@ export default function HebergementPage() {
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Hébergement Web nginx</h1>
           <p className="text-[13px] text-muted-foreground mt-1">
-            Gérez votre service nginx dédié sur le cluster OpenShift.
+            Gérez votre service nginx dédié.
           </p>
         </div>
 

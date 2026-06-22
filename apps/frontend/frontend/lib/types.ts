@@ -325,11 +325,10 @@ export const REGISTRY_STATUS_META: Record<RegistryStatus, {
 
 // Features de l'Internal Registry pour affichage catalogue
 export const INTERNAL_REGISTRY_FEATURES = [
-  "Privé par défaut — isolation namespace OpenShift",
+  "Privé par défaut",
   "ServiceAccount + pull secret auto-générés",
   "Accessible en interne (cluster) et externe (Route)",
   "Compatible S2I et Tekton Pipelines",
-  "Zéro coût — inclus dans OpenShift",
 ]
 
 // ══════════════════════════════════════════════════════════════════════════════
@@ -511,6 +510,8 @@ export interface DatabaseResourceResponse {
   errorMessage: string | null
   externalPort: number | null   // ← ajouter cette ligne
   externalHost: string | null  // ← ajouter
+  postgresVersion?: string | null   // ← ajouter
+
 
 }
 
@@ -548,7 +549,7 @@ export const DATABASE_DEPLOY_STEPS = [
   { id: 2, label: "Création du cluster", description: "Déploiement CloudNativePG sur OpenShift" },
   { id: 3, label: "Initialisation", description: "Primary + Standbys en cours de démarrage" },
   { id: 4, label: "Réplication active", description: "Streaming replication entre les instances" },
-  { id: 5, label: "Base de données prête", description: "Credentials disponibles — connexion active" },
+  { id: 5, label: "Base de données prête", description: "Credentials disponibles" },
 ]
 // ─────────────────────────────────────────────────────────────────────────────
 // AJOUTS à faire dans @/lib/types.ts

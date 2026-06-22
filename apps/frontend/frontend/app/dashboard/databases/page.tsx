@@ -180,8 +180,7 @@ function DatabaseCard({
   }
 
   const status = (dbResource?.status ?? "PROVISIONING") as DatabaseStatus
-  const createdAt = formatDate(deployment.createdAt)
-
+const createdAt = formatDate(deployment.createdAt ?? undefined)
   return (
     <div className={cn(
       "border rounded-2xl overflow-hidden bg-card transition-colors",

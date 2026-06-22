@@ -149,7 +149,7 @@ export function VmTable({ vms, onRefresh }: Props) {
           <AlertDialogHeader>
             <AlertDialogTitle>Supprimer la VM ?</AlertDialogTitle>
             <AlertDialogDescription>
-              La VM <strong>{deleteTarget}</strong> sera définitivement supprimée du cluster OpenShift.
+              La VM <strong>{deleteTarget}</strong> sera définitivement supprimée.
               Cette action est irréversible.
             </AlertDialogDescription>
           </AlertDialogHeader>

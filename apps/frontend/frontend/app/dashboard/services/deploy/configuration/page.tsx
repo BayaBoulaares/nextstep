@@ -720,7 +720,7 @@ export default function ConfigurationPage() {
               {resourceNameError
                 ? <p className="text-[11px] text-destructive">{resourceNameError}</p>
                 : <p className="text-[11px] text-muted-foreground">
-                  Minuscules, chiffres et tirets — 2 à 63 caractères
+                  Minuscules, chiffres et tirets 2 à 63 caractères
                 </p>
               }
             </div>

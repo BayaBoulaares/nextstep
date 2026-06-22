@@ -319,11 +319,10 @@ export default function RegistryPage() {
             <Server className="w-5 h-5 shrink-0 mt-0.5" style={{ color: PRIMARY_COLOR }} />
             <div>
               <p className="text-[13px] font-semibold" style={{ color: PRIMARY_COLOR }}>
-                Internal Registry OpenShift — Privé par défaut
+                Internal Registry privé par défaut
               </p>
               <p className="text-[12px] text-muted-foreground mt-0.5 leading-relaxed">
-                Registre d'images inclus dans votre cluster OpenShift. Chaque registry est isolé
-                dans un namespace dédié. Le token d'accès est géré automatiquement via ServiceAccount.
+                Registre d'images. Le token d'accès est géré automatiquement via ServiceAccount.
               </p>
               <div className="flex flex-wrap gap-1.5 mt-3">
                 {INTERNAL_REGISTRY_FEATURES.map(f => (
@@ -344,7 +343,7 @@ export default function RegistryPage() {
           </div>
 
           {/* Formulaire */}
-          <SectionCard icon={Package} title="Créer un registre" sub="Un registre = un namespace OpenShift isolé + SA token auto-généré">
+          <SectionCard icon={Package} title="Créer un registre" sub="Un registre + SA token auto-généré">
             <div className="space-y-1.5">
               <Label className="text-[12px]">Nom du registre *</Label>
               <Input
@@ -356,7 +355,7 @@ export default function RegistryPage() {
               {nameError
                 ? <p className="text-[11px] text-destructive">{nameError}</p>
                 : <p className="text-[11px] text-muted-foreground">
-                    Minuscules, chiffres et tirets — 2 à 63 caractères
+                    Minuscules, chiffres et tirets 2 à 63 caractères
                   </p>
               }
             </div>
@@ -485,8 +484,8 @@ export default function RegistryPage() {
           <div className="border border-border rounded-xl px-4 py-3 text-[11px] text-muted-foreground bg-muted/20 flex items-start gap-2">
             <Lock className="w-3.5 h-3.5 shrink-0 mt-0.5" style={{ color: PRIMARY_COLOR }} />
             <span>
-              Authentification via token ServiceAccount OpenShift — pas le mot de passe Keycloak.
-              Commandes disponibles après création.
+              Authentification via token ServiceAccount {/*OpenShift — pas le mot de passe Keycloak.
+              Commandes disponibles après création.*/}
             </span>
           </div>
 

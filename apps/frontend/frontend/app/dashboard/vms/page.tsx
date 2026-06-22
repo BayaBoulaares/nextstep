@@ -927,9 +927,10 @@ function VmDetailCard({ vm, onAction, actionLoading, onDeleteRequest, onRefresh,
                             <td className="px-3 py-2.5">
                               <span className={cn("text-[10px] px-1.5 py-0.5 rounded font-medium",
                                 disk.source === "DataVolume" ? "bg-blue-50 text-blue-700"
-                                  : disk.source === "CloudInit" ? "bg-purple-50 text-purple-700"
-                                    : disk.source === "ContainerDisk" ? "bg-amber-50 text-amber-700"
-                                      : "bg-muted text-muted-foreground")}>
+                                  : disk.source === "PersistentVolumeClaim" ? "bg-violet-50 text-violet-700"  // ← ajouter
+                                    : disk.source === "CloudInit" ? "bg-purple-50 text-purple-700"
+                                      : disk.source === "ContainerDisk" ? "bg-amber-50 text-amber-700"
+                                        : "bg-muted text-muted-foreground")}>
                                 {disk.source === "CloudInit" ? "Autre" : disk.source}
                               </span>
                               {disk.sourceRef !== "-" && (
