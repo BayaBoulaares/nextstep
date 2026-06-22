@@ -1,0 +1,1 @@
+﻿[{"op":"replace","path":"/spec/template/spec/containers/0/image","value":"image-registry.openshift-image-registry.svc:5000/openshift/nginx:1.24-ubi8"}]

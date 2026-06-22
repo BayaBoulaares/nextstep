@@ -1,0 +1,12 @@
+﻿[
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/volumeMounts/0/mountPath",
+    "value": "/etc/nginx/nginx.conf"
+  },
+  {
+    "op": "replace",
+    "path": "/spec/template/spec/containers/0/volumeMounts/0/subPath",
+    "value": "nginx.conf"
+  }
+]

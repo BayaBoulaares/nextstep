@@ -1,0 +1,5 @@
+﻿[{
+  "op": "replace",
+  "path": "/spec/template/spec/initContainers/0/command",
+  "value": ["sh", "-c", "cp /tmp/index-branded/index.html /opt/app-root/src/index.html && chown -R 1001:1001 /opt/app-root/src && chmod -R 755 /opt/app-root/src"]
+}]
