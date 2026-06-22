@@ -297,6 +297,8 @@ public class DeploymentController {
                     // ← AJOUTER ces deux lignes manquantes
                     dto.put("pvcName",          sr.getPvcName());
                     dto.put("accessMode",       sr.getAccessMode());
+                    dto.put("attachedVmName",   sr.getAttachedVmName());  // ← AJOUTER cette ligne
+
                     return ResponseEntity.ok(dto);
                 })
                 .orElse(ResponseEntity.notFound().build());
